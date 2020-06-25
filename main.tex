@@ -50,7 +50,14 @@
 
 \makeindex
 \title{
-\includegraphics[scale=0.5]{fig/quarkts.png}\\ \large{Quick user manual} }
+\large{Quick user manual}
+}
+
+\makeatletter
+\let\oldtitle\@title
+\def\@title{\includegraphics[scale=0.5]{fig/quarkts.png}\\\oldtitle}
+\makeatother
+
 %\title{User Manual \\ \small{valid for v4.9.1}}
 %\title{\includegraphics[scale=0.2]{fig/quarkts.png}\\ Brief Article}
 
@@ -276,7 +283,7 @@ The OS  uses a \textit{Task Control Block} (TCB) to represent each task, storing
 
 Each task performs its activities via a callback function and each of them is responsible for supporting cooperative multitasking by being “good neighbors”, i.e., running their callback methods quickly in a non-blocking way and releasing control back to the scheduler as soon as possible (returning). \\
 
-Every task node, must be defined using the \lstinline{qTask_t} \index{\lstinline{qTask_t}} data-type and the callback is defined as a function that returns \lstinline{void} and takes a \lstinline{qEvent_t} data structure as its only parameter (This input argument can be used later to get event information, see section \ref{eventdata}).\\
+Every task node, must be defined using the \lstinline{qTask_t} \index{\lstinline{qTask_t}} data-type and the callback is defined as a function that returns \lstinline{void} and takes a \lstinline{qEvent_t} data structure as its only parameter (This input argument can be used later to get event information, see section \ref{eventdata}).
 
 \begin{lstlisting}[style=CStyle]
 qTask_t UserTask;
@@ -354,7 +361,7 @@ The API \lstinline{qOS_Add_EventTask()} \index{\lstinline{qOS_Add_EventTask}} is
 \begin{lstlisting}[style=CStyle]
 qBool_t qOS_Add_EventTask( qTask_t * const Task, qTaskFcn_t CallbackFcn, 
                            qPriority_t Priority, void* arg)
-\end{lstlisting}\\
+\end{lstlisting}
 
 As seen above, arguments related to timing and iterations parameters are dispensed and the only required arguments become minimal, just needing:  \lstinline{CallbackFcn}, \lstinline{Priority} and the related task arguments \lstinline{arg}.
 
@@ -691,7 +698,7 @@ Set the task operability state. \index{\lstinline{qTask_Set_State}} \index{\lsti
     \begin{itemize}
         \item \lstinline{qEnabled} : Task will be able to catch all the events.
         \item \lstinline{qDisabled} : Time events will be ignored. Only asynchronous events are allowed.
-        \item \lstinline{qAsleep} : Put the task into a deep-doze operability mode. The task can't be triggered by the lower precedence events.
+        \item \lstinline{qAsleep} : The task can't be triggered by lower precedence events. Only the queued notifications events can be caught.
         \item \lstinline{qAwake} : Task will be able to catch all the events.
     \end{itemize}
 \end{itemize}
@@ -1000,7 +1007,7 @@ Some  OS features can be customized using a set of macros located in the header 
 \hline
 {\lstinline!Q_TASK_COUNT_CYCLES!} & \textit{Default:} {\lstinline!0(disabled)!}. Used to enable or disable the cycle count in tasks. \\
 \hline
-{\lstinline!Q_TASK_EVENT_FLAGS!} & \textit{Default:} {\lstinline!1(enabled)!}. \\
+{\lstinline!Q_TASK_EVENT_FLAGS!} & \textit{Default:} {\lstinline!1(enabled)!}. Used to enable or disable the task event flags.\\
 \hline
 {\lstinline!Q_MAX_FTOA_PRECISION!} & \textit{Default:} {\lstinline!10!}. The default precision used to perform float to ASCII conversions. \\
 \hline
@@ -1165,7 +1172,7 @@ Every task node has a set of built-in event bits called \textit{Event-Flags}, th
 They are somewhat similar to signals, but with greater flexibility, providing a low cost, but flexible means of passing simple messages between tasks. One task can set or clear any combination of event flags. Another task may read the event flag group at any time or may wait for a specific pattern of flags.  
 \input{fig/eventflags.tex}
 
-Up to twenty(20) bit-flags are available per task and meanwhile the scheduler sees that one event-flag is set, the kernel will trigger the task execution.
+Up to twenty(20) bit-flags are available per task and whenever the scheduler sees that one event-flag is set, the kernel will trigger the task execution.
 \\
 The function \lstinline{qTask_EventFlags_Modify} is intended to modify the task event-flags: \\
 
@@ -1260,7 +1267,7 @@ Each field of the structure is described as follows
     \begin{itemize}
         \item \lstinline{byTimeElapsed}  : When the time specified for the task elapsed.
         \item \lstinline{byNotificationQueued} : When there is a queued notification in the FIFO priority queue. For this trigger, the dispatcher performs a dequeue operation automatically. A pointer to the dequeued event-data will be available in the \lstinline{EventData}  field.
-        \item \lstinline{byNotificationSimple} : When the execution chain does, according to a  requirement of asynchronous notification event prompted  by \lstinline{qTask_Notification_Send}. A pointer to the notification data will be available in the \lstinline{EventData} field.
+        \item \lstinline{byNotificationSimple} : When an asynchronous notification event  arrives by the usage of \lstinline{qTask_Notification_Send}. A pointer to the notification data will be available in the \lstinline{EventData} field.
         \item \lstinline{byQueueReceiver} : When there are elements available in the attached queue, the scheduler makes a data dequeue(auto-receive) from the front. A pointer to the received data will be available in the \lstinline{EventData} field.
         \item \lstinline{byQueueFull} : When the attached queue is full. A pointer to the queue will be available in the \lstinline{EventData} field.
         \item \lstinline{byQueueCount} : When the element-count of the  attached queue reaches
@@ -1946,7 +1953,7 @@ void qStateMachine_Run( qSM_t * const obj, void *Data )
 \end{itemize}  
 
 \subsubsection{Changing states and retrieving FSM data}
-Both, states and sub-states callbacks take a \lstinline{qSM_Handler_t} \index{\lstinline{qSM_Handler_t}} object as input argument, which is basically a pointer to the involved properties of the invoking FSM. The usage of this object its underlying to make the FSM move between states and additionally, get extra execution data. The provided fields are:
+Both, states and sub-states callbacks take a \lstinline{qSM_Handler_t} \index{\lstinline{qSM_Handler_t}} object as input argument, which is basically a pointer to the involved properties of the invoking FSM. The usage of this object it's required to make the FSM moves between states and additionally get extra execution data. The provided fields are:
 
 \begin{itemize}
     \item \lstinline{NextState} : The next state to be executed after the current state finishes. The application writer should change this field to another state callback to produce a state transition in the next FSM's cycle.
@@ -1959,7 +1966,7 @@ Both, states and sub-states callbacks take a \lstinline{qSM_Handler_t} \index{\l
     \item \lstinline{Parent} (read-only): A pointer to the parent state-machine. Can be used in hierarchical  patterns. \lstinline{NULL} if the FSM its not a child.
 \end{itemize}
 
-The developer is free to write and control state transitions. A state jumps from one to another by changing the \lstinline{NextState} field. There is no way to enforce the state transition rules. Any transition is allowed at any time.
+The developer is free to write and control state transitions. A state jumps from one to another by changing the \lstinline{NextState} field. Any transition is allowed at any time.
 
 The code snippet below shows how this input argument should be used to produce a state transition and obtain additional information: \\
 
@@ -2362,9 +2369,8 @@ Then, we define the callback for the states. Here, the \lstinline{BeforeAny} sub
 \begin{lstlisting}[style=CStyle]
 void SubState_LED_BeforeAny( qSM_Handler_t m ){
     if( qSTimer_Expired( &LED_FSM_Timeout ) ){
-        qStateMachine_SendSignal( m, SIGNAL_TIMEOUT, qFalse );
+        qStateMachine_SendSignal( &LED_FSM, SIGNAL_TIMEOUT, qFalse );
     }
-    return qSM_EXIT_SUCCESS;
 }
 /*---------------------------------------------------------------------*/
 qSM_Status_t State_LED_Off( qSM_Handler_t m ){
