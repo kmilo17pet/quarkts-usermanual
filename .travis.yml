@@ -2,6 +2,8 @@ sudo: required
 dist: trusty 
 services: docker 
 script:
-- wget https://raw.githubusercontent.com/blang/latex-docker/master/latexdockercmd.sh 
+- wget https://raw.githubusercontent.com/blang/latex-docker/master/latexdockercmd.sh
+
 - chmod +x latexdockercmd.sh 
+
 - “./latexdockercmd.sh latexmk -xelatex -interaction=nonstopmode -halt-on-error main.tex -outdir=./_build”
