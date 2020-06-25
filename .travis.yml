@@ -1,9 +1,11 @@
-sudo: required 
-dist: trusty 
-services: docker 
+
+sudo: required
+language: generic
+services: docker
+
 script:
-- wget https://raw.githubusercontent.com/blang/latex-docker/master/latexdockercmd.sh
-
-- chmod +x latexdockercmd.sh 
-
-- “./latexdockercmd.sh latexmk -xelatex -interaction=nonstopmode -halt-on-error main.tex -outdir=./_build”
+  # We use the docker image from https://hub.docker.com/r/dxjoke/tectonic-docker/
+  # Compiling only main.tex:
+  - docker run --mount src=$TRAVIS_BUILD_DIR,target=/usr/src/tex,type=bind dxjoke/tectonic-docker /bin/sh -c "tectonic main.tex"
+  # Compiling multiple files as well as using biber:
+#  - docker run --mount src=$TRAVIS_BUILD_DIR/src,target=/usr/src/tex,type=bind dxjoke/tectonic-docker /bin/sh -c "tectonic --keep-intermediates --reruns 0 biber-mwe.tex; biber biber-mwe; tectonic biber-mwe.tex; tectonic main.tex"
