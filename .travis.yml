@@ -9,7 +9,7 @@ tex-config:
 
 - push-type=none
 
-- build-pattern=src/main.tex,src/mwe.tex
+- build-pattern=main.tex
 
 #- latexmk-flags=-dvi -f
 # Check at https://www.ctan.org/pkg/package-name in which TeX Live package a LaTeX package is contained.
