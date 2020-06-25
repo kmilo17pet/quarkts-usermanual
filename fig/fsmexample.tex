@@ -1,0 +1,16 @@
+\begin{figure}[H]
+    \centering 
+    \begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node distance=2.8cm, semithick]
+        \node[initial,state] (A)                    {$S_1$};
+        \node[state]         (B) [above right of=A] {$S_2$};
+        \node[state]         (C) [below right of=B] {$S_3$};
+    
+        \path   (A) edge [bend left]  node {$t_1$} (B)
+                (B) edge              node {$t_1$} (C)
+                (C) edge [bend left]  node {$t_1$} (A)
+                (C) edge              node {$t_2$} (A)
+                (B) edge [bend left]  node {$t_2$} (A);
+    \end{tikzpicture}
+    \caption{A simple FSM example with three states}
+    \label{fig:fsmexample}
+\end{figure}
