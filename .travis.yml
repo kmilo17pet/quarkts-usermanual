@@ -10,7 +10,7 @@ tex-config:
 - latexmk-flags=
 # Specify any packages to install that texliveonfly did not catch, and add it to the list at https://tex.stackexchange.com/a/463842/98850
 # Check at https://www.ctan.org/pkg/package-name in which TeX Live package a LaTeX package is contained.
-- packages=collection-langeuropean
+- packages=collection-langeuropean, pxfonts 
 
 script:
 - docker run --mount src=$TRAVIS_BUILD_DIR/,target=/repo,type=bind phpirates/texlive-latexbuild:texliveonfly
