@@ -1,0 +1,35 @@
+os: linux
+
+# we use the R VM because it contains LaTeX and pandoc
+language: r
+
+# we need super user privileges, so we depend on the old travis-ci infrastructure
+sudo: required
+
+# we can install additional software
+apt_packages:
+# we download pdf2djvu to also generate a djvu file of our LaTeX source
+  - pdf2djvu
+
+script:
+  - pdflatex -interaction=nonstopmode main.tex
+  
+after_success:
+# upload the previously generated pdf file to simonwaldherr.de (use $UPLOADSECRET as password)
+#  - wget --post-file=HowtoDeployLatexDocs-DE.pdf -q -O- "https://simonwaldherr.de/pdf/?repo=HowtoDeployLatexDocs&mode=save&key=$UPLOADSECRET&pull=$TRAVIS_PULL_REQUEST"
+
+deploy:
+
+# provider releases means GitHub Releases
+  provider: releases
+  api_key:
+
+# Travis CI public key encrypted GitHub oauth key for pushing to GitHub Releases
+    secure: lY9d0fRtaeW16zSZMRiUf2zX85k1kF4tyW20+/tLW3oeIXgKuuNHydULmNOqtVomhBwwbhsnciZjx4k/+LQ/z6OtQIxRFLUvEzwaphCTH5pqof94HeDtjwSP/NTv5dOn46IGmJ0gGopD5YE5acCpZVdkkyrp36c4rsk4ZG6RjxKy5kQ+jSIJ93vnT1y4gOlUj1zWh5u7DuTKyvEJHse7iO3WE7KXHQtT7snOQQQ/wjYcpcCBuYTqqdsSJWoO68yLJosNF32pCBYj/tMuGDOPNbNFxEmJM3Bx0xkDDuVGtQCVs3p89Q49LBEVzL3bGNLBhsdbu0PHQrsEaHOVlXeIG3wuE0gHtYhiQ8QYaZ3BOSoaLZ0HwH2xhyF9g0D/x2+pHdXn2MRSXkwKd2AqAwX3X1guBklVJMpGWM9vKD7f2E8MR8mNWoitiAwHr0ZSHL747TBOviUU8J2w0EeJDBIk4tsJArn8KmsuIzvLTjjmImxcvUTYn0YOD7bpXhzn5sgtVqWlkgojq2MHqvFfZSbvcnx13azZrL2c8bopXD3x2alYGrtFE+6g/3Px6xb7wlXcnqimAKlrhh/E+9Fsjo/M/9kItCv+JkYVmCu08Q6Ps12wZ7ZAi0xKlnCxtKwxQvaR0FWouUUK0e/v7wQwPPxWj5cwzOqXjdykC1V6x18/mEs=
+
+# the list of files to upload
+  file: 
+    - "main.pdf"
+  skip_cleanup: true
+  on:
+    repo: kmilo17pet/quarkts-usermanual
