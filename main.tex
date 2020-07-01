@@ -283,7 +283,7 @@ The OS  uses a \textit{Task Control Block} (TCB) to represent each task, storing
 
 Each task performs its activities via a callback function and each of them is responsible for supporting cooperative multitasking by being “good neighbors”, i.e., running their callback methods quickly in a non-blocking way and releasing control back to the scheduler as soon as possible (returning). \\
 
-Every task node, must be defined using the \lstinline{qTask_t} \index{\lstinline{qTask_t}} data-type and the callback is defined as a function that returns \lstinline{void} and takes a \lstinline{qEvent_t} data structure as its only parameter (This input argument can be used later to get event information, see section \ref{eventdata}).
+Every task node, must be defined using the \lstinline{qTask_t} \index{\lstinline{qTask_t}} data-type and the callback is defined as a function that returns \lstinline{void} and takes a \lstinline{qEvent_t} data structure as its only parameter (This input argument can be used later to get event information, see section \ref{eventdata}).\\
 
 \begin{lstlisting}[style=CStyle]
 qTask_t UserTask;
@@ -1258,6 +1258,7 @@ typedef struct{
     void *TaskData;
     void *EventData;
     qBool_t FirstCall, FirstIteration, LastIteration;
+    qClock_t StartDelay;
 }qEvent_t;
 \end{lstlisting}
 
@@ -1704,19 +1705,16 @@ void TaskDataProducer_Callback( qEvent_t e ){
         qTask_EventFlags_Modify( &TaskDataProducer, DATA_READY, 
                                  QEVENTFLAG_SET ); 
     }
+    qTask_EventFlags_Check( &TaskDataProducer, 
+                            DATA_READY | SWITCH_CHANGED | TIMER_EXPIRED,
+                            qTrue, qTrue );
 }
 /*-----------------------------------------------------------------------*/
 void IdleTask_Callback( qEvent_t e ){
-    qBool_t condition;
-    condition = qTask_EventFlags_Check( &TaskDataProducer, 
-                                        DATA_READY | SWITCH_CHANGED | 
-                                        TIMER_EXPIRED, 
-                                        qTrue, qTrue );
-    if( qTrue == condition){
-        TransmitData( dataToTransmit );
-        qTask_EventFlags_Modify( &TaskDataProducer, 
-                                 DATA_TXMIT, QEVENTFLAG_SET ); 
-    }
+    
+    TransmitData( dataToTransmit );
+    qTask_EventFlags_Modify( &TaskDataProducer, 
+                             DATA_TXMIT, QEVENTFLAG_SET ); 
 }
 /*-----------------------------------------------------------------------*/
 int main( void ) {    
@@ -2932,7 +2930,7 @@ qBool_t qATCLI_Setup( qATCLI_t * const cli, const qPutChar_t OutputFcn,
 \subsubsection*{Parameters}
 \begin{itemize}
     \item \lstinline{cli} : A pointer to the AT Command Line Interface instance. 
-    \item \lstinline{OutputFcn} : The basic output-char wrapper function. All the parser responses  will be printed-out through this function.
+    \item \lstinline{OutputFcn} : The basic output-char wrapper function. All the CLI responses  will be printed-out through this function.
     \item \lstinline{Input} : A memory location to store the parser input (mandatory) 
     \item \lstinline{SizeInput} : The size of the memory allocated in \lstinline{Input}. 
     \item \lstinline{Output} : A memory location to store the parser output. If not used, pass \lstinline{NULL}.
