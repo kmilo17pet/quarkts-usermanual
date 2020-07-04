@@ -4,7 +4,7 @@ services: docker
 tex-config:
 - tex-scheme=full
 - push-type=none
-- build-pattern=/main.tex
+- build-pattern=main.tex
 - packages=lipsum, blindtext, collection-langeuropean, pxfonts, mathpazo, palatino
 env:
   global:
