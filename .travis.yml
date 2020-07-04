@@ -1,16 +1,13 @@
-sudo:       required
-language:   generic
-services:   docker
-
-# Docs of the options: https://github.com/Strauman/travis-latexbuild/tree/master#configuration-options
+sudo: required
+language: generic
+services: docker
 tex-config:
 - tex-scheme=full
 - push-type=none
 - build-pattern=main.tex
 - latexmk-flags=
-# Specify any packages to install that texliveonfly did not catch, and add it to the list at https://tex.stackexchange.com/a/463842/98850
-# Check at https://www.ctan.org/pkg/package-name in which TeX Live package a LaTeX package is contained.
-- packages=collection-langeuropean, pxfonts, mathpazo, palatino  
-
+- packages=collection-langeuropean, pxfonts, mathpazo, palatino
 script:
 - docker run --mount src=$TRAVIS_BUILD_DIR/,target=/repo,type=bind phpirates/texlive-latexbuild:texliveonfly
+dd:
+  secure: q9pFFGtC/LylBE3iV3moZ45zrgEBpGOfvE4AdQ3aBK3Owy0x0asuK7rzHkb8yPbZIXBWp7HzKNALme4ECu2O3Dr+2XLbQZP+r4yVzp/+A2MnR++Nv5393UgRnZuxgmjyQs/kTR2t6A/N3aNV23S8nbFzpJlHIot6DdJfpPT7niv/INEhJvprFKD9I4BWRBDqtRZseHfAl0t6G5nhm4xCm8KVK8IfUWoe+MCqG4YB02z7NYdHbJ94kVnKUjyxTjlwDn3pYCApEymHIxRhBk7z3TnqfPUE2h1Qk9lJ7vNCm/91gRjpT3XGZjLpUukvgM4fFDZd921yO5u4es+ITkjGjVW0Xb2xVEdpPvvvy0TtfUBF4FdM63dselpl2dBTyIh300/1PTWCbnuto5oLm/dp4rBUzZVrBkl8CCqzNvU4hO4Hu0oDcIxB16dtjOkphXyYyqrtsPztHtwfSvzU67tt5UZ/6mPBOjzQayCPt9Gt4J6AEjcpg8ELHt5Dt7+PyB8FevBJunSwsdeHe/MUz/Ev8/rFk/AAb2MG2r75Z6BfrUba8c7MetNiVmNJE95sOzOttfGALEJ4b+qIA91e1udr95q2VeoXY1d4KRai8DIobYBV0ClbxaZySbypJiUcXCgv5jt5RPMPb7h0VZsicEfBUo51ZBTULjVFJ7daDUnbmsg=
