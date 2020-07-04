@@ -1,20 +1,16 @@
-sudo:       required
-language:   generic
-services:   docker
-
+sudo: required
+language: generic
+services: docker
 tex-config:
-  - tex-scheme=full
-  - push-type=none
-  - build-pattern=/main.tex
-  - packages=lipsum, blindtext, collection-langeuropean, pxfonts, mathpazo, palatino
-
+- tex-scheme=full
+- push-type=none
+- build-pattern=/main.tex
+- packages=lipsum, blindtext, collection-langeuropean, pxfonts, mathpazo, palatino
 env:
   global:
-    ## When you have done the travis encrypting, then it should look
-    ## something like this
-    # secure: ENCRYPTED-GITHUBTOKEN
-    - IS_TRAVIS=true
-
+  - IS_TRAVIS=true
 script:
-  - chmod +x .travis/travis-texbuild.sh
-  - .travis/travis-texbuild.sh
+- chmod +x .travis/travis-texbuild.sh
+- ".travis/travis-texbuild.sh"
+dd:
+  secure: sY6Ve8iPsUoj9y/F4vvv9khlthvOck1eONU/FTEyRZlAs7myI0r1gJrNCAUh8Au1xZQosAGWEdOuDvVnauy2Fq5nHgMGoFswDLO1XP/G3GsKg3PspH0uUP8GotwOHq2QJq1dqDYPW3ZYeBqG/ZL6c350/WtY/yaxYPr52zL8XUwzCh+4lAbteyG2YluEAdI58bqG+T3T54S0Z1gLOpc9ek8kEU4KXXJs10SPHYDDh3rMGc0HY0GuTh7X/Af8bMeMcQNt85pOAKASp/jO62HchnBeJ5euCKb65+N5buV+hq4iUgWJpcP6M3XfWRDs+KKWc9Df1NSONGb9SAPNiBx9TN3K1pjUjgvReqmrM4JjMwZuYzk5ug5c8BBrTLQ6PO1j/PSUBdN9vUDr1UOllDsAE3pnj7H/ZyGrXYwCn3960ktzEsHbq2XEqxfhGLhBgjgfyOqS+dmfjXQljypiuwsSyCqNMylC5yqdNFLcoQCaHgCPPCW5LdKgDb8n7e0WZ4NQ7IvzXhioUu4mOLnlmHCRtcUHh04wu0ujZi2gDHKWKzgcJRRZfpPaqyfjgQV/MUUDv0TjnJoJOYTQwc2a0aVyek5aoKCCAXbwPwN3w1bwUzZKXs830CDiPtOo1WNvSOpoIfz2GMn8aYWVYgUaRLWvoS9miejoN4TBbkyF4ztgeXw=
