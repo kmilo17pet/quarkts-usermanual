@@ -4,13 +4,13 @@ services:   docker
 
 # Docs of the options: https://github.com/Strauman/travis-latexbuild/tree/master#configuration-options
 tex-config:
-- tex-scheme=small
+- tex-scheme=full
 - push-type=none
 - build-pattern=main.tex
 - latexmk-flags=
 # Specify any packages to install that texliveonfly did not catch, and add it to the list at https://tex.stackexchange.com/a/463842/98850
 # Check at https://www.ctan.org/pkg/package-name in which TeX Live package a LaTeX package is contained.
-- packages=collection-langeuropean, pxfonts, mathpazo  
+- packages=collection-langeuropean, pxfonts, mathpazo, palatino  
 
 script:
 - docker run --mount src=$TRAVIS_BUILD_DIR/,target=/repo,type=bind phpirates/texlive-latexbuild:texliveonfly
