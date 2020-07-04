@@ -6,7 +6,9 @@
 \usepackage{amsmath}
 \usepackage[breaklinks]{hyperref}
 \usepackage{listings}
-\usepackage[T1]{fontenc}
+%\usepackage[T1]{fontenc}
+\usepackage{newpxmath} % math font is Palatino compatible
+%\usepackage[nomath]{fontspec}
 \usepackage{underscore}
 \usepackage{natbib}
 \usepackage{graphicx}
@@ -19,7 +21,7 @@
 \usepackage{wrapfig}
 \usepackage{tcolorbox}
 \usepackage{tabularx}
-\usepackage{filecontents}
+%\usepackage{filecontents}
 \usepackage{standalone}
 \usepackage{float}
 \usepackage{blindtext}
@@ -30,7 +32,7 @@
 \usepackage{titling}
 \usepackage{caption}
 \usepackage{bbding}
-\usepackage{pxfonts}
+%\usepackage{pxfonts}
 \usepackage{subfiles} 
 \usepackage{bookmark}
 \usepackage{parskip} 
@@ -44,6 +46,9 @@
 \setcounter{secnumdepth}{5}
 
 \input{codestyle.tex}
+
+\setlength{\headheight}{18pt}
+
 
 \makeindex
 \title{ \large{Quick user manual} }

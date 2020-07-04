@@ -79,7 +79,8 @@ For this, the kernel allows you to select the reference clock source among these
 \end{itemize}
 
 \subsection{Setting up the OS kernel : \texorpdfstring{\lstinline{qOS_Setup}}{qOS_Setup} } \label{settingupkernel}
- This function should be the first call to the OS APIs. \lstinline{qOS_Setup()} \index{\lstinline{qOS_Setup}} prepares the kernel instance, sets the reference clock, defines the \textit{Idle-Task} callback and allocates the stack for the internal queue. \\
+ This function should be the first call to the OS APIs. \lstinline{qOS_Setup()} \index{\lstinline{qOS_Setup}} prepares the kernel instance, sets the reference clock, defines the \textit{Idle-Task} callback and allocates the stack for the internal queue.
+\medskip 
  
 \begin{lstlisting}[style=CStyle]
 void qOS_Setup( const qGetTickFcn_t TickProvider, 
@@ -90,8 +91,10 @@ void qOS_Setup( const qGetTickFcn_t TickProvider,
 
 \subsubsection*{Parameters}
 \begin{itemize}
-    \item \lstinline{TickProvider} : The function that provides the tick value. If the user application uses the \lstinline{qClock_SysTick()} from the ISR, this parameter can be \lstinline{NULL}. \\
-    Note: Function should take \lstinline{void} and return a 32bit unsigned integer.  \\
+    \item \lstinline{TickProvider} : The function that provides the tick value. If the user application uses the \lstinline{qClock_SysTick()} from the ISR, this parameter can be \lstinline{NULL}. 
+    
+    Note: Function should take \lstinline{void} and return a 32bit unsigned integer.
+    
     This argument must have this prototype : \lstinline{qUINT32_t TickProviderFcn(void)}
     \item \lstinline{BaseTimming} :This parameter specifies the ISR background timer period in seconds(floating-point format).
     
@@ -159,9 +162,11 @@ The OS  uses a \textit{Task Control Block} (TCB) to represent each task, storing
 
 \input{fig/tasklist.tex}
 
-Each task performs its activities via a callback function and each of them is responsible for supporting cooperative multitasking by being “good neighbors”, i.e., running their callback methods quickly in a non-blocking way and releasing control back to the scheduler as soon as possible (returning). \\
+Each task performs its activities via a callback function and each of them is responsible for supporting cooperative multitasking by being “good neighbors”, i.e., running their callback methods quickly in a non-blocking way and releasing control back to the scheduler as soon as possible (returning). 
+\medskip
 
-Every task node, must be defined using the \lstinline{qTask_t} \index{\lstinline{qTask_t}} data-type and the callback is defined as a function that returns \lstinline{void} and takes a \lstinline{qEvent_t} data structure as its only parameter (This input argument can be used later to get event information, see section \ref{eventdata}).\\
+Every task node, must be defined using the \lstinline{qTask_t} \index{\lstinline{qTask_t}} data-type and the callback is defined as a function that returns \lstinline{void} and takes a \lstinline{qEvent_t} data structure as its only parameter (This input argument can be used later to get event information, see section \ref{eventdata}).
+\medskip
 
 \begin{lstlisting}[style=CStyle]
 qTask_t UserTask;
@@ -175,21 +180,25 @@ void UserTask_Callback( qEvent_t eventdata ){
 \end{tcolorbox}
 
 \subsubsection{The idle task}
-Its a special task loaded by the OS scheduler when there is nothing else to do (no task in the whole scheme has reached the ready state). The idle task is already hard-coded into the kernel, ensuring that at least, one task is able to run. Additionally, the OS setup this task with the lowest possible priority to ensure that does not use any CPU time if there are higher priority application tasks able to run. \\
-The idle task doesn't perform any active functions, but the user can decide if it should perform some activities defining a callback function for it. This could be done at the beginning of the kernel setup (as seen in section \ref{settingupkernel} with \lstinline{qOS_Setup()}) or in run-time with \lstinline{qOS_Set_IdleTask()} \index{\lstinline{qOS_Set_IdleTask}}. \\
+Its a special task loaded by the OS scheduler when there is nothing else to do (no task in the whole scheme has reached the ready state). The idle task is already hard-coded into the kernel, ensuring that at least, one task is able to run. Additionally, the OS setup this task with the lowest possible priority to ensure that does not use any CPU time if there are higher priority application tasks able to run.
+\medskip
+The idle task doesn't perform any active functions, but the user can decide if it should perform some activities defining a callback function for it. This could be done at the beginning of the kernel setup (as seen in section \ref{settingupkernel} with \lstinline{qOS_Setup()}) or in run-time with \lstinline{qOS_Set_IdleTask()} \index{\lstinline{qOS_Set_IdleTask}}.
+\medskip
 
 \begin{lstlisting}[style=CStyle]
 void qOS_Set_IdleTask(qTaskFcn_t Callback)
 \end{lstlisting}
 
-Of course, the callback must follow the same function prototype for tasks. \\
+Of course, the callback must follow the same function prototype for tasks.
+\medskip
 
 \begin{tcolorbox}
 \HandRight To disable the idle-task activities, a \lstinline{NULL} should be passed as argument.
 \end{tcolorbox}
 
 \subsubsection{Adding tasks to the scheme : \lstinline{qOS_Add_Task} } \label{addtask}
-After setting up the kernel with \lstinline{qOS_Setup()}, the user can proceed to deploy the multitasking application by adding tasks. If the task node and their respective callback is already defined, the task can be added to the scheme using \lstinline{qOS_Add_Task()} \index{\lstinline{qOS_Add_Task}}. This API can schedule a task to run every \lstinline{Time} seconds, \lstinline{nExecutions} times and executing \lstinline{CallbackFcn} method on every pass.\\
+After setting up the kernel with \lstinline{qOS_Setup()}, the user can proceed to deploy the multitasking application by adding tasks. If the task node and their respective callback is already defined, the task can be added to the scheme using \lstinline{qOS_Add_Task()} \index{\lstinline{qOS_Add_Task}}. This API can schedule a task to run every \lstinline{Time} seconds, \lstinline{nExecutions} times and executing \lstinline{CallbackFcn} method on every pass.
+\medskip
 
 \begin{lstlisting}[style=CStyle]
 qBool_t qOS_Add_Task( qTask_t * const Task, qTaskFcn_t CallbackFcn, 
@@ -233,7 +242,8 @@ Invoking \lstinline{qOS_Add_Task()}  is the most generic way to adding tasks to 
 \subsubsection{Event-triggered tasks}
 An event-triggered task reacts asynchronously to the occurrence of events in the system, such as external interrupts or changes in the available resources. 
 
-The API \lstinline{qOS_Add_EventTask()} \index{\lstinline{qOS_Add_EventTask}} is intended to add this kind of tasks, keeping it in a \textit{qSuspended} state. Only asynchronous events followed by their priority value dictates when a task can change to the \textit{qRunning} state. \\
+The API \lstinline{qOS_Add_EventTask()} \index{\lstinline{qOS_Add_EventTask}} is intended to add this kind of tasks, keeping it in a \textit{qSuspended} state. Only asynchronous events followed by their priority value dictates when a task can change to the \textit{qRunning} state. 
+\medskip
 
 
 \begin{lstlisting}[style=CStyle]
@@ -244,7 +254,8 @@ qBool_t qOS_Add_EventTask( qTask_t * const Task, qTaskFcn_t CallbackFcn,
 As seen above, arguments related to timing and iterations parameters are dispensed and the only required arguments become minimal, just needing:  \lstinline{CallbackFcn}, \lstinline{Priority} and the related task arguments \lstinline{arg}.
 
 \subsubsection{Removing a task : \lstinline{qOS_Remove_Task}}
-As expected, the API \index{\lstinline{qOS_Remove_Task}}removes the task from the scheduling scheme.  This means the task node will be disconnected from the kernel chain, preventing additional overhead provided by the scheduler when it does checks over it and course, preventing from running. \\
+As expected, the API \index{\lstinline{qOS_Remove_Task}}removes the task from the scheduling scheme.  This means the task node will be disconnected from the kernel chain, preventing additional overhead provided by the scheduler when it does checks over it and course, preventing from running. 
+\medskip
 
 \begin{lstlisting}[style=CStyle]
 qBool_t qOS_Remove_Task( qTask_t * const Task )
@@ -268,7 +279,8 @@ This function is responsible to run the following OS main components:
     \end{itemize}
 \end{itemize}
 
-The states involved in the interaction between the scheduler and dispatcher are described in the section that follows. \\
+The states involved in the interaction between the scheduler and dispatcher are described in the section that follows.
+\medskip
 
 \begin{tcolorbox}
 \ArrowBoldDownRight \textit{Note}: After calling \lstinline{qOS_Run()}, the OS scheduler will now be running, and the following line should never be reached, however, the user can optionally release it explicitly with \lstinline{qOS_Scheduler_Release()} API function.
@@ -281,7 +293,8 @@ This API \index{\lstinline{qOS_Scheduler_Release}} stop the kernel scheduling. I
 Although producing this action is not a typical desired behavior in any application, it can be used to handle a critical exception.
 
 When used, the release will take place after the current scheduling cycle finish. The kernel can optionally include a release callback function that can be configured to get called if the scheduler is released. 
-Defining the release callback,  will help to take actions over the exception that caused the release action. To enable this functionality, the \lstinline{qOS_Set_SchedulerReleaseCallback()} \index{\lstinline{qOS_Set_SchedulerReleaseCallback}} API should be used. \\
+Defining the release callback,  will help to take actions over the exception that caused the release action. To enable this functionality, the \lstinline{qOS_Set_SchedulerReleaseCallback()} \index{\lstinline{qOS_Set_SchedulerReleaseCallback}} API should be used. 
+\medskip
 
 \begin{lstlisting}[style=CStyle]
 void qOS_Set_SchedulerReleaseCallback( qTaskFcn_t Callback )
@@ -353,7 +366,8 @@ The figure \ref{fig:eventflow} shows a better representation of how the event fl
 
 
 \subsection{Getting started}
-Unpack the source files and copy them into your project. Also, add a copy of the file \lstinline{qconfig.h} and modify it according to your needs. Setup your compiler include path with the corresponding OS directory. Include the header file \lstinline{QuarkTS.h} and setup the instance of the kernel using the \lstinline{qOS_Setup()} inside the main thread. Additional configuration to the target compiler may be required to add the path to the directory of header files. The code below shows a common initialization in the main source file. \\
+Unpack the source files and copy them into your project. Also, add a copy of the file \lstinline{qconfig.h} and modify it according to your needs. Setup your compiler include path with the corresponding OS directory. Include the header file \lstinline{QuarkTS.h} and setup the instance of the kernel using the \lstinline{qOS_Setup()} inside the main thread. Additional configuration to the target compiler may be required to add the path to the directory of header files. The code below shows a common initialization in the main source file.
+\medskip
 
 File: \lstinline{main.c}
 \begin{lstlisting}[style=CStyle]
@@ -382,9 +396,11 @@ In the above code, the following considerations should be taken
 Tasks can be later added to the scheduling scheme by simply calling \lstinline{qOS_Add_Task()} or any of the other available APIs for specific purpose tasks.
 
 \subsection{Recommended programming pattern}
-A multitasking design pattern demands a better project organization. To have this attribute in your solution, code the tasks in a separate source file. A simple implementation example is presented below. \\
+A multitasking design pattern demands a better project organization. To have this attribute in your solution, code the tasks in a separate source file. A simple implementation example is presented below.
+\medskip
 
-To make the handling of the tasks available in other contexts, nodes should be globals(see the \lstinline{extern} qualifier in \lstinline{MyAppTasks.h} header file).  Avoid implementing functionalities in a component that are not related to each other. Put any other components and globals resources in a separated source file, for example (\lstinline{ScreenDriver.h}/\lstinline{ScreenDriver.c}),  (\lstinline{Globals.h}/\lstinline{Globals.c}). These simple design tips will allow you to have a better principle of abstraction and will maximize the cohesion of the solution, improving the code readability and maintenance. \\
+To make the handling of the tasks available in other contexts, nodes should be globals(see the \lstinline{extern} qualifier in \lstinline{MyAppTasks.h} header file).  Avoid implementing functionalities in a component that are not related to each other. Put any other components and globals resources in a separated source file, for example (\lstinline{ScreenDriver.h}/\lstinline{ScreenDriver.c}),  (\lstinline{Globals.h}/\lstinline{Globals.c}). These simple design tips will allow you to have a better principle of abstraction and will maximize the cohesion of the solution, improving the code readability and maintenance.
+\medskip
 
 File: \lstinline{MyAppTasks.h}
 \begin{lstlisting}[style=CStyle]
@@ -475,13 +491,15 @@ void main( void ){
 
 
 \subsection{Critical sections}
-Since the kernel is non-preemptive, the only critical section that must be handled are the shared resources accessed from the ISR context. Perhaps, the most obvious way of achieving mutual exclusion is to allow the kernel to disable interrupts before it enters its critical section and then, enable interrupts after it leaves its critical section. \\
+Since the kernel is non-preemptive, the only critical section that must be handled are the shared resources accessed from the ISR context. Perhaps, the most obvious way of achieving mutual exclusion is to allow the kernel to disable interrupts before it enters its critical section and then, enable interrupts after it leaves its critical section. 
+\medskip
 
 By disabling interrupts, the CPU will be unable to change the current context. This guarantees that the currently running job can use a shared resource without another context accessing it. But, disabling interrupts, is a major undertaking. At best, the system will not be able to service interrupts for the time the current job is doing in its critical section, however, in QuarkTS, these critical sections are handled as quickly as possible.  
 
 Considering that the kernel is hardware-independent, the application writer should provide the necessary piece of code to enable and disable interrupts.
 
-For this, the \lstinline{qCritical_SetInterruptsED()} \index{\lstinline{qCritical_SetInterruptsED}} API should be used. In this way, communication between ISR and tasks using queued notifications or data queues is performed safely. \\
+For this, the \lstinline{qCritical_SetInterruptsED()} \index{\lstinline{qCritical_SetInterruptsED}} API should be used. In this way, communication between ISR and tasks using queued notifications or data queues is performed safely. 
+\medskip
 
 \begin{lstlisting}[style=CStyle]
 void qCritical_SetInterruptsED( void (*Restorer)(qUINT32_t), 
@@ -497,7 +515,8 @@ void qCritical_SetInterruptsED( void (*Restorer)(qUINT32_t),
 In some systems, disabling the global IRQ flags is not enough, as they don't save/restore state of interrupt, so here, the \lstinline{qUINT32_t} argument and return value in both functions (\lstinline{Disabler} and \lstinline{Restorer}) becomes relevant, because they can be used by the application writer to save and restore the current interrupt configuration. So, when a critical section is performed, the \lstinline{Disabler}, in addition to disable the interrupts, return the current configuration to be retained by the kernel, later when the critical section finish, this retained value is passed to \lstinline{Restorer} to bring back the saved configuration. 
 
 \subsection{Task management APIs in run-time }
-Most of the scheduling parameters regarding task execution can be changed at run-time. The following APIs are intended for this purpose. \\
+Most of the scheduling parameters regarding task execution can be changed at run-time. The following APIs are intended for this purpose. 
+\medskip
 
 
 \begin{lstlisting}[style=CStyle]
@@ -696,7 +715,8 @@ Check if the task has pending notifications. Please read section \ref{osnotifica
 
 \subsection{Demonstrative examples}
 \subsubsection{A simple scheduling}
-This example demonstrates a simple environment setup for multiple tasks. Initially, only \lstinline{task1} and \lstinline{task2} are enabled. \lstinline{task1} runs every 2 seconds 10 times and then stops. \lstinline{task2} runs every 3 seconds indefinitely. \lstinline{task1} enables \lstinline{task3} at its first run. \lstinline{task3} run every 5 seconds. \lstinline{task1} disables \lstinline{task3} on its last iteration and changed \lstinline{task2} to run every 1/2 seconds. In the end, \lstinline{task2} is the only task running every 1/2 seconds. \\
+This example demonstrates a simple environment setup for multiple tasks. Initially, only \lstinline{task1} and \lstinline{task2} are enabled. \lstinline{task1} runs every 2 seconds 10 times and then stops. \lstinline{task2} runs every 3 seconds indefinitely. \lstinline{task1} enables \lstinline{task3} at its first run. \lstinline{task3} run every 5 seconds. \lstinline{task1} disables \lstinline{task3} on its last iteration and changed \lstinline{task2} to run every 1/2 seconds. In the end, \lstinline{task2} is the only task running every 1/2 seconds.
+\medskip
 
 \begin{lstlisting}[style=CStyle]
 #include <stdio.h>
@@ -753,9 +773,11 @@ int main( void ) {
 As seen in section \ref{addtask}, tasks can accept a parameter of type pointer to void (\lstinline{void*}). 
 This parameter could be used for multiple applications, including storage, task identification, duplication removal and others. The following example shows the usage of this argument to avoid callback duplication among tasks with the same behavior. 
 
-Consider a scenario where you have to build a digital controller for many physical variables, for example, a PID controller for temperature, humidity and light. The PID algorithm will be the same for all variables. The only difference will be the variable input, the controlled output action and the PID gains. In this case, each of the PID tasks will utilize the same callback methods. The only difference will be the I/O parameters (specific for each PID controller). \\
+Consider a scenario where you have to build a digital controller for many physical variables, for example, a PID controller for temperature, humidity and light. The PID algorithm will be the same for all variables. The only difference will be the variable input, the controlled output action and the PID gains. In this case, each of the PID tasks will utilize the same callback methods. The only difference will be the I/O parameters (specific for each PID controller). 
+\medskip
 
-Let's define a PID data structure with the I/O variables and gains. \\
+Let's define a PID data structure with the I/O variables and gains.
+\medskip
  
 \begin{lstlisting}[style=CStyle]
    typedef struct{
@@ -788,7 +810,8 @@ Let's define a PID data structure with the I/O variables and gains. \\
     };
 \end{lstlisting}
 
-A task will be added to the scheme to collect the sensor data and apply the respective control output. \\
+A task will be added to the scheme to collect the sensor data and apply the respective control output. 
+\medskip
 
 \begin{lstlisting}[style=CStyle]
 qOS_Add_Task( &IO_TASK, IO_TASK_Callback, qMedium_Priority, 0.1, qPeriodic, 
@@ -806,7 +829,8 @@ void IO_TASK_Callback( qEvent_t e ){
 }
 \end{lstlisting}
 
-Then, three different tasks are created to apply the respective PID controller. Note that these tasks refer to the same callback methods and we assign pointers to the respective variables. \\
+Then, three different tasks are created to apply the respective PID controller. Note that these tasks refer to the same callback methods and we assign pointers to the respective variables. 
+\medskip
 
 \begin{lstlisting}[style=CStyle]
 qOS_Add_Task( &TEMPERATURE_CONTROL_TASK, PIDControl_Callback,
@@ -846,7 +870,8 @@ void PIDControl_Callback( qEvent_t e ){
 \newpage
 
 \subsection{Configuration macros}
-Some  OS features can be customized using a set of macros located in the header file \lstinline{qconfig.h}. Here is the default configuration, followed by an explanation of each macro: \\
+Some  OS features can be customized using a set of macros located in the header file \lstinline{qconfig.h}. Here is the default configuration, followed by an explanation of each macro: 
+\medskip
 
 \begin{adjustbox}{width=\textwidth,totalheight={18cm}}
 \begin{tabularx}

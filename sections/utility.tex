@@ -220,7 +220,8 @@ The list data-structure, referenced through an object of type \lstinline{qList_t
 
 \input{fig/qlists.tex}
 
-Nodes should be an user-defined data structure of any number of members, however, they must be specially defined to be compatible with the provided APIs. All the user-defined nodes must have the \lstinline{qNode_MinimalFields} definition on top of the structure. An example is shown below: \\
+Nodes should be an user-defined data structure of any number of members, however, they must be specially defined to be compatible with the provided APIs. All the user-defined nodes must have the \lstinline{qNode_MinimalFields} definition on top of the structure. An example is shown below:
+\medskip
 
 \begin{lstlisting}[style=CStyle]
 typedef struct{
@@ -678,7 +679,7 @@ void qIOUtil_InputRaw( qGetChar_t fcn, void* storagep, void *data,
                        size_t n, qBool_t AIP )
 \end{lstlisting}
 
-Wrapper methods to write(\lstinline{qIOUtil_OutputRaw}) \index{\lstinline{qIOUtil_OutputRaw}} or read(\lstinline{qIOUtil_InputRaw}) \index{\lstinline{qIOUtil_InputRaw}} \lstinline{n} RAW data through \lstinline{fcn}.
+                             Wrapper methods to write(\lstinline{qIOUtil_OutputRaw}) \index{\lstinline{qIOUtil_OutputRaw}} or read(\lstinline{qIOUtil_InputRaw}) \index{\lstinline{qIOUtil_InputRaw}} \lstinline{n} RAW data through \lstinline{fcn}.
 
 \subsubsection*{Parameters:}
 \begin{itemize}
