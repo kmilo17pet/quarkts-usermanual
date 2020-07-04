@@ -3,7 +3,7 @@ language: generic
 services: docker
 tex-config:
 - tex-scheme=full
-- push-type=none
+- push-type=branch
 - build-pattern=main.tex
 - packages=lipsum, blindtext, collection-langeuropean, pxfonts, mathpazo, palatino
 env:
