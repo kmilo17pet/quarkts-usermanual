@@ -1,0 +1,722 @@
+\section{Events} \label{events}
+\subsection{Time elapsed}
+Running tasks at pre-determined rates is desirable in many situations, like sensory data acquisition, low-level servoing, control loops, action planning and system monitoring. As seen in section \ref{addtask}, you can schedule tasks at any interval your design demands, at least, if the time specification is lower than the scheduler tick. When an application consists of several periodic tasks with individual timing constraints, a few points must be taken:
+
+\begin{itemize}
+    \item When the time interval of a certain task has elapsed, the scheduler triggers an event (\textit{byTimeElapsed}) that put the task in a \lstinline{qReady} state  (see figure ~\ref{fig:timelag}).
+    \item If a task has a finite number iterations, the scheduler will disable the task when the number of iterations reaches the programmed value.
+    \item Tasks always have an inherent time-lag that can be noticed even more, when the programmed time-interval is too low (see figure ~\ref{fig:timelag}). In a real-time context, it is important to reduce this time-lag or jitter, to an acceptable level for the application. 
+    \begin{tcolorbox}
+    \HandRight QuarkTS can generally meet a time deadline if you use lightweight code in the callbacks and there is a reduced pool of pending tasks, so it can be considered a soft real-time scheduler, however,  it cannot meet a deadline deterministically like a hard real-time OS.
+    \end{tcolorbox}
+
+    \input{fig/timelag.tex}
+
+    \item The most significant delay times are produced inside the callbacks. As mentioned before, use short efficient callback methods written for cooperative scheduling.
+    \item If two tasks have the same time-interval, the scheduler executes first, the task with the highest priority value (see figure \ref{fig:timelapsed}).
+
+    \input{fig/timelapsed.tex}
+\end{itemize}
+\subsection{Asynchronous events and inter-task communication}
+Applications existing in heavy environments require tasks and ISR interacting with each other, forcing the application to implement some event model.
+Here, we understand events, as any identifiable occurrence that has significance for the embedded system. As such, events include changes in hardware, user-generated actions or messages coming from components of the application itself.
+
+\input{fig/heavyenvy.tex}
+
+As shown in figure 5, two main scenarios are presented, \textit{ISR-to-task} and \textit{task-to-task} interaction.  When using interrupts to catch external events, it is expected to be handled with fast and lightweight code to reduce the variable ISR overhead introduced by the code itself. If too much overhead is used inside an ISR, the system will tend to lose future events. In some specific situations, the best approach is to synchronize the ISR with a task to leave the heavy job in the base-level instead of the interrupt-level, this is also called  \textit{Deferred Interrupt Handling}.
+
+The other scenario is when a task is performing a specific job and another task must be awakened to perform some activities when the other task finishes.
+
+\newline
+Both scenarios require some ways in which tasks can communicate with each other.
+For this, the OS does not impose any specific event processing strategy to the application designer but does provide features that allow the chosen strategy to be implemented in a simple and maintainable way. From the OS perspective, these features are just sources of asynchronous events with specific triggers and related data. 
+\newline
+\newline                                                                                                                                                                                                   
+The OS provides the following features for task communication:
+
+\subsubsection{Notifications} \label{osnotifications}
+The notifications allow tasks to interact with other tasks and to synchronize with ISRs without the need of intermediate variables or separate communication objects. By using notifications, a task or ISR can launch another task sending an event and related data to the receiving task.  This is depicted in figure \ref{fig:simplenotifications}.
+
+\input{fig/simplenotifications.tex}
+
+\paragraph{Simple notifications:}
+Each task node has a 32-bit notification value which is initialized to zero when a task is added to the scheme. The API \lstinline{qTask_Notification_Send()} \index{\lstinline{qTask_Notification_Send}} is used to send an event directly updating the receiving task's notification value increasing it by one. As long as the scheduler sees a non-zero value, the task will be changed to a \textit{qReady} state and eventually, the dispatcher will launch the task according to the execution chain. After served, the notification value is later decreased.\\ 
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qTask_Notification_Send( qTask_t * const Task, void* eventdata )
+\end{lstlisting}
+
+\subsubsection*{Parameters}
+\begin{itemize}
+    \item \lstinline{Task} : The pointer of the task node to which the notification is being sent 
+    \item \lstinline{EventData} : Specific event user-data. 
+\end{itemize}
+
+\subsubsection*{Return value:}
+
+\lstinline{qTrue} if the notification  has been sent, or \lstinline{qFalse} if the notification value reaches its max value. \\
+
+\begin{tcolorbox}
+\HandRight Sending simple notifications using \lstinline{qTask_Notification_Send()} is interrupt-safe, however, this only catches one event per task because the API overwrites the associated data.
+\end{tcolorbox}
+
+\paragraph{Queued notifications}
+ : If the application notifies multiple events to the same task, queued notifications are the right solution instead of using simple notifications.
+
+Here, the \lstinline{qTask_Notification_Queue()} \index{\lstinline{qTask_Notification_Queue}} take advantage of the scheduler FIFO priority-queue. 
+This kind of queue, is somewhat similar to a standard queue, with an important distinction: when a notification is sent, the task is added to the queue with the corresponding priority level, and will be later removed from the queue with the highest priority task first  \cite{cormen}. That is, the tasks are (conceptually) stored in the queue in priority order instead of the insertion order. If two tasks with the same priority are notified, they are served in the FIFO form according to their order inside the queue. Figure \ref{fig:prioqueue} illustrates this behavior.
+
+\input{fig/prioqueue.tex}
+
+The scheduler always checks the queue state first, being this event the one with more precedence among the others. If the queue has elements, the scheduler algorithm will extract the data and the corresponding task will be launched with the trigger flag set in \textit{byNotificationQueued}. \\
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qTask_Notification_Queue( qTask_t * const Task, void* eventdata )
+\end{lstlisting}
+
+\subsubsection*{Parameters}
+\begin{itemize}
+    \item \lstinline{Task} : The pointer of the task node to which the notification is being sent 
+    \item \lstinline{EventData} : Specific event user-data. 
+\end{itemize}
+
+\subsubsection*{Return value:}
+
+\lstinline{qTrue} if the notification  has been inserted in the queue, or \lstinline{qFalse} if an error occurred or the queue exceeds the size. \\
+
+\begin{tcolorbox}
+\HandRight Among all the provided events, queued notifications have the highest precedence.
+\end{tcolorbox}
+
+
+Figure ~\ref{fig:queueexample}, shows a cooperative environment with five tasks. Initially, the scheduler activates \lstinline{Task-E}, then, this task enqueues data to \lstinline{Task-A} and \lstinline{Task-B} respectively using the \lstinline{qTask_Notification_Queue()} function. In the next scheduler cycle, the scheduler realizes that the priority-queue is not empty, generating an activation over the task located at the beginning of the queue. In this case, \lstinline{Task-A} will be launched and its respective data will be extracted from the queue. However, \lstinline{Task-A} also enqueues data to \lstinline{Task-C} and \lstinline{Task-D}. As mentioned previously, this is a priority-queue, so the scheduler makes a new reordering. In this context, the next queue extraction will be for \lstinline{Task-D}, \lstinline{Task-C}, and \lstinline{Task-B} sequentially.
+
+\input{fig/queueexample.tex}
+
+\begin{tcolorbox}
+\HandRight Any queue extraction involves an activation to the receiving task. The extracted data will be available inside the \lstinline{qEvent_t} structure.
+\end{tcolorbox}
+
+\subsubsection{Spread a notification}
+In some systems, we need the ability to broadcast an event to all tasks. This is often referred to as a \textit{barrier}. This means that a group of tasks should stop activities at some point and cannot proceed until another task or ISR raise a specific event. 
+For this kind of implementations, the \lstinline{qOS_Notification_Spread()} \index{\lstinline{qOS_Notification_Spread}} can be used. \\
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qOS_Notification_Spread( const void *eventdata, 
+                                 const qTask_NotifyMode_t mode )
+\end{lstlisting}
+
+\subsubsection*{Parameters}
+\begin{itemize}
+    \item \lstinline{eventdata} : Specific event user-data. 
+    \item \lstinline{mode} : The method used to spread the event: \lstinline{Q_NOTIFY_SIMPLE} or \lstinline{Q_NOTIFY_QUEUED}
+\end{itemize}
+
+\subsubsection*{Return value:}
+
+\lstinline{qTrue} on success. Otherwise \lstinline{qFalse}.
+
+\noindent\hrulefill
+\newline
+
+\begin{tcolorbox}
+\HandRight This function spreads a notification event among all the tasks in the scheduling scheme, so,  for tasks that are not part of the barrier, just discard the notification. This operation will be performed in the next scheduling cycle.
+\end{tcolorbox}
+
+\subsubsection{Queues}
+A queue is a linear data structure with simple operations based on the FIFO (First In First Out) principle. It is capable to hold a finite number of fixed-size data items. The maximum number of items that a queue can hold is called its \textit{length}. Both the length and the size of each data item are set when the queue is created.
+
+\input{fig/qqueues.tex}
+
+As showed in figure \ref{fig:qqueues}, the last position is connected back to the first position to make a circle. It is also called \textit{ring-buffer} or \textit{circular-queue}. 
+
+In general, this kind of data structure is used to serialize data between tasks, allowing some elasticity in time. In many cases, the queue is used as a data buffer in interrupt service routines. This buffer will collect the data so, at some later time, another task can fetch the data for further processing. This use case is the single "task to task" buffering case. There are also other applications for queues as serializing  many data streams into one receiving streams (multiple tasks to a single task) or vice-versa (single task to multiple tasks).
+The usage of this data structure is detailed in section \ref{queuecreate}. \\
+
+\begin{tcolorbox}
+\ArrowBoldDownRight Note : The OS uses the queue by copy method. Queuing by copy is considered to be simultaneously more powerful and simpler to use than queuing by reference.
+\end{tcolorbox}
+
+Queuing by copy does not prevent the queue from also being used to queue by reference. For example, when the size of the data being queued makes it impractical to copy the data into the queue, then a pointer to the data can be copied into the queue instead.
+
+\subsubsection{Event Flags}
+Every task node has a set of built-in event bits called \textit{Event-Flags}, that can be used to indicate if an event has occurred or not.  
+They are somewhat similar to signals, but with greater flexibility, providing a low cost, but flexible means of passing simple messages between tasks. One task can set or clear any combination of event flags. Another task may read the event flag group at any time or may wait for a specific pattern of flags.  
+\input{fig/eventflags.tex}
+
+Up to twenty(20) bit-flags are available per task and whenever the scheduler sees that one event-flag is set, the kernel will trigger the task execution.
+\\
+The function \lstinline{qTask_EventFlags_Modify} is intended to modify the task event-flags: \\
+
+\begin{lstlisting}[style=CStyle]
+void qTask_EventFlags_Modify( qTask_t * const Task, qTaskFlag_t flags, 
+                              qBool_t action )
+\end{lstlisting} \index{\lstinline{qTask_EventFlags_Modify}}
+
+\subsubsection*{Parameters}
+\begin{itemize}
+    \item \lstinline{Task} : A pointer to the task node.
+    \item \lstinline{flags} : The flags to modify. Can be combined with a bitwise \lstinline{OR} (\lstinline{|}).
+    
+    \lstinline{ QEVENTFLAG_01 | QEVENTFLAG_02 | QEVENTFLAG_03 | ... | QEVENTFLAG_20 }
+    \item \lstinline{action} : \lstinline{QEVENTFLAG_SET} or \lstinline{QEVENTFLAG_CLEAR}. 
+\end{itemize}
+\newline
+
+\begin{tcolorbox}
+\HandRight The scheduler will put the task into a \textit{qReady} state when any of the available event-flags is set. The flags should be cleared by the application writer explicitly. 
+\end{tcolorbox}
+\newline
+To read or check the event flags, the application can use one of the following API functions: \\
+
+\begin{lstlisting}[style=CStyle]
+qTaskFlag_t qTask_EventFlags_Read( const qTask_t * const Task )
+\end{lstlisting} \index{\lstinline{qTask_EventFlags_Read}}
+
+\subsubsection*{Parameters}
+\begin{itemize}
+    \item \lstinline{Task} : A pointer to the task node.
+\end{itemize}
+
+\subsubsection*{Return value:}
+
+The EventFlag value of the task.
+
+\noindent\hrulefill
+\newline
+
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qTask_EventFlags_Check( qTask_t * const Task, 
+                                qTaskFlag_t FlagsToCheck, 
+                                qBool_t ClearOnExit, 
+                                qBool_t CheckForAll )
+\end{lstlisting} \index{\lstinline{qTask_EventFlags_Check}}
+
+\subsubsection*{Parameters}
+\begin{itemize}
+    \item \lstinline{Task} : A pointer to the task node.
+    \item \lstinline{FlagsToCheck} : A bitwise value that indicates the flags to test inside the EventFlags. Can be combined with a bitwise ‘OR’ (\lstinline{'|'}).
+    \item \lstinline{ClearOnExit} : If is set to \lstinline{qTrue} then any flags set in the value passed as the \lstinline{FlagsToCheck} parameter will be cleared in the event group before this function returns only when the condition is meet.
+    \item \lstinline{CheckForAll} : Used to create either a logical AND test (where all flags must be set)or a logical OR test (where one or more flags must be set) as follows:
+    
+    If is set to \lstinline{qTrue} this API will return \lstinline{qTrue} when all the flags set in the value passed as the \lstinline{FlagsToCheck} parameter are set in the task's EventFlags.
+    
+    If is set to \lstinline{qFalse} this API will return \lstinline{qTrue} when any of the flags set in the value passed as the \lstinline{FlagsToCheck} parameter are set in the task's EventFlags.
+
+\end{itemize}
+
+\subsubsection*{Return value:}
+
+\lstinline{qTrue} if the condition is meet, otherwise return \lstinline{qFalse}.
+
+
+\subsection{Retrieving the event data} \label{eventdata} \index{\lstinline{qEvent_t}}
+As you can read in the previous sections, tasks can be triggered from multiple event sources (time-elapsed, notifications, queues and event-flags). This can lead to several situations that must be handled by the application writer from the task context, for example:
+
+\begin{itemize}
+    \item What is the event source that triggers the task execution?
+    \item How to get the event associated data?
+    \item What is the task execution status? 
+\end{itemize}
+
+The OS provides a simple approach for this, a data structure with all the regarding information of the task execution. This structure, that is already defined in the callback function as the \lstinline{qEvent_t} argument, is filled by the kernel dispatcher, so the application writer only needs to read the fields inside.
+
+This data structure is defined as: \\
+
+\begin{lstlisting}[style=CStyle]
+typedef struct{
+    qTrigger_t Trigger;
+    void *TaskData;
+    void *EventData;
+    qBool_t FirstCall, FirstIteration, LastIteration;
+    qClock_t StartDelay;
+}qEvent_t;
+\end{lstlisting}
+
+Each field of the structure is described as follows
+\begin{itemize}
+    \item \lstinline{Trigger} : The flag that indicates the event source that triggers the task execution. This flag can only have nine(9) possible values:
+    \begin{itemize}
+        \item \lstinline{byTimeElapsed}  : When the time specified for the task elapsed.
+        \item \lstinline{byNotificationQueued} : When there is a queued notification in the FIFO priority queue. For this trigger, the dispatcher performs a dequeue operation automatically. A pointer to the dequeued event-data will be available in the \lstinline{EventData}  field.
+        \item \lstinline{byNotificationSimple} : When an asynchronous notification event  arrives by the usage of \lstinline{qTask_Notification_Send}. A pointer to the notification data will be available in the \lstinline{EventData} field.
+        \item \lstinline{byQueueReceiver} : When there are elements available in the attached queue, the scheduler makes a data dequeue(auto-receive) from the front. A pointer to the received data will be available in the \lstinline{EventData} field.
+        \item \lstinline{byQueueFull} : When the attached queue is full. A pointer to the queue will be available in the \lstinline{EventData} field.
+        \item \lstinline{byQueueCount} : When the element-count of the  attached queue reaches
+        the specified value. A pointer to the queue will be available in the \lstinline{EventData} field.
+        \item \lstinline{byQueueEmpty} : When the attached queue is empty. A pointer to the queue will be available in the \lstinline{EventData} field.
+        \item \lstinline{byEventFlags} : When any of the available event flags is set. Flags should be cleared by the application writer.
+        \item \lstinline{byNoReadyTasks} : Only when the idle task is triggered
+    \end{itemize}
+    \item \lstinline{TaskData} : The storage pointer. Tasks can store a pointer to specific variable, structure or array, which represents specific user data for a particular task. This may be needed if you plan to use the same callback method for multiple tasks.
+    \item \lstinline{EventData} : Associated data of the event. Specific data will reside here according to the event source. This field will have a \lstinline{NULL} value when the trigger gets one of this values:  \textit{byTimeElapsed}, \textit{byEventFlags} and \textit{byNoReadyTasks}.
+    \item \lstinline{FirstCall} : This flag indicates that a task is running for the first time. Can be used for data initialization purposes.
+    \item \lstinline{FirstIteration} : Indicates whether current pass is the first iteration of the task. This flag will be only set when time-elapsed events occurs and the iteration counter has been parameterized. 
+    \item \lstinline{LastIteration} : Indicates whether current pass is the last iteration of the task. This flag will be only set when time-elapsed events occurs and the iteration counter has been parameterized. 
+    \item \lstinline{StartDelay} : The number of epochs between current system time and point in time when the task was marked as Ready.
+    Can be used to keep track when current task's execution took place relative to when it was scheduled. A value of 0 (zero) indicates that task started right on time per schedule.
+    This parameter will be only available on timed tasks, when \lstinline{Trigger} \lstinline{==} \textit{byTimeElapsed}. 
+\end{itemize}    
+
+\begin{tcolorbox}
+\HandRight Asynchronous events never change the task iteration counter, consequently, it has no effect on related fields, \lstinline{FirstIteration} and \lstinline{LastIteration}.
+\end{tcolorbox}
+    
+\subsection{Implementation guidelines}
+\subsubsection{Sending notifications}
+
+The kernel handles all the notifications by itself (simple or queued), so intermediate objects aren't needed. Just calling \lstinline{qTask_Notification_Send()} or \lstinline{qTask_Notification_Queue()} is enough to send notifications. After the task callback is invoked, the notification is cleared by the dispatcher. Here the application writer must read the respective fields of the event-data structure to check the received notification. \\
+
+The next example shows an ISR to task communication. Two interrupts send notifications to a single task with specific event data. The receiver task (\lstinline{taskA}) after further processing, send an event to \lstinline{taskB} to handle the event generated by the transmitter (\lstinline{taskA}).
+
+\begin{lstlisting}[style=CStyle]
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "HAL.h" /*hardware dependent code*/
+#include "QuarkTS.h"
+
+qTask_t taskA, taskB;
+void taskA_Callback( qEvent_t e );
+void taskB_Callback( qEvent_t e );
+
+const char *app_events[] = {
+                            "Timer1seg", 
+                            "ButtonRisingEdge", 
+                            "ButtonFallingEdge", 
+                            "3Count_ButtonPush"
+                            };
+
+/*==================================================================*/
+void interrupt Timer1Second_ISR( void) {
+    qTask_Notification_Send( &taskA, NULL );
+    HAL_ClearInterruptFlags( HAL_TMR_ISR ); /*hardware dependent code*/
+}
+/*==================================================================*/
+void interrupt ExternalInput_ISR( void ){
+    if( RISING_EDGE == HAL_GetInputEdge() ){ /*hardware dependent code*/
+        qTask_Notification_Queue( &taskA, app_events[1] );    
+    }
+    else{
+        qTask_Notification_Queue( &taskA, app_events[2] );
+    }
+    HAL_ClearInterruptFlags( HAL_EXT_ISR ); /*hardware dependent code*/
+}
+/*==================================================================*/
+void taskA_Callback( qEvent_t e ){
+    static int press_counter = 0;
+    
+    switch(e->Trigger){ /*check the source of the event*/
+        case byNotificationSimple: 
+            /*
+            * Do something here to process the timer event
+            */
+            break;
+        case byNotificationQueued:
+            /*here, we only care the Falling Edge events*/
+            if( strcmp( e->EventData, "ButtonFallingEdge" )==0 ){
+                press_counter++; /*count the button press*/
+                if( press_counter == 3){ /*after 3 presses*/
+                    /*send the notification of 3 presses to taskB*/
+                    qTask_Notification_Send( &taskB, app_events[3] );
+                    press_counter = 0;
+                }
+            }
+            break;
+        default:
+            break;
+    }
+}
+/*==================================================================*/
+void taskB_Callback( qEvent_t e ){
+    if( byNotificationSimple == e->Trigger){
+        /*
+         * we can do more here, but this is just an example,
+         * so, this task will only print out the received 
+         * notification event.
+         */
+        qDebug( e->EventData, Message );
+    }
+}
+/*==================================================================*/
+int main( void ){
+    HAL_Setup_MCU(); /*hardware dependent code*/
+    qTrace_Set_OutputFcn( HAL_OutPutChar );
+    /* setup the scheduler to handle up to 10 queued notifications*/
+    qOS_Setup( HAL_GetTick, 0.001, NULL ); 
+    qOS_Add_EventTask( &taskA, taskA_Callback, qLowest_Priority, NULL );
+    qOS_Add_EventTask( &taskB, taskB_Callback, qLowest_Priority, NULL );                     
+    qOS_Run();
+    return 0;
+}
+\end{lstlisting}
+
+\subsubsection{Setting up a queue : \lstinline{qQueue_Setup} } \index{\lstinline{qQueue_Setup}} \label{queuecreate}
+A queue must be explicitly initialized before it can be used. \\
+These objects are referenced by handles, which are variables of type \lstinline{qQueue_t}. The \lstinline{qQueue_Setup()} API function configures the queue and initialize the instance. 
+
+The required RAM for the queue data should be provided by the application writer and could be statically allocated at compile time or in run-time using the memory management module.\\
+ 
+\begin{lstlisting}[style=CStyle]
+qBool_t qQueue_Setup( qQueue_t * const obj, void* DataArea, 
+                      size_t ItemSize, size_t ItemsCount )
+\end{lstlisting}
+
+\subsubsection*{Parameters}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the queue object
+    \item \lstinline{DataArea} : Must point to a data block or array of data that is at least large enough to hold the maximum number of items that can be in the queue at any one time
+    \item \lstinline{ItemSize} : Size of one element in the data block
+    \item \lstinline{ItemsCount} : The maximum number of items the queue can hold at any one time.
+\end{itemize}      
+    
+\noindent\hrulefill    
+    
+\subsubsection{Performing queue operations}
+\index{\lstinline{qQueue_SendToBack}}
+\begin{lstlisting}[style=CStyle]
+qBool_t qQueue_SendToBack( qQueue_t * const obj, void *ItemToQueue )
+\end{lstlisting}
+
+\index{\lstinline{qQueue_SendToFront}}
+\begin{lstlisting}[style=CStyle]
+qBool_t qQueue_SendToFront( qQueue_t * const obj, void *ItemToQueue )
+\end{lstlisting}
+
+As might be expected, \lstinline{qQueue_SendToBack()} is used to send data to the back (tail) of a queue, and \lstinline{qQueue_SendToFront()} is used to send data to the front (head) of a queue. \lstinline{qQueue_Send()} \index{\lstinline{qQueue_Send}} is equivalent to, and exactly the same as, \lstinline{qQueue_SendToBack()}.
+
+\subsubsection*{Parameters}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the queue object
+    \item \lstinline{ItemToQueue} : A pointer to the item that is to be placed on the queue. The size of the items the queue will hold was defined when the queue was created, so this many bytes will be copied from \lstinline{ItemToQueue} into the queue storage area. 
+\end{itemize}  
+
+\subsubsection*{Return value}
+\lstinline{qTrue} if data was retrieved from the queue, otherwise returns \lstinline{qFalse}.
+
+\noindent\hrulefill  
+
+The API \lstinline{qQueue_Receive()} \index{\lstinline{qQueue_Receive}} is used to receive (read) an item from a queue. The item that is received is removed from the queue. \\
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qQueue_Receive( qQueue_t * const obj, void *dest )
+\end{lstlisting}
+
+\subsubsection*{Parameters}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the queue object
+    \item \lstinline{ItemToQueue} : Pointer to the buffer into which the received item will be copied.
+\end{itemize}  
+
+\subsubsection*{Return value}
+\lstinline{qTrue} if data was retrieved from the queue, otherwise returns \lstinline{qFalse}.
+
+\subsubsection{Attach a queue to a task}
+Additional features are provided by the kernel when the queues are attached to tasks; this allows the scheduler to pass specific queue events to it, usually, states of the object itself that needs to be handled, in this case by a task. For this, the following API is provided: \index{\lstinline{qTask_Attach_Queue}} \\
+    
+\begin{lstlisting}[style=CStyle]
+qBool_t qTask_Attach_Queue( qTask_t * const Task, qQueue_t * const Queue,
+                            const qQueue_LinkMode_t Mode, 
+                            const qUINT16_t arg )
+\end{lstlisting}
+    
+\subsubsection*{Parameters}
+\begin{itemize}
+    \item \lstinline{Task} : A pointer to the task node
+    \item \lstinline{Queue} : A pointer to the queue object
+    \item \lstinline{Mode} : Attach mode. This implies the event that will trigger the task according to one of the following modes:
+    \begin{itemize}
+        \item \lstinline{qQUEUE_DEQUEUE} : The task will be triggered if there are elements in the queue. 
+        \item \lstinline{qQUEUE_FULL} :  The task will be triggered if the queue is full. 
+        \item \lstinline{qQUEUE_COUNT} :  The task will be triggered if the count of elements in the queue reach the specified value. 
+        \item \lstinline{qQUEUE_EMPTY} :  The task will be triggered if the queue is empty.
+    \end{itemize}
+    \item \lstinline{arg} : This argument defines if the queue will be attached (\lstinline{qATTACH}) or detached (\lstinline{qDETACH}) from the task. If the \lstinline{qQUEUE_COUNT} mode is specified, this value will be used to check the element count of the queue. A zero value will act as \lstinline{qDETACH} action. 
+\end{itemize}  
+
+\begin{tcolorbox}
+\HandRight For the \lstinline{qQUEUE_DEQUEUE} mode,  data from the front of the queue will be received automatically in every trigger, this involves a data removal after the task is served. During the respective task execution, the \lstinline{EventData} field of the \lstinline{qEvent_t} structure will be pointing to the extracted data. For the other modes, the \lstinline{EventData} field will point to the queue that triggered the event.
+\end{tcolorbox}
+    
+\subsubsection{A queue example}
+This example shows the usage of QuarkTS queues. The application is the classic producer/consumer example. The producer task puts data into the queue. When the queue reaches a specific item count, the consumer task is triggered to start fetching data from the queue. Here, both tasks are attached to the queue. \\
+
+\begin{lstlisting}[style=CStyle]
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include "QuarkTS.h"
+#define TIMER_TICK   0.001   /* 1ms */ 
+
+/*-----------------------------------------------------------------------*/
+void interrupt Timer0_ISR( void ) {
+    qClock_SysTick();   
+}
+/*-----------------------------------------------------------------------*/
+qTask_t TSK_PRODUCER, TSK_CONSUMER; /*task nodes*/
+qQueue_t UserQueue; /*Queue Handle*/
+/*-----------------------------------------------------------------------*/
+
+/* The producer task puts data into the buffer if there is enough free 
+ * space in it, otherwise the task block itself and wait until the queue 
+ * is empty to resume. */
+void TSK_Producer_Callback( qEvent_t e ) {
+    static qUINT16_t unData = 0;
+    unData++;	
+    /*Queue is empty, enable the producer if it was disabled*/
+    if( byQueueEmpty == e->Trigger){
+        qTask_Resume( qTask_Self() );
+    }
+
+    /*send data to the queue*/
+    if( !qQueue_SendToBack( &UserQueue, &unData ) ){ 
+        /*
+        * if the data insertion fails, the queue is full 
+        * and the task disables itself
+        */
+	    qTask_Suspend( qTask_Self() ); 
+    }
+}
+/*-----------------------------------------------------------------------*/
+/* The consumer task gets one element from the queue.*/
+void TSK_Consumer_Callback( qEvent_t e ) {
+    qUINT16_t unData;
+    qQueue_t *ptrQueue; /*a pointer to the queue that triggers the event*/
+    if( byQueueCount == e->Trigger ){
+	    ptrQueue= (qQueue_t *)e->EventData;
+	    qQueue_Receive( ptrQueue, &unData );
+	    return;
+    }
+}
+/*-----------------------------------------------------------------------*/
+void IdleTask_Callback( qEvent_t e ){
+    /*nothing to do...*/
+}	
+/*-----------------------------------------------------------------------*/
+int main( void ) {    
+    qUINT8_t BufferMem[ 16*sizeof(qUINT16_t) ] = {0};  
+    HardwareSetup();  //hardware specific code
+    /* next line is used to setup hardware with specific code to fire
+     * interrupts at 1ms - timer tick*/
+    Configure_Periodic_Timer0_Interrupt_1ms();
+ 
+    qOS_Setup( NULL, TIMER_TICK, IdleTask_Callback );     
+    /*Setup the queue*/
+    qQueue_Setup( &UserQueue, BufferMem /*Memory block used*/, 
+                  sizeof(qUINT16_t) /*element size*/, 
+                  16 /* element count*/ );     
+                 
+    /*  Append the producer task with 100mS rate. */
+    qOS_Add_Task( &TSK_PRODUCER, TSK_Producer_Callback, 
+                  qMedium_Priority, 0.1, qPeriodic, qEnabled, 
+                  "producer" );
+    /* Append the consumer as an event task. The consumer will
+     * wait until an event trigger their execution
+     */
+    qOS_Add_EventTask( &TSK_CONSUMER, TSK_Consumer_Callback,
+                       qMedium_Priority, "consumer" );
+    /* the queue will be attached to the consumer task 
+     * in qQUEUE_COUNT mode. This mode sends an event to the consumer
+     * task when the queue fills to a level of 4 elements
+     */
+    qTask_Attach_Queue( &TSK_CONSUMER, &UserQueue, qQUEUE_COUNT, 4 );
+    /* the queue will be attached to the producer task in
+     * qQUEUE_EMPTY mode. This mode sends an event to the producer
+     * task when the queue is empty
+     */
+     
+    qTask_Attach_Queue( &TSK_PRODUCER, &UserQueue, qQUEUE_EMPTY, qATTACH );
+    qOS_Run();
+    return 0;
+}
+
+\end{lstlisting}    
+
+\subsubsection{Other queue APIs}
+
+\begin{lstlisting}[style=CStyle]
+void qQueue_Reset( qQueue_t * const obj )
+\end{lstlisting}
+
+Resets a queue to its original empty state. \index{\lstinline{qQueue_Reset}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the queue object
+\end{itemize}
+
+\noindent\hrulefill
+
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qQueue_IsEmpty( const qQueue_t * const obj );
+\end{lstlisting}
+
+Returns the empty status of the queue. \index{\lstinline{qQueue_IsEmpty}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the queue object
+\end{itemize}
+
+\subsubsection*{Return value:}
+\lstinline{qTrue} if the queue is empty, \lstinline{qFalse} if it is not.
+
+\noindent\hrulefill
+
+
+\begin{lstlisting}[style=CStyle]
+size_t qQueue_Count( const qQueue_t * const obj )
+\end{lstlisting}
+
+Returns the number of items in the queue. \index{\lstinline{qQueue_Count}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the queue object.
+\end{itemize}
+
+\subsubsection*{Return value:}
+The number of elements in the queue.
+
+\noindent\hrulefill
+
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qQueue_IsFull( const qQueue_t * const obj )
+\end{lstlisting}
+
+Returns the full status of the queue. \index{\lstinline{qQueue_IsFull}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the queue object.
+\end{itemize}
+
+\subsubsection*{Return value:}
+\lstinline{qTrue} if the queue is full, \lstinline{qFalse} if it is not.
+
+\noindent\hrulefill
+
+
+\begin{lstlisting}[style=CStyle]
+void* qQueue_Peek( const qQueue_t * const obj )
+\end{lstlisting}
+
+Looks at the data from the front of the queue without removing it. \index{\lstinline{qQueue_Peek}}  
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the queue object.
+\end{itemize}
+
+\subsubsection*{Return value:}
+Pointer to the data, or \lstinline{NULL} if there is nothing in the queue.
+
+\noindent\hrulefill
+
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qQueue_RemoveFront( qQueue_t * const obj )
+\end{lstlisting}
+
+Remove the data located at the front of the queue. \index{\lstinline{qQueue_RemoveFront}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the queue object.
+\end{itemize}
+
+\subsubsection*{Return value:}
+\lstinline{qTrue} if data was removed from the queue, otherwise returns \lstinline{qFalse}.
+
+\subsubsection{Using the task Event-flags}
+This example demonstrate the usage of \textit{Event-flags}. The idle task will transmit data generated from another task, only when the required conditions are met, including two events from an ISR (A timer expiration and the change of a digital input) and when a new set of data is generated.
+The task that generates the data should wait until the idle task transmission is done to generate a new data set. \\
+
+\begin{lstlisting}[style=CStyle]
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include "QuarkTS.h"
+#define TIMER_TICK   0.001   /* 1ms */ 
+
+/*event flags application definitions */
+#define SWITCH_CHANGED  QEVENTFLAG_01
+#define TIMER_EXPIRED   QEVENTFLAG_02
+#define DATA_READY      QEVENTFLAG_03
+#define DATA_TXMIT      QEVENTFLAG_04
+
+qTask_t TaskDataProducer; 
+qUINT8_t dataToTransmit[10] = {0};
+
+/*-----------------------------------------------------------------------*/
+void interrupt Timer0_ISR( void ){
+    qClock_SysTick();   
+}
+/*-----------------------------------------------------------------------*/
+void interrupt Timer1_ISR( void ){
+    qTask_EventFlags_Modify( &TaskDataProducer, TIMER_EXPIRED, 
+                             QEVENTFLAG_SET );
+}
+/*-----------------------------------------------------------------------*/
+void interrupt EXTI_ISR( void ){
+    if( EXTI_IsRisingEdge() ){
+        qTask_EventFlags_Modify( &TaskDataProducer, SWITCH_CHANGED, 
+                                 QEVENTFLAG_SET );
+    }
+}
+/*-----------------------------------------------------------------------*/
+void TaskDataProducer_Callback( qEvent_t e ){
+    qBool_t condition;
+    condition = qTask_EventFlags_Check( &TaskDataProducer, 
+                                        DATA_TXMIT, qTrue, qTrue );
+    if( qTrue == condition){
+        GenerateData( dataToTransmit );
+        qTask_EventFlags_Modify( &TaskDataProducer, DATA_READY, 
+                                 QEVENTFLAG_SET ); 
+    }
+    qTask_EventFlags_Check( &TaskDataProducer, 
+                            DATA_READY | SWITCH_CHANGED | TIMER_EXPIRED,
+                            qTrue, qTrue );
+}
+/*-----------------------------------------------------------------------*/
+void IdleTask_Callback( qEvent_t e ){
+    
+    TransmitData( dataToTransmit );
+    qTask_EventFlags_Modify( &TaskDataProducer, 
+                             DATA_TXMIT, QEVENTFLAG_SET ); 
+}
+/*-----------------------------------------------------------------------*/
+int main( void ) {    
+    HardwareSetup();  //hardware specific code
+    /* next line is used to setup hardware with specific code to fire
+     * interrupts at 1ms - timer tick*/
+    Configure_Periodic_Timer0_Interrupt_1ms();
+    Configure_Periodic_Timer1_Interrupt_2s();
+    Configure_External_Interrupt();
+    /*
+    Idle task will be responsible to transmit the generate the data after 
+    all conditions are meet
+    */
+    qOS_Setup( NULL, TIMER_TICK, IdleTask_Callback );
+    /*
+    The task will wait until data is transmitted to generate another set of
+    data
+    */
+    qOS_Add_EventTask( &TaskDataProducer, TaskDataProducer_Callback,
+                       qHigh_Priority, "DATAPRODUCER" );
+    /*
+    Set the flag DATA_TXMIT as initial condition to allow the data 
+    generation at startup
+    */
+    qTask_EventFlags_Modify( &TaskDataProducer, DATA_TXMIT, QEVENTFLAG_SET ); 
+    qOS_Run();
+    for(;;){}
+    return 0;
+}
+
+\end{lstlisting}
+
+\newpage

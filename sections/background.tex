@@ -1,0 +1,904 @@
+\section{Background}
+\subsection{About the OS}
+QuarkTS is an open-source operating system that is built on top of a cooperative quasi-static scheduler. Its simplified kernel implements a specialized round-robin scheme using a linked-chain approach and an event-queue to provide true FIFO priority-scheduling.
+
+Rather than having preemption,  tasks manage their own life-cycle. This bring significant benefits, fewer re-entrance problems are encountered, because tasks cannot be interrupted arbitrarily by other tasks, but only at positions permitted by the programmer. In addition with a state-machines support, co-routines, time control and the inter-task communication primitives, QuarkTS provides a modern environment to build stable and predictable event-driven multitasking embedded software.
+
+These features make it suitable for resource-constrained microcontrollers, where a full-preemptive RTOS is an overkill and their inclusion adds unnecessary complexity to the firmware development. Their modularity and reliability make this OS a great choice to develop efficiently a wide range of applications in low-cost devices, including automotive controls, monitoring and Internet of Things.
+
+\subsubsection{License}
+QuarkTS is licensed under the GNU General Public License v3.0 (GPL-3). You may copy, distribute and modify the software as long as you track changes/dates in source files. Any modifications to this OS, including GPL-licensed code must also be made available under the GPL along with build \& install instructions. This OS is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+For more details, see the GNU General Public License for more details in \cite{license}. 
+
+\subsubsection{Hardware compatibility}
+QuarkTS has no direct hardware dependencies, so it is portable to many platforms and C compilers. 
+The following cores have been powered with QuarkTS successfully:
+\begin{itemize}
+    \item ARM cores(ATMEL, STM32, LPC, Kinetis, Nordic and others)
+    \item 8Bit AVR, 8051, STM8
+    \item HCS12, ColdFire, MSP430
+    \item PIC (PIC24, dsPIC, 32MX, 32MZ)
+\end{itemize}
+
+\subsubsection{Coding standard and naming convention}
+
+\begin{itemize}
+    \item All the QuarkTS implementation follows the C99 standard.
+    \item The core source files try to conform most of the MISRA C 2004/2012 coding standard guidelines, allowing the OS to be used in safe-critical embedded systems. 
+    \item In line with MISRA guides, unqualified standard \lstinline{char} and \lstinline{char *} types are only permitted to hold ASCII characters and strings respectively.
+    \item In line with MISRA guides and for portability between platforms, we use the \lstinline{stdint.h} with typedefs that indicate size and signedness in place of the basic types.
+    \item The \lstinline{_t} suffix its used to denote a type definition (i.e \lstinline{qBool_t, qTask_t, size_t, ...}).   
+    \item Functions, macros, \lstinline{enum} values and data-types are prefixed \lstinline{q}. (i.e. \lstinline{qFunction}, \lstinline{qEnumValue}, \lstinline{QCONSTANT}, \lstinline{qType_t}, ...)
+    \item Other than the pre-fix, most macros used for constants are written in all upper case.
+    \item Almost all functions returns a boolean value of type \lstinline{qBool_t}, where a \lstinline{qTrue - 1u}  value indicates a successful procedure and \lstinline{qFalse - 0u}, the failure of the procedure.
+\end{itemize}
+
+\subsubsection{Memory usage}
+As a quasi-static scheduler is implemented here, dynamic memory allocation is not required and the assignment of tasks must be done before program execution begins.
+The kernel is designed to allow unlimited tasks and kernel objects, but of course, the whole application will be constrained by the memory specifications of the embedded system. \\
+The kernel's memory footprint can be scaled down to contain only the features required for your application, typically 2.5 KBytes of code space and less than 1 KByte of data space. \\
+
+\begin{tabular}{ |p{10cm}||p{1.5cm}|  }
+ \hline
+ \multicolumn{2}{|c|}{ \textbf{OS Memory Footprint} \scriptsize{(Measured in a 32bit MCU)}} \\
+ \hline
+ \textbf{Functionality} & \textbf{Size}\scriptsize{(bytes)}\\
+ \hline
+ Kernel, scheduler and task management& 2637\\
+ A task node ({\lstinline!qTask_t!}) & 64\\
+ Finite State-Machines(FSM) handling and related APIs& 314\\
+ A FSM object ({\lstinline!qSM_t!}) & 37 \\
+ STimers handling and related APIs & 258\\
+ A STimer object ({\lstinline!qSTimer_t!})& 8\\
+ qQueues handling and related APIS & 544\\
+ A qQueue object ({\lstinline!qQueue_t!}) & 28\\
+ Memory management & 407\\
+ A memory pool ({\lstinline!qMemMang_Pool_t!}) & 28 \\ 
+ The AT Command Parser & 1724\\
+ An AT-Parser instance ({\lstinline!qATCLI_t!})& 112\\
+ An AT command object ({\lstinline!qATCLI_Command_t!})& 24\\
+ Remaining utilities& 2980\\
+ \hline
+\end{tabular}
+
+ \begin{tcolorbox}
+ \HandRight Although the kernel does not use dynamically-allocated resources internally, the application writer can create an object dynamically using the heap implementation provided by the memory management module described in section \ref{memmanagement}.
+ \end{tcolorbox}
+
+\subsection{Timing approach}
+The kernel implements a Time-Triggered Architecture (TTA)\cite{pont}, in which the tasks are triggered by comparing the corresponding task-time with a reference clock. The reference clock must be real-time and follow a monotonic behavior. Usually, all embedded systems can provide this kind of reference with a constant tick generated by a periodic background hardware-timer, typically, at 1Khz (1mS tick). 
+
+For this, the kernel allows you to select the reference clock source among these two scenarios:
+
+\begin{itemize}
+    \item  When tick already provided: The reference is supplied by the Hardware Abstraction Layer (HAL) of the device.
+        It is the simplest scenario and it occurs when the framework or SDK of the embedded system includes a HAL-API that obtains the time elapsed since the system starts, usually in milliseconds and taking a  32-bit counter variable.
+    \item When the tick is not provided: The application writer should use bare-metal code to configure the device and feed the reference clock manually.
+        Here, a hardware timer should raise an interrupt periodically. After the \textit{Interrupt Service Routine} (ISR) has been implemented using the platform-dependent code, the \lstinline{qClock_SysTick()} \index{\lstinline{qClock_SysTick}} API must be called inside. It is recommended that the reserved ISR should only be used by QuarkTS.
+\end{itemize}
+
+\subsection{Setting up the OS kernel : \lstinline{qOS_Setup}} \label{settingupkernel}
+ This function should be the first call to the OS APIs. \lstinline{qOS_Setup()} \index{\lstinline{qOS_Setup}} prepares the kernel instance, sets the reference clock, defines the \textit{Idle-Task} callback and allocates the stack for the internal queue. \\
+ 
+\begin{lstlisting}[style=CStyle]
+void qOS_Setup( const qGetTickFcn_t TickProvider, 
+                const qTimingBase_t BaseTimming, 
+                qTaskFcn_t IdleCallback )
+\end{lstlisting}
+
+
+\subsubsection*{Parameters}
+\begin{itemize}
+    \item \lstinline{TickProvider} : The function that provides the tick value. If the user application uses the \lstinline{qClock_SysTick()} from the ISR, this parameter can be \lstinline{NULL}. \\
+    Note: Function should take \lstinline{void} and return a 32bit unsigned integer.  \\
+    This argument must have this prototype : \lstinline{qUINT32_t TickProviderFcn(void)}
+    \item \lstinline{BaseTimming} :This parameter specifies the ISR background timer period in seconds(floating-point format).
+    
+    \textit{Note} : This argument will be only available if \lstinline{Q_SETUP_TIME_CANONICAL} is set to zero(0).
+    \item \lstinline{IdleCallback} : Callback function for the idle task. If not used, pass \lstinline{NULL} as argument.
+\end{itemize}
+
+
+\begin{tcolorbox}
+\HandRight This call is mandatory and must be called once in the application main thread before any kind of interaction with the OS.
+\end{tcolorbox}
+
+\subsubsection*{Usage example:}
+Scenario 1: When tick is already provided
+\begin{lstlisting}[style=CStyle]
+#include "QuarkTS.h"
+#include "HAL.h"
+
+#define TIMER_TICK   0.001   /* 1ms */ 
+
+void main( void ){
+    HAL_Init(); 
+    qOS_Setup( HAL_GetTick, TIMER_TICK, IdleTask_Callback );
+    
+    /*
+    TODO: add Tasks to the scheduler scheme and run the OS
+    */
+}
+\end{lstlisting}
+
+
+Scenario 2: When the tick is not provided
+\begin{lstlisting}[style=CStyle]
+#include "QuarkTS.h"
+#include "DeviceHeader.h"
+
+#define TIMER_TICK   0.001   /* 1ms */ 
+
+void Interrupt_Timer0( void ){
+    qClock_SysTick();
+}
+
+void main( void ){
+    MCU_Init();
+    BSP_Setup_Timer0(); 
+    qOS_Setup( NULL, TIMER_TICK, IdleTask_Callback ); 
+    
+    /*
+    TODO: add Tasks to the scheduler scheme and run the OS
+    */
+}
+\end{lstlisting}
+
+\subsection{Tasks}
+Like many operating systems, the basic unit of work is the task. Tasks can perform certain functions, which could require periodic or one-time execution, update of specific variables or waiting for specific events. Tasks also could be controlling specific hardware or be triggered by hardware interrupts. In the QuarkTS OS, a task is seen as a node concept that links together:
+
+\begin{itemize}
+    \item Program code performing specific task activities (callback function)
+    \item Execution interval (time)
+    \item Number of execution (iterations)
+    \item Event-based data
+\end{itemize}
+
+The OS  uses a \textit{Task Control Block} (TCB) to represent each task, storing essential information about task management and execution. Part of this information also includes \textit{link-pointers} that allows it to be part of one of the lists available in the Kernel Control Block (KCB).
+
+\input{fig/tasklist.tex}
+
+Each task performs its activities via a callback function and each of them is responsible for supporting cooperative multitasking by being “good neighbors”, i.e., running their callback methods quickly in a non-blocking way and releasing control back to the scheduler as soon as possible (returning). \\
+
+Every task node, must be defined using the \lstinline{qTask_t} \index{\lstinline{qTask_t}} data-type and the callback is defined as a function that returns \lstinline{void} and takes a \lstinline{qEvent_t} data structure as its only parameter (This input argument can be used later to get event information, see section \ref{eventdata}).\\
+
+\begin{lstlisting}[style=CStyle]
+qTask_t UserTask;
+void UserTask_Callback( qEvent_t eventdata ){
+    /* TODO : Task code */
+}
+\end{lstlisting}
+
+\begin{tcolorbox}
+\ArrowBoldDownRight \textit{Note} : All tasks in QuarkTS must ensure their completion to return the CPU control back to the scheduler, otherwise, the scheduler will hold the execution-state for that task, preventing the activation of other tasks.
+\end{tcolorbox}
+
+\subsubsection{The idle task}
+Its a special task loaded by the OS scheduler when there is nothing else to do (no task in the whole scheme has reached the ready state). The idle task is already hard-coded into the kernel, ensuring that at least, one task is able to run. Additionally, the OS setup this task with the lowest possible priority to ensure that does not use any CPU time if there are higher priority application tasks able to run. \\
+The idle task doesn't perform any active functions, but the user can decide if it should perform some activities defining a callback function for it. This could be done at the beginning of the kernel setup (as seen in section \ref{settingupkernel} with \lstinline{qOS_Setup()}) or in run-time with \lstinline{qOS_Set_IdleTask()} \index{\lstinline{qOS_Set_IdleTask}}. \\
+
+\begin{lstlisting}[style=CStyle]
+void qOS_Set_IdleTask(qTaskFcn_t Callback)
+\end{lstlisting}
+
+Of course, the callback must follow the same function prototype for tasks. \\
+
+\begin{tcolorbox}
+\HandRight To disable the idle-task activities, a \lstinline{NULL} should be passed as argument.
+\end{tcolorbox}
+
+\subsubsection{Adding tasks to the scheme : \lstinline{qOS_Add_Task} } \label{addtask}
+After setting up the kernel with \lstinline{qOS_Setup()}, the user can proceed to deploy the multitasking application by adding tasks. If the task node and their respective callback is already defined, the task can be added to the scheme using \lstinline{qOS_Add_Task()} \index{\lstinline{qOS_Add_Task}}. This API can schedule a task to run every \lstinline{Time} seconds, \lstinline{nExecutions} times and executing \lstinline{CallbackFcn} method on every pass.\\
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qOS_Add_Task( qTask_t * const Task, qTaskFcn_t CallbackFcn, 
+                      qPriority_t Priority, qTime_t Time, 
+                      qIteration_t nExecutions, qState_t InitialState, 
+                      void* arg )
+\end{lstlisting}
+
+\subsubsection*{Parameters}
+\begin{itemize}
+    \item \lstinline{Task} : A pointer to the task node. 
+    \item \lstinline{CallbackFcn} : A pointer to a void callback method with a \lstinline{qEvent_t} parameter as input argument..
+    \item \lstinline{Priority} : The priority value. [0(min) - \lstinline{Q_PRIORITY_LEVELS}(max)]
+    \item \lstinline{Time} : Execution interval defined in seconds (floating-point format). For immediate execution use the  \lstinline{qTimeImmediate} definition. 
+    \item \lstinline{nExecutions} : Number of task executions (Integer value). For indefinite execution  use \lstinline{qPeriodic} or the \lstinline{qIndefinite} definition. 
+    \item \lstinline{InitialState} : Specifies the initial operational state of the task (\lstinline{qEnabled}, \lstinline{qDisabled}, \lstinline{qAsleep} or \lstinline{qAwake}(implies \lstinline{qEnabled})).
+    \item \lstinline{arg} - Represents the task argument. This argument must be passed by reference and cast to \lstinline{(void *)}. 
+\end{itemize}
+
+\subsubsection*{Return value}
+\lstinline{qTrue} if the task was successfully added the scheme. Otherwise returns \lstinline{qFalse}.
+
+\subsubsection*{Caveats}
+\begin{enumerate}
+    \item A task with \lstinline{Time} argument defined in \lstinline{qTimeImmediate}, will always get the \textit{qReady} state in every scheduling cycle, as consequence, the idle task will never gets dispatched.
+    \item Tasks do not remember the number of iteration set initially by the \lstinline{nExecutions} argument. After the iterations are done, the internal iteration counter decreases until reach the zero. If another set of iterations is needed, the user should set the number of iterations again and resume the task explicitly. 
+    \item Tasks that performed all their iterations, put their own state to \lstinline{qDisabled}. Asynchronous triggers do not affect the iteration counter.
+    \item The \lstinline{arg} parameter can be used as storage pointer, so, for multiple data, create a structure with the required members and pass a pointer to that structure.
+\end{enumerate}
+
+\noindent\hrulefill
+
+Invoking \lstinline{qOS_Add_Task()}  is the most generic way to adding tasks to the scheme, supporting a mixture of time-triggered and event-triggered tasks, however, additional simplified API functions are also provided to add specific purpose tasks:
+\begin{itemize}
+    \item Event-triggered only tasks $\rightarrow$ \lstinline{qOS_Add_EventTask()}
+    \item State-machine tasks $\rightarrow$ \lstinline{qOS_Add_StateMachineTask()}. See section \ref{statemachinetask}.
+    \item AT Command Line Interface tasks $\rightarrow$ \lstinline{qOS_Add_ATCLITask()}. See section \ref{runningparser}.
+\end{itemize}
+
+
+\subsubsection{Event-triggered tasks}
+An event-triggered task reacts asynchronously to the occurrence of events in the system, such as external interrupts or changes in the available resources. 
+
+The API \lstinline{qOS_Add_EventTask()} \index{\lstinline{qOS_Add_EventTask}} is intended to add this kind of tasks, keeping it in a \textit{qSuspended} state. Only asynchronous events followed by their priority value dictates when a task can change to the \textit{qRunning} state. \\
+
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qOS_Add_EventTask( qTask_t * const Task, qTaskFcn_t CallbackFcn, 
+                           qPriority_t Priority, void* arg)
+\end{lstlisting}
+
+As seen above, arguments related to timing and iterations parameters are dispensed and the only required arguments become minimal, just needing:  \lstinline{CallbackFcn}, \lstinline{Priority} and the related task arguments \lstinline{arg}.
+
+\subsubsection{Removing a task : \lstinline{qOS_Remove_Task}}
+As expected, the API \index{\lstinline{qOS_Remove_Task}}removes the task from the scheduling scheme.  This means the task node will be disconnected from the kernel chain, preventing additional overhead provided by the scheduler when it does checks over it and course, preventing from running. \\
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qOS_Remove_Task( qTask_t * const Task )
+\end{lstlisting}
+
+\subsubsection*{Caveats:}
+Task nodes are variables like any other. They allow your application code to reference a task, but there is no link back the other way and the kernel doesn't know anything about the variables, where the variable is allocated (stack, global, static, etc.) or how many copies of the variable you have made, or even if the variable still exists.  So the \lstinline{qOS_Remove_Task()} API cannot automatically free the resources allocated by the variable. 
+If the task node has been dynamically allocated, the application writer it's responsible to free the memory block after a removal call.
+
+
+\subsection{Running the OS : \lstinline{qOS_Run}}
+After preparing the multitasking environment for your application, a call to \lstinline{qOS_Run()} \index{\lstinline{qOS_Run}} is required to execute the scheduling scheme.
+This function is responsible to run the following OS main components:
+\begin{itemize}
+    \item \textbf{The Scheduler} : Select the tasks to be submitted into the system and decide with of them are able to run.
+    \item \textbf{The Dispatcher} : When the scheduler completes its job of selecting ready tasks, it is the dispatcher which takes that task to the running state. This procedure gives a task control over the CPU after it has been selected by the scheduler. This involves the following:
+    \begin{itemize}
+        \item Preparing the resources before the task execution
+        \item Execute the task activities (via the callback function)
+        \item Releasing the resources after the task execution 
+    \end{itemize}
+\end{itemize}
+
+The states involved in the interaction between the scheduler and dispatcher are described in the section that follows. \\
+
+\begin{tcolorbox}
+\ArrowBoldDownRight \textit{Note}: After calling \lstinline{qOS_Run()}, the OS scheduler will now be running, and the following line should never be reached, however, the user can optionally release it explicitly with \lstinline{qOS_Scheduler_Release()} API function.
+\end{tcolorbox}
+
+\subsubsection{Releasing the scheduler: \lstinline{qOS_Scheduler_Release} }
+This functionality must be enabled from the \lstinline{Q_ALLOW_SCHEDULER_RELEASE} macro.
+This API \index{\lstinline{qOS_Scheduler_Release}} stop the kernel scheduling. In consequence, the main thread will continue after the \lstinline{qOS_Run()} call. 
+
+Although producing this action is not a typical desired behavior in any application, it can be used to handle a critical exception.
+
+When used, the release will take place after the current scheduling cycle finish. The kernel can optionally include a release callback function that can be configured to get called if the scheduler is released. 
+Defining the release callback,  will help to take actions over the exception that caused the release action. To enable this functionality, the \lstinline{qOS_Set_SchedulerReleaseCallback()} \index{\lstinline{qOS_Set_SchedulerReleaseCallback}} API should be used. \\
+
+\begin{lstlisting}[style=CStyle]
+void qOS_Set_SchedulerReleaseCallback( qTaskFcn_t Callback )
+\end{lstlisting}
+
+\begin{tcolorbox}
+\HandRight When a scheduler release is performed, resources are not freed. After released, the application can invoke the \lstinline{qOS_Run()} again to resume the scheduling activities.
+\end{tcolorbox}
+
+\subsection{Global states and scheduling rules}
+
+A task can be in one of the four global states: \textit{qRunning}, \textit{qReady}, \textit{qSuspended} or \textit{qWaiting}. Each of these states is tracked implicitly by putting the task in one of the associated kernel lists. 
+
+These global states are described below:
+
+\input{fig/schedulerstates.tex}
+
+\begin{itemize}
+    \item \textbf{qWaiting} : The task cannot run because the conditions for running are not in place. 
+    \item \textbf{qReady} : The task has completed preparations for running, but cannot run because a task with a higher precedence is running.
+    \item \textbf{qRunning} : The task is currently being executed.
+    \item \textbf{qSuspended} : The task doesn't take part in what is going on. Normally this state is taken after the \textit{qRunning} state or when the task doesn't reach the \textit{qReady} state.
+\end{itemize}
+
+
+The presence of a task in a particular list indicates the task's state. 
+There are many ready-lists as defined in the \lstinline{Q_PRIORITY_LEVELS} macro.
+To select the target ready list, the OS use the user-assigned priority between 0 (the lowest priority) and \lstinline{Q_PRIORITY_LEVELS-1} (the highest priority). For instance, if \lstinline{Q_PRIORITY_LEVELS} is set to 5, then QuarkTS will use 5 priority levels or ready lists: 0 (lowest priority), 1, 2, 3, and 4 (highest priority). 
+
+\input{fig/corelists.tex}
+
+Except for the idle task, a task exists in one of these states. As the real-time embedded system runs, each task moves from one state to another(moving it from a list to another), according to the logic of a simple finite state machine (FSM). Figure \ref{fig:scheduler_states} illustrates the typical flowchart used by QuarkTS to handle the task's states, with brief descriptions of state transitions, additionally you may also notice the interaction between the scheduler and the dispatcher.
+
+The OS assumes that none of the tasks does a block anywhere during the \textit{qRunning} state. Based on the \textit{round-robin} fashion, each ready task runs in turn from every ready lists. The developer should take care to monitor their system execution times to make sure during the worst case, when all tasks have to execute, all of the deadlines are still met.
+
+
+\subsubsection{Rules}
+Task precedence is used as the task scheduling rule and precedence among tasks is determined based on the priority of each task. If there are multiple tasks able to run, the one with the highest precedence goes to \textit{qRunning} state first. 
+
+In determining precedence among tasks, of those tasks having different priority levels, that with the highest priority has the highest precedence. Among tasks having the same priority, the one that entered the scheduling scheme first has the highest precedence if the \lstinline{Q_PRESERVE_TASK_ENTRY_ORDER } configuration is enabled, otherwise the OS will reserves for himself the order according to the dynamics of the kernel lists.
+
+\paragraph{Event precedence :}
+The scheduler also has an order of precedence for incoming events (later detailed in section \ref{events}), in this way, if events of different nature converge to a single task, these will be served according to the following flowchart:
+
+\input{fig/eventprecedence.tex}
+
+\paragraph{Additional operational states :}
+Each task has independent operating states from those globally controlled by the scheduler. These states can be handled by the application writer to modify the event-flow to the task and consequently, affecting the transition to the \textit{qReady} global state. These states are described below.
+
+\begin{itemize}
+    \item \textit{qAwake} : In this state, the task is conceptually in an alert mode, handling most of the available events. This operational state is available when the \lstinline{SHUTDOWN} bit is set, allowing the next operational states to be available:
+    \begin{itemize}
+        \item \textit{qEnabled} : The task is able to catch all the events. This operational state is available when the \lstinline{ENABLE} bit is set.
+        \item \textit{qDisabled} : In this state the time events will be discarded. This operational state is available when the \lstinline{ENABLE} bit is cleared.
+    \end{itemize}
+    \item \textit{qAsleep} : Task operability is put into a deep doze mode, so the task can't be triggered by the lower precedence events.  This operational state is available when the \lstinline{SHUTDOWN} bit is cleared. The task can exit from this operational state when it receives a high precedence event (a queued notification) or using the \lstinline{qTask_Set_State()} API.
+\end{itemize}
+
+The figure \ref{fig:eventflow} shows a better representation of how the event flow can be affected by this operational states.
+
+\begin{tcolorbox}
+\HandRight Queued notifications are the only event that can wake up sleeping tasks.
+\end{tcolorbox}
+\begin{tcolorbox}
+\HandRight The \textit{qAsleep} operational state overrides the \textit{qEnabled} and \textit{qDisabled} State.
+\end{tcolorbox}
+
+\input{fig/eventflow.tex}
+
+
+\subsection{Getting started}
+Unpack the source files and copy them into your project. Also, add a copy of the file \lstinline{qconfig.h} and modify it according to your needs. Setup your compiler include path with the corresponding OS directory. Include the header file \lstinline{QuarkTS.h} and setup the instance of the kernel using the \lstinline{qOS_Setup()} inside the main thread. Additional configuration to the target compiler may be required to add the path to the directory of header files. The code below shows a common initialization in the main source file. \\
+
+File: \lstinline{main.c}
+\begin{lstlisting}[style=CStyle]
+#include "QuarkTS.h"
+#define TIMER_TICK   0.001   /* 1ms */ 
+
+void main( void ){
+    /*start of hardware specific code*/
+    HardwareSetup();  
+    Configure_Periodic_Timer_Interrupt_1ms(); 
+    /*end of hardware specific code*/
+    qOS_Setup( NULL, TIMER_TICK, IdleTask_Callback ); 
+    /*
+    TODO: add Tasks to the scheduler scheme and run the OS
+    */
+}
+\end{lstlisting}
+
+In the above code, the following considerations should be taken
+\begin{itemize}
+    \item The function \lstinline{qOS_Setup()} must be called before any interaction with the OS.
+    \item The procedure \lstinline{HardwareSetup()} should be a function with all the hardware instructions needed to initialize the target system.
+    \item  The procedure \lstinline{Configure_Periodic_Timer_Interrupt_1ms()} should be a function with all the hardware instructions needed to initialize and run a timer with an overflow tick of one millisecond.
+\end{itemize}
+
+Tasks can be later added to the scheduling scheme by simply calling \lstinline{qOS_Add_Task()} or any of the other available APIs for specific purpose tasks.
+
+\subsection{Recommended programming pattern}
+A multitasking design pattern demands a better project organization. To have this attribute in your solution, code the tasks in a separate source file. A simple implementation example is presented below. \\
+
+To make the handling of the tasks available in other contexts, nodes should be globals(see the \lstinline{extern} qualifier in \lstinline{MyAppTasks.h} header file).  Avoid implementing functionalities in a component that are not related to each other. Put any other components and globals resources in a separated source file, for example (\lstinline{ScreenDriver.h}/\lstinline{ScreenDriver.c}),  (\lstinline{Globals.h}/\lstinline{Globals.c}). These simple design tips will allow you to have a better principle of abstraction and will maximize the cohesion of the solution, improving the code readability and maintenance. \\
+
+File: \lstinline{MyAppTasks.h}
+\begin{lstlisting}[style=CStyle]
+#ifndef MYAPPTASK_H
+    #define MYAPPTASK_H
+    
+    #include "Globals.h"
+    #include "QuarkTS.h"
+    
+    extern qTask_t CommunicationTask, HardwareCheckTask, 
+                  CheckUserEventsTask, SignalAnalisysTask;
+    
+    void CommunicationTask_Callback( qEvent_t );
+    void HardwareCheckTask_Callback( qEvent_t );
+    void CheckUserEventsTask_Callback( qEvent_t );
+    void SignalAnalisysTask_Callback( qEvent_t );
+#endif
+\end{lstlisting}
+
+File: \lstinline{MyAppTasks.c}
+\begin{lstlisting}[style=CStyle]
+#include "MyAppTasks.h"
+
+qTask_t CommunicationTask, HardwareCheckTask, 
+        CheckUserEventsTask, SignalAnalisysTask;
+
+void CommunicationTask_Callback( qEvent_t e ){
+    /*
+    TODO: Communication Task code
+    */
+}
+
+void HardwareCheckTask_Callback( qEvent_t e ){
+    /*
+    TODO: Hardware Check Task code
+    */
+}
+
+void CheckUserEventsTask_Callback( qEvent_t e ){
+    /*
+    TODO: Check User Events Task code
+    */
+}
+
+void SignalAnalisysTask_Callback( qEvent_t e ){
+    /*
+    TODO: Signal Analisys Task code
+    */
+}
+
+/*this task doesnt need an Identifier*/
+void IdleTask_Callback( qEvent_t e ){ 
+    /*
+    TODO: Idle Task code
+    */
+}
+\end{lstlisting}
+
+File: \lstinline{main.c}
+\begin{lstlisting}[style=CStyle]
+#include "QuarkTS.h"
+#include "Globals.h"
+#include "MyAppTasks.h"
+
+void interrupt OnTimerInterrupt( void ){ //hardware specific code
+    qClock_SysTick();
+}
+
+void main( void ){
+    /*start of hardware specific code*/
+    HardwareSetup();
+    Configure_Periodic_Timer_Interrupt_10ms(); 
+    /*end of hardware specific code*/
+    qOS_Setup( NULL, 0.01, IdleTask_Callback ); 
+    qOS_Add_Task( HardwareCheckTask, HardwareCheckTask_Callback,
+                  qLowest_Priority, 0.25, qPeriodic, qEnabled, NULL );
+    qOS_Add_Task( SignalAnalisysTask, SignalAnalisysTask_Callback, 
+                  qHigh_Priority, 0.1, 200, qEnabled, NULL );
+    qOS_Add_EventTask( CheckEventsTask, CheckEventsTask_Callback, 
+                       qMedium_Priority, NULL ); 
+    qOS_Add_Task( CommunicationTask, CommunicationTask_Callback, 
+                  qHigh_Priority, qTimeImmediate, qPeriodic, 
+                  qEnabled, NULL );
+    qOS_Run();
+    for(;;){}
+}
+\end{lstlisting}
+
+
+\subsection{Critical sections}
+Since the kernel is non-preemptive, the only critical section that must be handled are the shared resources accessed from the ISR context. Perhaps, the most obvious way of achieving mutual exclusion is to allow the kernel to disable interrupts before it enters its critical section and then, enable interrupts after it leaves its critical section. \\
+
+By disabling interrupts, the CPU will be unable to change the current context. This guarantees that the currently running job can use a shared resource without another context accessing it. But, disabling interrupts, is a major undertaking. At best, the system will not be able to service interrupts for the time the current job is doing in its critical section, however, in QuarkTS, these critical sections are handled as quickly as possible.  
+
+Considering that the kernel is hardware-independent, the application writer should provide the necessary piece of code to enable and disable interrupts.
+
+For this, the \lstinline{qCritical_SetInterruptsED()} \index{\lstinline{qCritical_SetInterruptsED}} API should be used. In this way, communication between ISR and tasks using queued notifications or data queues is performed safely. \\
+
+\begin{lstlisting}[style=CStyle]
+void qCritical_SetInterruptsED( void (*Restorer)(qUINT32_t), 
+                                qUINT32_t (*Disabler)(void) );
+\end{lstlisting}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{Restorer} : The function with hardware specific code to enable or restore interrupts.
+    \item \lstinline{Disabler} : The function with hardware specific code that disables interrupts.
+\end{itemize}
+
+In some systems, disabling the global IRQ flags is not enough, as they don't save/restore state of interrupt, so here, the \lstinline{qUINT32_t} argument and return value in both functions (\lstinline{Disabler} and \lstinline{Restorer}) becomes relevant, because they can be used by the application writer to save and restore the current interrupt configuration. So, when a critical section is performed, the \lstinline{Disabler}, in addition to disable the interrupts, return the current configuration to be retained by the kernel, later when the critical section finish, this retained value is passed to \lstinline{Restorer} to bring back the saved configuration. 
+
+\subsection{Task management APIs in run-time }
+Most of the scheduling parameters regarding task execution can be changed at run-time. The following APIs are intended for this purpose. \\
+
+
+\begin{lstlisting}[style=CStyle]
+void qTask_Set_Time( qTask_t * const Task, const qTime_t Value )
+\end{lstlisting}
+
+Set/Change the task execution interval. \index{\lstinline{qTask_Set_Time}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{Task} : A pointer to the task node.
+    \item \lstinline{Value} : Execution interval defined in seconds (floating-point format). For immediate execution use \lstinline{qTimeImmediate}.
+\end{itemize}
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+void qTask_Set_Iterations( qTask_t * const Task, qIteration_t Value )
+\end{lstlisting}
+
+Set/Change the number of task iterations. \index{\lstinline{qTask_Set_Iterations}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{Task} : A pointer to the task node.
+    \item \lstinline{Value} : Number of task executions (integer value). For indefinite execution user \lstinline{qPeriodic} or \lstinline{qIndefinite}. Tasks do not remember the number of iteration set initially. 
+\end{itemize}
+
+\noindent\hrulefill
+
+
+\begin{lstlisting}[style=CStyle]
+void qTask_Set_Priority( qTask_t * const Task, qPriority_t Value )
+\end{lstlisting}
+
+Set/Change the task priority value. \index{\lstinline{qTask_Set_Priority}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{Task} : A pointer to the task node.
+    \item \lstinline{Value} : Priority value. \lstinline{[0(min) - Q_PRIORITY_LEVELS(max)]}. 
+\end{itemize}
+
+\noindent\hrulefill
+
+
+\begin{lstlisting}[style=CStyle]
+void qTask_Set_Callback( qTask_t * const Task, qTaskFcn_t CallbackFcn )
+\end{lstlisting}
+
+Set/Change the task callback function. \index{\lstinline{qTask_Set_Callback}}. Can be used to detach an state machine.
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{Task} : A pointer to the task node.
+    \item \lstinline{Callback} : A pointer to a void callback method with a \lstinline{qEvent_t} parameter as input argument.
+\end{itemize}
+
+\noindent\hrulefill
+
+
+\begin{lstlisting}[style=CStyle]
+void qTask_Set_State( qTask_t * const Task, const qState_t State ) 
+void qTask_Resume( qTask_t * const Task ) 
+void qTask_Suspend( qTask_t * const Task )
+void qTask_ASleep( qTask_t * const Task )
+void qTask_Awake( qTask_t * const Task )
+\end{lstlisting}\index{\lstinline{qTask_Resume}} \index{\lstinline{qTask_Suspend}} \index{\lstinline{qTask_ASleep}} \index{\lstinline{qTask_Awake}}
+
+Set the task operability state. \index{\lstinline{qTask_Set_State}} \index{\lstinline{qTask_Resume}} \index{\lstinline{qTask_Suspend}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{Task} : A pointer to the task node.
+    \item \lstinline{State} : Use one of the following values:
+    \begin{itemize}
+        \item \lstinline{qEnabled} : Task will be able to catch all the events.
+        \item \lstinline{qDisabled} : Time events will be ignored. Only asynchronous events are allowed.
+        \item \lstinline{qAsleep} : The task can't be triggered by lower precedence events. Only the queued notifications events can be caught.
+        \item \lstinline{qAwake} : Task will be able to catch all the events.
+    \end{itemize}
+\end{itemize}
+
+\noindent\hrulefill
+
+
+\begin{lstlisting}[style=CStyle]
+void qTask_Set_Data( qTask_t * const Task, void* UserData )
+\end{lstlisting}
+
+Set the task data. \index{\lstinline{qTask_Set_Data}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{Task} : A pointer to the task node.
+    \item \lstinline{UserData} : A pointer to the associated data.
+\end{itemize}
+
+\noindent\hrulefill
+
+
+\begin{lstlisting}[style=CStyle]
+void qTask_ClearTimeElapsed( qTask_t * const Task )
+\end{lstlisting}
+
+Clear the elapsed time of the task. Restart the internal task tick. \index{\lstinline{qTask_ClearTimeElapsed}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{Task} : A pointer to the task node.
+\end{itemize}
+
+\noindent\hrulefill
+
+
+\begin{lstlisting}[style=CStyle]
+qCycles_t qTask_Get_Cycles( const qTask_t * const Task )
+\end{lstlisting}
+
+Retrieve the number of task activation's. \index{\lstinline{qTask_Get_Cycles}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{Task} : A pointer to the task node.
+\end{itemize}
+
+
+\subsubsection*{Return value:}
+A \lstinline{qUINT32_t} value containing the number of task activations.
+
+\noindent\hrulefill
+
+
+\begin{lstlisting}[style=CStyle]
+qState_t qTask_Get_State( const qTask_t * const Task )
+\end{lstlisting}
+
+Retrieve the task operational state. \index{\lstinline{qTask_Get_State}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{Task} : A pointer to the task node.
+\end{itemize}
+
+
+\subsubsection*{Return value:}
+\lstinline{qEnabled} or \lstinline{qDisabled} if the task is \lstinline{qAwaken}. \lstinline{qAsleep} if the task is in a sleep operational state.
+
+\noindent\hrulefill
+
+
+\begin{lstlisting}[style=CStyle]
+qTask_t* qTask_Self( void )
+\end{lstlisting}
+
+Get current running task handle. \index{\lstinline{qTask_Self}}
+
+\subsubsection*{Return value:}
+A pointer to the current running task. \lstinline{NULL} when the scheduler it's in a busy state or when idle-task is running.
+
+
+\noindent\hrulefill
+
+
+\begin{lstlisting}[style=CStyle]
+qTask_GlobalState_t qTask_Get_GlobalState( const qTask_t * const Task )
+\end{lstlisting}
+
+Retrieve the task global-state. \index{\lstinline{qTask_Get_GlobalState}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{Task} : A pointer to the task node.
+\end{itemize}
+
+
+\subsubsection*{Return value:}
+One of the available global states : \lstinline{qWaiting}, \lstinline{qSuspended}, \lstinline{qRunning} or \lstinline{qReady}.
+Return \lstinline{qUndefinedGlobalState} if the current task its passing through a current kernel transaction
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qTask_HasPendingNotifications( const qTask_t * const Task  )
+\end{lstlisting}
+
+Check if the task has pending notifications. Please read section \ref{osnotifications}. \index{\lstinline{qTask_HasPendingNotifications}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{Task} : A pointer to the task node.
+\end{itemize}
+
+\subsubsection*{Return value:}
+\lstinline{qTrue} if the functon asserts, otherwise returns \lstinline{qFalse}.
+
+\subsection{Demonstrative examples}
+\subsubsection{A simple scheduling}
+This example demonstrates a simple environment setup for multiple tasks. Initially, only \lstinline{task1} and \lstinline{task2} are enabled. \lstinline{task1} runs every 2 seconds 10 times and then stops. \lstinline{task2} runs every 3 seconds indefinitely. \lstinline{task1} enables \lstinline{task3} at its first run. \lstinline{task3} run every 5 seconds. \lstinline{task1} disables \lstinline{task3} on its last iteration and changed \lstinline{task2} to run every 1/2 seconds. In the end, \lstinline{task2} is the only task running every 1/2 seconds. \\
+
+\begin{lstlisting}[style=CStyle]
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include "BSP.h"
+
+#include "QuarkTS.h"
+#define TIMER_TICK   0.001   /* 1ms */ 
+
+qTask_t task1, task2, task3; /*task nodes*/
+/*==================================================================*/
+void interrupt Timer0_ISR( void ) {
+    qClock_SysTick();   
+}
+/*==================================================================*/
+void Task1_Callback( qEvent_t e ){
+    BSP_UART1_WriteString( "Task1" );
+
+    if( e->FirstIteration ){
+        qTask_Resume( &Task3 );    
+    }
+    
+    if( e->LastIteration ){
+        qTask_Suspend( &Task3 );
+        qTask_Set_Time( &Task2, 0.5 );
+    }
+}
+/*==================================================================*/
+void Task2_Callback( qEvent_t e ){
+    BSP_UART1_WriteString( "Task2" );
+}
+/*==================================================================*/
+void Task3_Callback( qEvent_t e ){
+    BSP_UART1_WriteString( "Task3" );
+}
+/*==================================================================*/
+int main( void ) {    
+    HardwareSetup();  /*hardware initialization function*/
+    /*function to fire an interrupt at 1ms - timer tick*/
+    Configure_Periodic_Timer0_Interrupt_1ms(); 
+    
+    qOS_Setup( NULL, TIMER_TICK, NULL );     
+    qOS_Add_Task( &Task1, Task1_Callback, 50, 2.0, 10, qEnabled, NULL );
+    qOS_Add_Task( &Task2, Task2_Callback, 50, 3.0, qPeriodic, qEnabled, NULL );
+    qOS_Add_Task( &Task2, Task3_Callback, 50, 5.0, qPeriodic, qDisabled, NULL );
+    qOS_Run();
+	
+    return 0;
+}
+\end{lstlisting}
+
+\subsubsection{Using the task argument}
+As seen in section \ref{addtask}, tasks can accept a parameter of type pointer to void (\lstinline{void*}). 
+This parameter could be used for multiple applications, including storage, task identification, duplication removal and others. The following example shows the usage of this argument to avoid callback duplication among tasks with the same behavior. 
+
+Consider a scenario where you have to build a digital controller for many physical variables, for example, a PID controller for temperature, humidity and light. The PID algorithm will be the same for all variables. The only difference will be the variable input, the controlled output action and the PID gains. In this case, each of the PID tasks will utilize the same callback methods. The only difference will be the I/O parameters (specific for each PID controller). \\
+
+Let's define a PID data structure with the I/O variables and gains. \\
+ 
+\begin{lstlisting}[style=CStyle]
+   typedef struct{
+        float yt; /*Measured variable (Controller Input)*/
+        float ut; /*Controlled variable (Controller Output)*/
+        float ie; /*Accumulated error*/
+        float pe; /*Previous error*/
+        float dt; /*Controller Time Step*/
+        float sp; /*Set-Point*/
+        float Kc, Ki, Kd; /*PID Gains*/ 
+    }PID_Params_t;
+    
+    PID_Params_t TemperatureControl = {
+       0,0,0,0, /*Initial IO state of yt and ut*/
+       1.5, /*time step*/
+       28.5, /*Set-Point*/
+       0.89, 0.122, 0.001 /*Kc, Ki, Kd*/
+    };
+    PID_Params_t HumidityControl= {
+       0,0,0,0, /*Initial IO state of yt and ut*/
+       1, /*time step*/
+       60.0, /*Set-Point*/
+       2.5, 0.2354, 0.0015 /*Kc, Ki, Kd*/
+    };
+    PID_Params_t LightControl= {
+       0,0,0,0, /*Initial IO state of yt and ut*/
+       0.5, /*time step*/
+       45.0, /*Set-Point*/
+       5.36, 0.0891, 0.0 /*Kc, Ki, Kd*/
+    };
+\end{lstlisting}
+
+A task will be added to the scheme to collect the sensor data and apply the respective control output. \\
+
+\begin{lstlisting}[style=CStyle]
+qOS_Add_Task( &IO_TASK, IO_TASK_Callback, qMedium_Priority, 0.1, qPeriodic, 
+              qEnabled, "iotask");
+\end{lstlisting}
+
+\begin{lstlisting}[style=CStyle]
+void IO_TASK_Callback( qEvent_t e ){
+    TemperatureControl.yt  = SampleTemperatureSensor();
+    HumidityControl.yt  = SampleHumiditySensor();
+    LightControl.yt  = SampleLightSensor();
+    WriteTemperatureActuatorValue( TemperatureControl.ut );
+    WriteHumidityActuatorValue( HumidityControl.ut );
+    WriteLightActuatorValue( LightControl.ut ); 
+}
+\end{lstlisting}
+
+Then, three different tasks are created to apply the respective PID controller. Note that these tasks refer to the same callback methods and we assign pointers to the respective variables. \\
+
+\begin{lstlisting}[style=CStyle]
+qOS_Add_Task( &TEMPERATURE_CONTROL_TASK, PIDControl_Callback,
+              qHigh_Priority, TemperatureControl.dt , 
+              qPeriodic, qEnabled, &TemperatureControl );
+qOS_Add_Task( &HUMIDITY_CONTROL_TASK, PIDControl_Callback, 
+              qHigh_Priority, HumidityControl.dt, 
+              qPeriodic, qEnabled, &HumidityControl );
+qOS_Add_Task( &LIGHT_CONTROL_TASK, PIDControl_Callback, 
+              qHigh_Priority, LightControl.dt, 
+              qPeriodic, qEnabled, &LightControl );
+\end{lstlisting}
+
+\begin{lstlisting}[style=CStyle]
+void PIDControl_Callback( qEvent_t e ){
+    float Error, derivative;
+    /* 
+    Obtain the reference to the specific PID controller 
+    using the TaskData field from the qEvent structure
+    */
+    PID_Params_t *Controller = (PID_Params_t *)e->TaskData; 
+    /*Compute the error*/
+    Error = Controller->sp - Controller->yt;
+    /*Compute the accumulated error using backward integral approximation*/
+    Controller->ie += Error*Controller->dt;
+    /*update and compute the derivative term*/
+    derivative = (Error - Controller->pe)/Controller->dt;
+    /*update the previous error*/
+    Controller->pe = Error;
+    /*compute the pid control law*/
+    Controller->ut = Controller->Kc*Error  +  
+                     Controller->Ki*Controller->ie + 
+                     Controller->Kd*derivative;
+}
+\end{lstlisting}
+
+\newpage
+
+\subsection{Configuration macros}
+Some  OS features can be customized using a set of macros located in the header file \lstinline{qconfig.h}. Here is the default configuration, followed by an explanation of each macro: \\
+
+\begin{adjustbox}{width=\textwidth,totalheight={18cm}}
+\begin{tabularx}
+{\textwidth}{l X}
+\hline
+{\lstinline!Q_PRIORITY_LEVELS!} & \textit{Default:} {\lstinline!3!}.  The number of priorities available for application tasks.\\
+\hline
+{\lstinline!Q_SETUP_TIME_CANONICAL!} & \textit{Default:}
+{\lstinline!0(disabled)!}. If enabled, the kernel assumes the timing base to 1mS(1KHz). So all time specifications for tasks and STimers must be set in milliseconds(mS). Also can be used to remove the floating-point operations when dealing with time. In some systems, can reduce the memory usage. \\
+\hline
+{\lstinline!Q_SETUP_TICK_IN_HERTZ!} & \textit{Default:} {\lstinline!0(disabled)!}. If enabled, the timing base will be taken as frequency(Hz) instead of period(S) by {\lstinline!qOS_Setup()!} (In some systems, can reduce the memory usage ). \\
+\hline
+{\lstinline!Q_PRIO_QUEUE_SIZE!} & \textit{Default:} {\lstinline!10!}.  Size of the priority queue for notifications. This argument should be an integer number greater than zero. A zero value can be used to disable this functionality.\\
+\hline
+{\lstinline!Q_PRESERVE_TASK_ENTRY_ORDER !} & \textit{Default:} {\lstinline!0(disabled)!}. If enabled, kernel will preserve the tasks entry order every OS scheduling cycle.\\
+\hline
+{\lstinline!Q_MEMORY_MANAGER!} & \textit{Default:} {\lstinline!1(enabled)!}. Used to enable or disable the memory management module. \\
+\hline
+{\lstinline!Q_BYTE_ALIGNMENT!} & \textit{Default:} {\lstinline!8!}. Used by the memory management module to peform the byte-aligment. \\
+\hline
+{\lstinline!Q_DEFAULT_HEAP_SIZE!} & \textit{Default:} {\lstinline!2048!}. The total amount of heap size for the default memory pool. \\
+\hline
+{\lstinline!Q_NOTIFICATION_SPREADER!} & \textit{Default:} {\lstinline!0(disabled)!}. Used to enable or disable the spread notification functionality. \\
+\hline
+{\lstinline!Q_FSM!} & \textit{Default:} {\lstinline!1(enabled)!}.  Used to enable or disable the Finite State Machine (FSM) extension. \\
+\hline
+{\lstinline!Q_QUEUES!} & \textit{Default:} {\lstinline!1(enabled)!}.  Used to enable or disable the queues APIs for communication to tasks. \\
+\hline
+{\lstinline!Q_TRACE_VARIABLES!} & \textit{Default:} {\lstinline!1(enabled)!}.  Used to enable or disable  debug and trace macros.\\
+\hline
+{\lstinline!Q_DEBUGTRACE_BUFSIZE!} & \textit{Default:} {\lstinline!36!}. The buffer size for debug and trace macros.\\
+\hline
+{\lstinline!Q_DEBUGTRACE_FULL!} & \textit{Default:} {\lstinline!1(enabled)!}. Used to enable of disable the extended output of trace macros.\\
+\hline
+{\lstinline!Q_ATCLI!} & \textit{Default:} {\lstinline!1(enabled)!}. Used to enable or disable the AT Command Line Interface (CLI) module. \\
+\hline
+{\lstinline!Q_TASK_COUNT_CYCLES!} & \textit{Default:} {\lstinline!0(disabled)!}. Used to enable or disable the cycle count in tasks. \\
+\hline
+{\lstinline!Q_TASK_EVENT_FLAGS!} & \textit{Default:} {\lstinline!1(enabled)!}. Used to enable or disable the task event flags.\\
+\hline
+{\lstinline!Q_MAX_FTOA_PRECISION!} & \textit{Default:} {\lstinline!10!}. The default precision used to perform float to ASCII conversions. \\
+\hline
+{\lstinline!Q_ATOF_FULL!} & \textit{Default:} {\lstinline!0(disabled)!}. Used to enable or disable the scientific notation in ASCII to float conversions. \\
+\hline
+{\lstinline!Q_ALLOW_SCHEDULER_RELEASE!} & \textit{Default:} {\lstinline!0(disabled)!}. Used to enable or disable the scheduler release functionality. \\
+\hline
+{\lstinline!Q_RESPONSE_HANDLER!} & \textit{Default:} {\lstinline!1(enabled)!}. Used to enable or disable the response handler functionality. \\
+\hline
+{\lstinline!Q_EDGE_CHECK_IOGROUPS!} & \textit{Default:} {\lstinline!1(enabled)!}. Used to enable or disable the edge check functionality for I/O groups . \\
+\hline
+{\lstinline!Q_BYTE_SIZED_BUFFERS!} & \textit{Default:} {\lstinline!1(enabled)!}. Used to enable or disable the usage of Byte-sized buffers. \\
+\hline
+\end{tabularx}
+\end{adjustbox}
+
+\newpage

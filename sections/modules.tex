@@ -1,0 +1,1647 @@
+\section{Modules}
+
+\subsection{STimers}
+There are several situations where the application doesn't need such hard real-time precision for timing actions and we just need that a section of code will execute when at least, some amount of time has elapsed. For these purposes, STimers (Software-Timers) is the right module to use. 
+
+The STimers implementation doesn't access resources from the interrupt context, does not consume any significant processing time unless a timer has actually expired, does not add any processing overhead to the \textit{sys-tick} interrupt, and does not walk any other data structures. The timer service just takes the value of the existing kernel clock source for reference ($\ t_{sys}$ ), allowing timer functionality to be added to an application with minimal impact.
+
+\input{fig/stimers.tex}
+
+As illustrated in figure \ref{fig:stimers}, the time expiration check is roll-over safe by restricting it, to the only calculation that make sense for timestamps, $\ t_{sys} - X_{T_x}$, that yields a duration namely the amount of time elapsed between the current instant($\ t_{sys}$ ) and the later instant, specifically, the tick taken at the arming instant with \lstinline{(qSTimer_Set())}, ($\ X_{t_i}$ ).
+Thanks to modular arithmetic, both of these are guaranteed to work fine across the clock-source rollover(a 32bit unsigned-counter), at least, as long the delays involved are shorter than 49.7 days. \\
+
+\textbf{Features:}
+\begin{itemize}
+    \item Provides a non-blocking equivalent to delay function.
+    \item Each STimer encapsulates its own expiration (timeout) time.
+    \item Provides elapsed and remaining time APIs.
+    \item As mentioned before, STimers uses the same kernel clock source, this means the time-elapsed calculation use the \lstinline{qClock_GetTick()} API, therefore, the time resolution has the same value passed when the scheduler has been initialized with \lstinline{qOS_Setup()}.
+\end{itemize}
+
+\subsubsection{Using a STimer}
+A STimer is referenced by a handle, a variable of type \lstinline{qSTimer_t} \index{\lstinline{qSTimer_t}} and preferably, should be initialized by the \lstinline{QSTIMER_INITIALIZER} constant before any usage. 
+
+To use them, the code should follow a specific pattern that deals with the states of this object. All related APIs are designed to be non-blocking, this means there are ideal for use in cooperative environments as the one provided by the OS itself. To minimize the implementation, this object is intentionally created to behave like a binary object, this implies that it only handles two states, \textit{Armed} and \textit{Disarmed}. 
+\newline
+An \textit{Armed} timer means that it is already running with a specified preset value and a \textit{Disarmed} timer is the opposite, which means that it doesn't have a preset value, so consequently, it is not running at all.
+
+The arming action can be performed with \lstinline{qSTimer_Set()} \index{\lstinline{qSTimer_Set}} or \lstinline{qSTimer_FreeRun()} \index{\lstinline{qSTimer_FreeRun}} and disarming with \lstinline{qSTimer_Disarm()}.\index{\lstinline{qSTimer_Disarm}} \\
+
+Detailed APIs description is presented below. ( For \lstinline{qSTimer_Disarm()} ignore the \lstinline{Time} argument.)\\
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qSTimer_Set( qSTimer_t * const obj, const qTime_t Time )
+\end{lstlisting}
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qSTimer_FreeRun( qSTimer_t * const obj, const qTime_t Time )
+\end{lstlisting}
+
+\begin{lstlisting}[style=CStyle]
+void qSTimer_Disarm( qSTimer_t * const obj )
+\end{lstlisting}
+
+\subsubsection*{Parameters}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the STimer object. 
+    \item \lstinline{Time} : The expiration time(must be specified in seconds).
+\end{itemize}
+
+Here, \lstinline{qSTimer_FreeRun()} is a more advanced API, it checks the timer and performs the arming. If disarmed, it gets armed immediately with the specified time. If armed, the time argument is ignored and the API only checks for expiration. When the time expires, the STimer gets armed immediately taking the specified time.
+
+\subsubsection*{Return Value}
+For \lstinline{qSTimer_Set()} \lstinline{qTrue} on success, otherwise, returns \lstinline{qFalse}.\\
+For \lstinline{qSTimer_FreeRun()} returns \lstinline{qTrue} when the STimer expires, otherwise, returns \lstinline{qFalse}. For a disarmed STimer, also returns \lstinline{qFalse}. \\
+None for \lstinline{qSTimer_Disarm()}.
+
+\noindent\hrulefill
+\newline
+All possible checking actions are also provided for this object, including \lstinline{qSTimer_Elapsed()} \index{\lstinline{qSTimer_Elapsed}}, \lstinline{qSTimer_Remaining()} \index{\lstinline{qSTimer_Remaining}} and \lstinline{qSTimer_Expired()} \index{\lstinline{qSTimer_Expired}}, with the last one being the most commonly used for timing applications.
+Finally, to get the current status of the STimer (check if is Armed or Disarmed) the \lstinline{qSTimer_Status()} \index{\lstinline{qSTimer_Status}} API should be used. \\
+
+\begin{lstlisting}[style=CStyle]
+qClock_t qSTimer_Elapsed( const qSTimer_t * const obj )
+\end{lstlisting}
+
+\begin{lstlisting}[style=CStyle]
+qClock_t qSTimer_Remaining( const qSTimer_t * const obj )
+\end{lstlisting}
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qSTimer_Expired( const qSTimer_t * const obj )
+\end{lstlisting}
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qSTimer_Status( const qSTimer_t * const obj )
+\end{lstlisting}
+
+For this APIs, their only argument, is a pointer to the STimer object.
+
+\subsubsection*{Return Value}
+For \lstinline{qSTimer_Elapsed()}, \lstinline{qSTimer_Remaining()} returns the elapsed and remaining time specified in epochs respectively. \\
+For \lstinline{qSTimer_Expired()}, returns \lstinline{qTrue} when STimer expires, otherwise, returns \lstinline{qFalse}. For a disarmed STimer, also returns \lstinline{qFalse}. \\
+For \lstinline{qSTimer_Status()}, returns \lstinline{qTrue} when armed, and \lstinline{qFalse} for disarmed.
+
+\noindent\hrulefill
+
+\subsubsection*{Usage example:}
+The example below shows a simple usage of this object. It is noteworthy that arming is performed once using the \lstinline{FirstCall} flag. This prevents the timer from being re-armed every time the task runs. After the timer expires, it should be disarmed explicitly. \\
+
+
+\begin{lstlisting}[style=CStyle]
+void Example_Task( qEvent_t e ){
+    static qSTimer_t timeout = QSTIMER_INITIALIZER;
+    if( e->FirstCall ){
+        /*Arming the stimer for  3.5 seg*/
+        qSTimer_Set( &timeout, 3.5 );
+    }
+    
+    /*non-blocking delay, true when timeout expires*/
+    if( qSTimer_Expired( &timeout ) ){
+        /*
+        TODO: Code when STimer expires
+        */    
+        qSTimer_Disarm( &timeout );
+    }
+    else return; /*Yield*/
+}
+\end{lstlisting}  
+
+\subsection{Finite State Machines (FSM)}
+The state machine is one of the fundamental programming patterns. Designers use this approach frequently for solving complex engineering problems. State machines break down the design into a series of finite steps called "states". Each state performs some narrowly defined actions. Events, on the other hand, are the stimuli that cause the state to move or produce a transition between states. 
+The provided implementation features a powerful state-machine coding-abstraction including hierarchical patterns and transition tables, allowing the designer to build scalable solutions from simple state-machines to complex statecharts. 
+
+In QuarkTS, states must be defined as functions taking a \lstinline{qSM_Handler_t} object and returning a \lstinline{qSM_Status_t} value. An example is shown in the following code snippet:
+\newline
+
+\begin{lstlisting}[style=CStyle]
+qSM_Status_t Example_State( qSM_Handler_t m ){
+    /*
+    TODO: State code
+    */
+    return qSM_EXIT_SUCCESS;
+}
+\end{lstlisting}    
+
+Here, the return value represents the finish status of the state, allowing only the values listed below.
+
+\begin{itemize}
+    \item \lstinline{qSM_EXIT_SUCCESS(-32768)}.
+    \item \lstinline{qSM_EXIT_FAILURE(-32767)}.
+    \item Any other integer value between \lstinline{-32766} and \lstinline{32767}.
+\end{itemize} 
+
+Every state machine has the concept of \textit{current state} ($P$). This is the state that FSM currently occupies. At any given moment in time, the state machine can be in only a single state. The exit status can be handled with additional \textit{sub-states}($S_{(b,s,u,f)}$) established at the moment of the FSM initialization. This workflow between the \textit{current state} and the \textit{sub-states} is better shown in the graph below: 
+
+\input{fig/substates.tex}
+
+Figure \ref{fig:substates} shows that these \textit{sub-states} (if enabled) are implicitly linked in the workflow to every state in the FSM. These \textit{sub-states}, and the way they are called are described below:
+
+\begin{itemize}
+    \item \textit{BeforeAny} ($S_b$) : Performed in every FSM cycle. As its name implies, it is launched before the \textit{current state} executes. 
+    
+    \item \textit{Success} ($S_s$) : This \textit{sub-state} is conditioned to the exit status of the \textit{current state}. If \textit{current state} has exited with  \lstinline{qSM_EXIT_SUCCESS}, this sub-state will be launched next. It can be used to perform the actions of the \textit{current state}, for example, if a certain state is controlling an output, its value would only be written if the state has ended correctly.
+    
+    \item \textit{Failure} ($S_f$): Same behavior as the previous one, but instead, is conditioned to the exit value \lstinline{qSM_EXIT_FAILURE}. It can be used to handle exceptions.
+    
+    \item \textit{Unexpected} ($S_u$): Same behavior as \textit{Failure} and \textit{Success}, but instead, is conditioned to an exit value between \lstinline{-32766} and \lstinline{32767}. The applications for this sub-state should be defined by the application writer.
+\end{itemize}
+
+
+\subsubsection{Setting up a state machine : \lstinline{qStateMachine_Setup} }
+Like any other OS object, a Finite State Machine (FSM) must be explicitly initialized before it can be used. FSMs are referenced by handles, which are variables of type \lstinline{qSM_t}. \index{\lstinline{qSM_t}}
+
+The \lstinline{qStateMachine_Setup()} API \index{\lstinline{qStateMachine_Setup}}  initializes the instance, sets the initial state and conditioned sub-states.\\
+
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qStateMachine_Setup( qSM_t * const obj, qSM_State_t InitState,
+                             qSM_SubState_t SuccessState, 
+                             qSM_SubState_t FailureState, 
+                             qSM_SubState_t UnexpectedState, 
+                             qSM_SubState_t BeforeAnyState )
+\end{lstlisting}
+
+\subsubsection*{Parameters}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the FSM object.
+    \item \lstinline{InitState} :  The first state to be performed. This argument is a pointer to a callback function, returning \lstinline{qSM_Status_t} and with a \lstinline{qSM_Handler_t} variable as input argument.
+    \item \lstinline{SuccessState} :  Sub-State performed after a state exits with  \lstinline{qSM_EXIT_SUCCESS}. 
+    \item \lstinline{FailureState} :  Sub-State performed after a state exits with  \lstinline{qSM_EXIT_FAILURE}. 
+    \item \lstinline{UnexpectedState} :  Sub-State performed after a state exits with any value between \lstinline{-32766} and \lstinline{32767}. 
+    \item \lstinline{BeforeAnyState} :  A state called before the normal state machine execution.
+\end{itemize}  
+
+\begin{tcolorbox}
+\ArrowBoldDownRight \textit{Note}: For every sub-state argument, a \lstinline{NULL} value will act as a "disable" action.
+\end{tcolorbox}
+
+Unlike normal states, a sub-state should not return anything, thus, the callback for substates should be written as: \\
+
+\begin{lstlisting}[style=CStyle]
+void SubState_Example( qSM_Handler_t m ){
+    /*
+    TODO: Sub-State code
+    */
+}
+\end{lstlisting}  
+
+\subsubsection{Running a state machine : \lstinline{qStateMachine_Run} }
+This API \index{\lstinline{qStateMachine_Run}} is used to execute the Finite State Machine. Only a single cycle is performed invoking the callback of the current active state (including nested states of the hierarchical topology), and of course, the available sub-states according to figure \ref{fig:substates}. \\
+
+\begin{lstlisting}[style=CStyle]
+void qStateMachine_Run( qSM_t * const obj, void *Data )
+\end{lstlisting}
+
+\subsubsection*{Parameters}
+\begin{itemize}
+    \item \lstinline{obj} : a pointer to the FSM object.
+    \item \lstinline{Data} : FSM associated data. Also can be used to represent the FSM arguments. All arguments must be passed by reference and cast to (\lstinline{void *}). For multiple data, create a structure and pass a pointer to that structure.  
+\end{itemize}  
+
+\subsubsection{Changing states and retrieving FSM data}
+Both, states and sub-states callbacks take a \lstinline{qSM_Handler_t} \index{\lstinline{qSM_Handler_t}} object as input argument, which is basically a pointer to the involved properties of the invoking FSM. The usage of this object it's required to make the FSM moves between states and additionally get extra execution data. The provided fields are:
+
+\begin{itemize}
+    \item \lstinline{NextState} : The next state to be executed after the current state finishes. The application writer should change this field to another state callback to produce a state transition in the next FSM's cycle.
+    \item \lstinline{PreviousState} (read-only):  Last state seen in the flow chart.
+    \item \lstinline{LastState} (read-only):  The last state executed.
+    \item \lstinline{PreviousReturnStatus} (read-only): The exit(or return) status of the previous state.
+    \item \lstinline{LastReturnStatus} (read-only): The exit(or return) status of the last state.
+    \item \lstinline{Signal} (read-only): Received signal. \lstinline{QSM_SIGNAL_NONE} if no signal available. \lstinline{QSM_SIGNAL_ENTRY} if the current state has just entered from another state. \lstinline{QSM_SIGNAL_EXIT} if the current state has just exit to another state. Any other user-defined signal will reside here if the FSM has a signal-queue installed .
+    \item \lstinline{Data} (read-only): State-machine associated data. If the FSM is running as a task, the associated event data can be queried through this field. (here, a cast to \lstinline{qEvent_t} is mandatory). Child FSMs inherit this member.
+    \item \lstinline{Parent} (read-only): A pointer to the parent state-machine. Can be used in hierarchical  patterns. \lstinline{NULL} if the FSM its not a child.
+\end{itemize}
+
+The developer is free to write and control state transitions. A state jumps from one to another by changing the \lstinline{NextState} field. Any transition is allowed at any time.
+
+The code snippet below shows how this input argument should be used to produce a state transition and obtain additional information: \\
+
+\begin{lstlisting}[style=CStyle]
+qSM_Status_t Some_State( qSM_Handler_t m ){
+    qSM_Status_t RetValue = qSM_EXIT_SUCCESS;
+    
+    switch( m->Signal ){
+        case QSM_SIGNAL_ENTRY:
+            /*
+                TODO : Do something at the first entry
+            */        
+            break;
+        case QSM_SIGNAL_EXIT:
+            break;
+        default:
+            /*
+                TODO : Whatever this state does
+            */
+            if ( EVENT_A_RECEIVED() ){ /*this it a state transition*/
+                m->NextState = Other_State; 
+                /*it will be executed in the next cycle*/
+            }
+            
+            if ( EVENT_B_RECEIVED() ){ /*this it a state transition*/
+                m->NextState = m->PreviousState; 
+                /*return to the previous state*/ 
+                /*it will be executed in the next cycle*/
+                /*this transition has the higher priority*/
+            }       
+            
+            if ( EVENT_ERROR_RECEIVED() ){ 
+                RetValue = qSM_EXIT_FAILURE;
+            }
+            break;
+    }
+    return RetValue;
+}
+\end{lstlisting}  
+
+\subsubsection{Adding a state machine as a task : \lstinline{qOS_Add_StateMachineTask} } \label{statemachinetask}
+The best strategy to implement a FSM is delegating it to a task. For this, the provided \index{\lstinline{qOS_Add_StateMachineTask}} API should be used. Here, the task doesn't have a specific callback, instead, it will evaluate the active state of FSM, and later, all the other possible states in response to events that mark their own transition. The task will be scheduled to run every \lstinline{Time} seconds in \lstinline{qPeriodic} mode. 
+
+
+Using this API, the kernel will take care of the FSM by itself, so the usage of \lstinline{qStateMachine_Setup()} and \lstinline{qStateMachine_Run()} can be omitted. \\
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qOS_Add_StateMachineTask( 
+            qTask_t * const Task, qPriority_t Priority, qTime_t Time,
+            qSM_t * const StateMachine, qSM_State_t InitState, 
+            qSM_SubState_t BeforeAnyState, qSM_SubState_t SuccessState, 
+            qSM_SubState_t FailureState, qSM_SubState_t UnexpectedState,
+            qState_t InitialTaskState, void *arg )
+\end{lstlisting}
+
+\subsubsection*{Parameters}
+\begin{itemize}
+    \item \lstinline{Task} : A pointer to the task node. 
+    \item \lstinline{Priority} : The priority value. [0(min) - \lstinline{Q_PRIORITY_LEVELS}(max)]
+    \item \lstinline{Time} : Execution interval defined in seconds (floating-point format). For immediate execution use the  \lstinline{qTimeImmediate} definition. 
+    \item \lstinline{StateMachine} : A pointer to Finite State-Machine (FSM) object.
+    \item \lstinline{InitState} :  The first state to be performed. 
+    \item \lstinline{BeforeAnyState} :  The sub-state called before any current state.
+    \item \lstinline{SuccessState} :  Sub-State performed after a state exits with \lstinline{qSM_EXIT_SUCCESS}.
+    \item \lstinline{FailureState} :  Sub-State performed after a state exits with \lstinline{qSM_EXIT_FAILURE}.
+    \item \lstinline{UnexpectedState } : Sub-State performed after a state exits with any value between \lstinline{-32766} and \lstinline{32767}.      
+    \item \lstinline{TaskInitState } : Specifies the initial operational state of the task (\lstinline{qEnabled}, \lstinline{qDisabled}, \lstinline{qAsleep} or \lstinline{qAwake}).
+    \item \lstinline{arg} - Represents the task arguments. All arguments must be passed by reference and cast to \lstinline{(void *)}. 
+\end{itemize}
+
+\begin{tcolorbox}
+\ArrowBoldDownRight \textit{Note}: For every sub-state argument, a \lstinline{NULL} value will act as a disable action.
+\end{tcolorbox}
+
+Now that a task is running a dedicated state-machine, the specific task event-info can be obtained in every state callback through the \lstinline{Data} field of the \lstinline{qSM_Handler_t} argument. Check the example below: \\
+
+\begin{lstlisting}[style=CStyle]
+qSM_Status_t Example_State( qSM_Handler_t m ){
+    qEvent_t e = m->Data; 
+    /* Get the event info of the task that owns this state-machine*/
+    switch( m->Signal ){
+        case QSM_SIGNAL_ENTRY:
+            break;
+        case QSM_SIGNAL_EXIT:
+            break;
+        default:
+            switch( e->Trigger ){
+                case byTimeElapsed:
+                    /* TODO: Code for this case */
+                break;
+                case byNotificationSimple:
+                    /* TODO: Code for this case */
+                break;
+                case byQueueCount:
+                    /* TODO: Code for this case */
+                break;
+                default: break;
+            }
+            /* TODO: State code */
+            break;
+    }
+    return qSM_EXIT_SUCCESS;
+}
+\end{lstlisting}
+
+\subsubsection{A demonstrative example} \label{fsm_example}
+In this example, one press of the button turn on the LED, a second push of the button will make the LED blink and if the button is pressed again, the LED will turn off. Also, our system must turn off the LED after a period of inactivity. If the button hasn't been pressed in the last 10 seconds, the LED will turn off. 
+
+States ($\ S_i$) and transitions ($\ t_i$) are described as follows: \\
+\begin{itemize}
+\begin{minipage}{0.4\linewidth}
+    \item $\ S_1$ : LED Off
+    \item $\ S_2$ : LED On
+    \item $\ S_3$ : LED Blink
+\end{minipage}
+\begin{minipage}{0.4\linewidth}
+    \item $\ t_1$ : Button press (rising edge)
+    \item $\ t_2$ : Timeout (10S)
+\end{minipage}
+\end{itemize}
+
+\input{fig/fsmexample.tex}
+
+To start the implementation, let's define the necessary global variables...
+
+\begin{lstlisting}[style=CStyle]
+qTask_t LED_Task; /*The task node*/
+qSM_t LED_FSM; /*The state-machine handle*/
+\end{lstlisting}
+
+Then, we define our states as the flow-diagram showed in figure \ref{fig:fsmexample}.
+
+\begin{lstlisting}[style=CStyle]
+qSM_Status_t State_LED_Off( qSM_Handler_t m ){
+    switch( m->Signal ){
+        case QSM_SIGNAL_ENTRY:
+            BSP_LED_OFF();
+            break;
+        default:
+            if( BUTTON_PRESSED ){
+                m->NextState = State_LED_On;
+            }
+            break;
+    }
+    return qSM_EXIT_SUCCESS;
+}
+/*---------------------------------------------------------------------*/
+qSM_Status_t State_LED_On( qSM_Handler_t m ){
+    static qSTimer_t timeout;
+    switch( m->Signal ){
+        case QSM_SIGNAL_ENTRY:
+            qSTimer_Set( &timeout, 10.0 ); /*STimer gets armed*/
+            BSP_LED_ON();
+            break;
+        default:
+            if( qSTimer_Expired( &timeout) ){ /*check if the timeout expired*/
+                m->NextState = State_LED_Off;
+            }
+            if( BUTTON_PRESSED ){
+                m->NextState = State_LED_Blink;
+            }
+            break;
+    }
+    return qSM_EXIT_SUCCESS;
+}
+/*---------------------------------------------------------------------*/
+qSM_Status_t State_LED_Blink( qSM_Handler_t m ){
+    static qSTimer_t timeout;
+    static qSTimer_t blinktime;
+    
+    switch( m->Signal ){
+        case QSM_SIGNAL_ENTRY:
+            qSTimer_Set( &timeout, 10.0 );
+            break;
+        default:
+            if( qSTimer_Expired( &timeout ) || BUTTON_PRESSED ){
+                m->NextState = State_LED_Off;
+            }
+            if( qSTimer_FreeRun( &blinktime, 0.5 ) ){
+               BSP_LED_TOGGLE();
+            }
+            break;
+    }
+    return qSM_EXIT_SUCCESS;
+}
+\end{lstlisting}
+
+Finally, we add the task to the scheduling scheme running the dedicated state machine. \\
+
+Remember that you must set up the scheduler before adding a task to the scheduling scheme. \\
+
+\begin{lstlisting}[style=CStyle]
+qOS_Add_StateMachineTask( &LED_Task, qHigh_Priority, 0.1, &LED_FSM,
+                          State_LED_Off, NULL, NULL, NULL, NULL,
+                          qEnabled, NULL);
+\end{lstlisting}
+
+\subsubsection{Changing the FSM attributes in run-time}
+For this, use the API \index{\lstinline{qStateMachine_Attribute}} that is detailed below:\\
+
+\begin{lstlisting}[style=CStyle]
+void qStateMachine_Attribute( 
+                        qSM_t * const obj, const qSM_Attribute_t Flag, 
+                        qSM_State_t  s, qSM_SubState_t subs )
+\end{lstlisting}
+
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the FSM object.
+    \item \lstinline{Flag} : The attribute/action to be taken. Should be one of the following:
+    \begin{itemize}
+        \item \lstinline{qSM_RESTART} : Restart the FSM (here, the \lstinline{s} argument must correspond to the init-state)
+        \item \lstinline{qSM_CLEAR_STATE_FIRST_ENTRY_FLAG} : clear the entry flag for the current state if the \lstinline{NextState} field doesn't change.
+        \item \lstinline{qSM_FAILURE_STATE} : Set the failure sub-state.
+        \item \lstinline{qSM_SUCCESS_STATE} : Set the success sub-state.
+        \item \lstinline{qSM_UNEXPECTED_STATE} : Set the unexpected sub-state.
+        \item \lstinline{qSM_BEFORE_ANY_STATE} : Set the sub-state executed before any state.
+        \item \lstinline{qSM_UNINSTALL_TRANSTABLE} : To uninstall the transition table if available.
+    \end{itemize}
+    \item \lstinline{s} : The new value for state (only applies in \lstinline{qSM_RESTART}). If not used, pass \lstinline{NULL}.
+    \item \lstinline{subs} : The new value for sub-state (only apply in \lstinline{qSM_FAILURE_STATE}, \lstinline{qSM_SUCCESS_STATE}, \lstinline{qSM_UNEXPECTED_STATE} and \lstinline{qSM_BEFORE_ANY_STATE}. If not used, pass \lstinline{NULL}.
+\end{itemize}
+
+\subsubsection{Using a transition table}
+In this approach, the FSM is coded in a table relating states and signal-events. 
+This is an elegant method to translate the FSM to actual implementation as the handling for every state and event combination is encapsulated in the table. 
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{||c c c c c c||} 
+ \hline
+ \textit{Current} & \textit{Signal} & \textit{Next} & \textit{Signal action} & \textit{Target FSM} & \textit{Next in target} \\ [0.5ex] 
+ 
+ \hline\hline
+ \ttfamily{StateA} & \ttfamily{Signal1} & \ttfamily{StateB} & \ttfamily{NULL} & \ttfamily{NULL} & \ttfamily{NULL} \\ 
+ \ttfamily{StateB} & \ttfamily{Signal3} & \ttfamily{StateD} & \ttfamily{DoOnSignal3}& \ttfamily{NULL} & \ttfamily{NULL}   \\
+ ... & ... & ... & ... & ... &...\\
+ \ttfamily{StateD} & \ttfamily{Signal6} & \ttfamily{StateA} & \ttfamily{NULL} & \ttfamily{NULL} & \ttfamily{NULL}\\ [1ex] 
+ \hline
+\end{tabular}
+\caption{Transition table layout in QuarkTS}
+\label{ttable_layout}
+\end{table}
+
+Here, the application writer get a quick picture of the FSM and the embedded software maintenance is also much more under control. A transition table is referenced through an object of type \lstinline{qSM_TransitionTable_t} and should be explicitly installed in the target FSM with the corresponding entries, an \textit{n}-sized array of \lstinline{qSM_Transition_t} elements. 
+
+Events on the other hand, are represented in the table with FSM-Signals, an unsigned number of type \lstinline{qSM_Signal_t}. Here, the designer is free to name event signals according the FSM application. 
+
+The API \lstinline{qStateMachine_TransitionTableInstall()}, should be used to perform the transition table installation to the target FSM. \\
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qStateMachine_TransitionTableInstall( qSM_t * const obj,   
+            qSM_TransitionTable_t *table, qSM_Transition_t *entries, 
+            size_t NoOfEntries )
+\end{lstlisting} \index{\lstinline{qStateMachine_TransitionTableInstall}}
+
+\subsubsection*{Parameters}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the FSM object. 
+    \item \lstinline{table} : A pointer to the transition table instance.
+    \item \lstinline{entries} : The array of transitions (\lstinline{qSM_Transition_t[]}). 
+    \item \lstinline{NoOfEntries} : The number of transitions inside \lstinline{entries}.
+\end{itemize}
+
+\subsubsection*{Return Value}
+Returns \lstinline{qTrue} on success, otherwise returns \lstinline{qFalse}.
+
+\hrulefill
+
+\subsubsection*{Caveats}
+\begin{itemize}
+    \item State transitions are not limited to the specification of the transition table. A state callback owns the higher precedence to change a state. The application writer can use both, a transition table and direct \lstinline{NextState} field manipulation in state callbacks to perform a transition to the FSM.
+    \item Special care is required when the table grows very large, that is, when there are many invalid state/event combinations, leading to a waste of memory. There is also a memory penalty as the number of states and events grow. The application writer  need to accurately account for this during initial design. A statechart pattern can be used to improve the design and reduce the number of transition entries. 
+    \item As shown in figure \ref{fig:substates}, an installed transition table is evaluated after the \textit{BeforeAny} sub-state, and later, the current state handler will be evaluated after the table sweep is completed. In summary, the state handler has a higher precedence over the table to perform state transitions.
+\end{itemize}
+
+\paragraph{Signals in transition tables:}
+When using transition tables, signals are the selected event-abstraction to produce a transition from one state to another. Signals can be asynchronously delivered to the FSM, as they are handled internally with an exclusive FIFO queue. 
+The signal queue should be installed with \lstinline{qStateMachine_SignalQueueSetup} after the FSM setup. \\
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qStateMachine_SignalQueueSetup( qSM_t * const obj, 
+                                        qSM_Signal_t *AxSignals, 
+                                        size_t MaxSignals )
+\end{lstlisting} \index{\lstinline{qStateMachine_SignalQueueSetup}}
+
+\subsubsection*{Parameters}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the FSM object. 
+    \item \lstinline{AxSignals} : A pointer to signal-queue storage area. A n-array of type \lstinline{qSM_Signal_t[]}.
+    \item \lstinline{MaxSignals} : The number of event-signals that the queue can hold.
+\end{itemize}
+
+\subsubsection*{Return Value}
+\lstinline{qTrue} on success, otherwise returns \lstinline{qFalse}.
+
+\hrulefill
+\newline
+
+To perform a signal delivering to a FSMs, the following API should be used: \\
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qStateMachine_SendSignal( qSM_t * const obj, qSM_Signal_t signal, 
+                                  qBool_t isUrgent )
+\end{lstlisting} \index{\lstinline{qStateMachine_SendSignal}}
+
+\subsubsection*{Parameters}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the FSM object. 
+    \item \lstinline{signal} : The user-defined signal.
+    \item \lstinline{isUrgent} : If \lstinline{qTrue}, the signal will be sent to the front of the transition-table queue.
+\end{itemize}
+
+\subsubsection*{Return Value}
+\lstinline{qTrue} if the provided signal was successfully delivered to the FSM, otherwise return \lstinline{qFalse}.
+
+\hrulefill
+\newline
+
+\begin{tcolorbox}
+\HandRight A FSM can be better exploited if it has both features, the signal queue and the transition table.
+\end{tcolorbox}
+
+\begin{tcolorbox}
+\ArrowBoldDownRight \textit{Note}: When a transition entry is defined. the event-signal should be located as the second parameter of the entry. Please see the transition layout in table \ref{ttable_layout}.
+\end{tcolorbox}
+
+\paragraph{Signal actions and guards:} Transition tables allow the usage of this feature. When an event-signal is received from the queue, the signal-action, if available, is evaluated before the transition is triggered. This action is user-defined and should be coded as a function that takes a \lstinline{qSM_Handler_t} object and returns a value of type \lstinline{qBool_t}. \\
+
+\begin{lstlisting}[style=CStyle]
+qBool_t Signal_Action( qSM_Handler_t ){
+    /* TODO : Event-signal action*/
+    return qTrue; /*allow the state transition*/
+}
+\end{lstlisting}
+
+\newline
+
+The return value is checked after to allow or reject the state transition. The application writer can code a boolean expression to implement statechart guards or perform some pre-transition procedure.
+
+\begin{tcolorbox}
+\HandRight If a signal-action returns \lstinline{qFalse}, the event-signal is rejected, preventing the state transition to be performed in the calling FSM.
+\end{tcolorbox}
+
+\begin{tcolorbox}
+\ArrowBoldDownRight \textit{Note}: When a transition entry is defined. the signal-action should be located as the fourth parameter of the entry. Please see the transition layout in table \ref{ttable_layout}.
+A \lstinline{NULL} value will act as a NOT-defined, always allowing the state-transition. 
+\end{tcolorbox}
+
+\paragraph{Signal responsiveness in state-machine tasks :}
+
+When using state-machine tasks, there is no relationship between transition-table signals and task events by default, this means that tasks cannot be changed to \textit{qReady} immediately if a signal is received, as consequence, the FSM can lose responsiveness to incoming signals because they are only served when the task is triggered by another kind of events. 
+
+To overcome this special situation, the following OS API should be invoked: \\
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qOS_StateMachineTask_SigCon( qTask_t * const Task )
+\end{lstlisting} \index{\lstinline{qOS_StateMachineTask_SigCon}}
+
+This API performs a kernel connection between the FSM signal-queue and the FSM-task, allowing the OS to catch signals to produce a task event, resulting in a faster handling of incoming signals. \\
+
+\begin{tcolorbox}
+\HandRight This API should only be invoked after the FSM-task is added to the scheme.
+\end{tcolorbox}
+
+\begin{tcolorbox}
+\HandRight This API doesn't have any effect if the FSM is not attached to a task.
+\end{tcolorbox}
+
+\paragraph{Demonstrative example using a transition table}
+The following example shows the implementation of the FSM presented in section \ref{fsm_example} using a transition table approach.
+
+Before getting started, the required variables should be defined: \\
+
+\begin{lstlisting}[style=CStyle]
+/*define the FSM application event-signals*/
+#define SIGNAL_BUTTON_PRESSED  ( (qSM_Signal_t)1 )
+#define SIGNAL_TIMEOUT         ( (qSM_Signal_t)2 )
+
+qTask_t LED_Task; /*The task node*/
+qSM_t LED_FSM; /*The state-machine handler*/
+qSM_TransitionTable_t LED_FSM_TransTable; /*the FSM transition table*/
+
+/*create the transition table entries with the desired FSM behavior*/
+qSM_Transition_t LED_FSM_TransEntries[] = {
+{ State_LED_Off, SIGNAL_BUTTON_PRESSED, State_LED_On, NULL, NULL, NULL },
+{ State_LED_On, SIGNAL_TIMEOUT, State_LED_Off, NULL, NULL, NULL },
+{ State_LED_On, SIGNAL_BUTTON_PRESSED, State_LED_Blink, NULL, NULL, NULL },
+{ State_LED_Blink, SIGNAL_TIMEOUT, State_LED_Off, NULL, NULL, NULL },
+{ State_LED_Blink, SIGNAL_BUTTON_PRESSED, State_LED_Off, NULL, NULL, NULL }
+};
+
+/*create the memory area for the signal-queue*/
+qSM_Signal_t LED_FSM_SignalArea[4];
+/*the timeout object*/
+qSTimer_t LED_FSM_Timeout = QSTIMER_INITIALIZER;
+\end{lstlisting}
+
+Then, we define the callback for the states. Here, the \lstinline{BeforeAny} sub-state is defined to send the timeout signal. \\
+
+\begin{lstlisting}[style=CStyle]
+void SubState_LED_BeforeAny( qSM_Handler_t m ){
+    if( qSTimer_Expired( &LED_FSM_Timeout ) ){
+        qStateMachine_SendSignal( &LED_FSM, SIGNAL_TIMEOUT, qFalse );
+    }
+}
+/*---------------------------------------------------------------------*/
+qSM_Status_t State_LED_Off( qSM_Handler_t m ){
+    switch( m->Signal ){
+        case QSM_SIGNAL_ENTRY:
+            BSP_LED_OFF();
+            break;
+        default:
+            break;
+    }
+    return qSM_EXIT_SUCCESS;
+}
+/*---------------------------------------------------------------------*/
+qSM_Status_t State_LED_On( qSM_Handler_t m ){
+    switch( m->Signal ){
+        case QSM_SIGNAL_ENTRY:
+            qSTimer_Set( &LED_FSM_Timeout, 10.0 ); /*STimer gets armed*/
+            BSP_LED_ON();
+            break;
+        default:
+            break;    
+    }
+    return qSM_EXIT_SUCCESS;
+}
+/*---------------------------------------------------------------------*/
+qSM_Status_t State_LED_Blink( qSM_Handler_t m ){
+    static qSTimer_t blinktime;
+    switch( m->Signal ){
+        case QSM_SIGNAL_ENTRY:
+            qSTimer_Set( &LED_FSM_Timeout, 10.0 );
+            break;
+        default:
+            if( qSTimer_FreeRun( &blinktime, 0.5 ) ){
+                BSP_LED_TOGGLE();
+            }        
+            break;        
+    }
+    return qSM_EXIT_SUCCESS;
+}
+\end{lstlisting}
+
+In the previous code snippet, we assumed that \lstinline{SIGNAL_BUTTON_PRESSED} can be delivered from either the interrupt context or another task.
+
+To finish the setup, a task is added to handle the FSM and then, the transition table can be installed. \\
+
+\begin{lstlisting}[style=CStyle]
+qOS_Add_StateMachineTask( &LED_Task, qHigh_Priority, 0.1, &LED_FSM, 
+                          State_LED_Off, SubState_LED_BeforeAny, 
+                          NULL, NULL, NULL, qEnabled, NULL );
+                          
+qStateMachine_TransitionTableInstall( &LED_FSM, &LED_FSM_TransTable,   
+                                     LED_FSM_TransEntries, 5 );
+                                     
+qStateMachine_SignalQueueSetup( &LED_FSM, LED_FSM_SignalArea, 4 ):
+
+/*improve the transition table signal-response*/                                    
+qOS_StateMachineTask_SigCon( &LED_Task );  
+\end{lstlisting}
+
+\paragraph{Composite states, the hierarchical approach : } A composite state is defined as state that has inner states (a nested state-machine running inside the state). A composite state is a decomposition mechanism that allows factoring of common behaviors and their reuse. This allow to model the state-machine using a hierarchical pattern (aka statecharts). 
+
+In conventional state machine designs, all states are considered at the same level. The design does not capture the commonality that exists among states. In real life, many states handle most transitions in similar fashion and differ only in a few key components. Even when the actual handling differs, there is still some commonality.
+
+Hierarchical state machine design captures the commonality by organizing the states as a hierarchy. The states at the higher level in hierarchy perform the common handling, while the lower level states inherit the commonality from higher level ones and perform the state specific functions. 
+
+To setup a composite state, the following API should be used: \\
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qStateMachine_Set_CompositeState( qSM_t * const parent, 
+                                          qSM_State_t state, 
+                                          qSM_t * const child )
+\end{lstlisting}
+
+\begin{itemize}
+    \item \lstinline{parent} : A pointer to the parent FSM object.
+    \item \lstinline{state} : A state from \lstinline{parent} to relate the \lstinline{child} FSM. This state will be set as composite.
+    \item \lstinline{child} : A pointer to the child FSM object who becomes part of the composite state.
+\end{itemize}
+
+\subsubsection*{Return Value}
+Returns \lstinline{qTrue} on success, otherwise returns \lstinline{qFalse};
+
+\hrulefill
+\newline
+
+\begin{tcolorbox}
+\HandRight If the child FSM doesn't have a signal-queue defined, the parent signal will be propagated to it.
+\end{tcolorbox}
+
+
+\paragraph{Demonstrative example using a composite state :} This example takes the "Cruise Control" study case from \cite{gomaa}, a real-time system that manages the speed of an automobile based on inputs from the driver. 
+
+The behavior of this system is state-dependent in that the executed actions correspond not only to the driver input, but also on the current state of the system and with the status of the engine and the brake. 
+The figure \ref{fig:fsmej} illustrate the modeling of this system with the "Automated Control" state acting as composite. \\
+
+
+
+\begin{tcolorbox}
+\HandRight Transitions to a specific state inside a composite state and vice versa, should be parametrized in the last two parameters of the transition entry. Please see the transition layout in table \ref{ttable_layout}.
+\end{tcolorbox}
+
+\input{fig/fsmej}
+
+Before getting started, the required user-defined signals, variables, and transition tables should be defined:
+
+\begin{lstlisting}[style=CStyle]
+#define QSM_SIGNAL_ENGINE_ON            ((qSM_Signal_t)(1))
+#define QSM_SIGNAL_ACCEL                ((qSM_Signal_t)(2))
+#define QSM_SIGNAL_CRUISE               ((qSM_Signal_t)(3))
+#define QSM_SIGNAL_OFF                  ((qSM_Signal_t)(4))
+#define QSM_SIGNAL_RESUME               ((qSM_Signal_t)(5))
+#define QSM_SIGNAL_BRK_PRESSED          ((qSM_Signal_t)(6))
+#define QSM_SIGNAL_REACHED_CRUISING     ((qSM_Signal_t)(7))
+#define QSM_SIGNAL_ENGINE_OFF           ((qSM_Signal_t)(8))
+
+qTask_t SMTask; /* The FSM task */
+qSM_t Top_SM; /* Top state machine */
+qSM_t AC_SM; /* Automated Control state-machine*/
+qSM_TransitionTable_t Top_ttable, AC_ttable; /*transition table handlers*/
+
+/*=======================================================================*/
+/*                             TRANSITION TABLES                         */
+/*=======================================================================*/
+qSM_Transition_t Top_SM_ttable[]={
+
+{ Top_Idle_State, QSM_SIGNAL_ENGINE_ON, Top_Initial_State,  
+SigAct_ClearDesiredSpeed, NULL, NULL },
+
+{ Top_Initial_State, QSM_SIGNAL_ACCEL, Top_AutomatedControl_State, 
+SigAct_CheckBrake, &AC_SM, AC_Accelerating_State },
+
+{ Top_AutomatedControl_State, QSM_SIGNAL_BRK_PRESSED, Top_CruisingOff_State, 
+NULL, NULL, NULL },
+
+{ Top_CruisingOff_State, QSM_SIGNAL_ENGINE_OFF, Top_Idle_State, 
+NULL, NULL, NULL },
+
+{ Top_CruisingOff_State, QSM_SIGNAL_ACCEL, Top_AutomatedControl_State, 
+SigAct_CheckBrake, &AC_SM, AC_Accelerating_State },
+
+{ Top_CruisingOff_State, QSM_SIGNAL_RESUME, Top_AutomatedControl_State, 
+SigAct_CheckBrake, &AC_SM, AC_Resuming_State },
+
+};
+/*---------------------------------------------------------------------*/
+qSM_Transition_t AutomatedControl_SM_ttable[]={
+
+{ AC_Accelerating_State, QSM_SIGNAL_CRUISE, AC_Cruising_State,
+NULL, NULL, NULL },
+
+{ AC_Cruising_State, QSM_SIGNAL_ACCEL, AC_Accelerating_State,
+NULL, NULL, NULL },
+
+{ AC_Resuming_State, QSM_SIGNAL_ACCEL, AC_Accelerating_State, 
+NULL, NULL, NULL },
+
+{ AC_Resuming_State, QSM_SIGNAL_REACHED_CRUISING, AC_Cruising_State,
+NULL, NULL, NULL },
+
+{ AC_Resuming_State,  QSM_SIGNAL_OFF, NULL,  
+NULL, &Top_SM, Top_CruisingOff_State },    
+
+{ AC_Cruising_State, QSM_SIGNAL_OFF, NULL, 
+NULL, &Top_SM, Top_CruisingOff_State },    
+
+};
+\end{lstlisting}
+
+Then, signal-actions and state callbacks are later defined:
+
+\begin{lstlisting}[style=CStyle]
+/*=======================================================================*/
+/*                      EVENT-SIGNAL ACTIONS AND GUARDS                  */
+/*=======================================================================*/
+qBool_t SigAct_ClearDesiredSpeed( qSM_Handler_t h ){
+    (void)h;
+    Speed_ClearDesired();
+    return qTrue;
+}
+/*---------------------------------------------------------------------*/
+qBool_t SigAct_CheckBrake( qSM_Handler_t h ){
+    (void)h; /*unused*/
+    return ( BSP_BREAK_READ() == OFF )? qTrue : qFalse;  /*check guard*/
+}
+/*=======================================================================*/
+/*                  STATE CALLBACKS FOR THE TOP FSM                      */
+/*=======================================================================*/
+qSM_Status_t Top_Idle_State( qSM_Handler_t h ){
+    /*TODO : state activities*/
+    return qSM_EXIT_SUCCESS;
+}
+/*---------------------------------------------------------------------*/
+qSM_Status_t Top_Initial_State( qSM_Handler_t h ){
+    /*TODO : state activities*/
+    return qSM_EXIT_SUCCESS;
+}
+/*---------------------------------------------------------------------*/
+qSM_Status_t Top_CruisingOff_State( qSM_Handler_t h ){
+    /*TODO : state activities*/
+    return qSM_EXIT_SUCCESS;
+}
+/*---------------------------------------------------------------------*/
+qSM_Status_t Top_AutomatedControl_State( qSM_Handler_t h ){
+    /*TODO : state activities*/
+    return qSM_EXIT_SUCCESS;
+}
+/*=======================================================================*/
+/*          STATE CALLBACKS FOR THE AUTOMATED CONTROL FSM                */
+/*=======================================================================*/
+qSM_Status_t AC_Accelerating_State( qSM_Handler_t h ){
+    switch( h->Signal ){
+        case QSM_SIGNAL_EXIT:
+            Speed_SelectDesired();
+            break;
+        default:
+            Speed_Increase();
+            break;        
+    }
+    return qSM_EXIT_SUCCESS;
+}
+/*---------------------------------------------------------------------*/
+qSM_Status_t AC_Resuming_State( qSM_Handler_t h ){
+    Cruising_Resume();
+    return qSM_EXIT_SUCCESS;
+}
+/*---------------------------------------------------------------------*/
+qSM_Status_t AC_Cruising_State( qSM_Handler_t h ){
+    Speed_Maintain();
+    return qSM_EXIT_SUCCESS;
+}
+/*---------------------------------------------------------------------*/
+\end{lstlisting}
+
+Finally, the dedicated task for the FSM and related objects are configured.
+
+\begin{lstlisting}[style=CStyle]
+#define     MAX_FSM_SIGNALS     ( 10 )
+qSM_Signal_t topsm_sig_stack[ MAX_FSM_SIGNALS ];
+
+/*Setup the automated control FSM*/
+qStateMachine_Setup( &AC_SM, AC_Accelerating_State, 
+                     NULL, NULL, NULL, NULL );
+qStateMachine_TransitionTableInstall( &AC_SM, &AC_ttable, 
+                                      AutomatedControl_SM_ttable, 6 );
+
+/*Setup a FSM task for the Top FSM*/    
+qOS_Add_StateMachineTask(  &SMTask, qMedium_Priority, 0.1f, &Top_SM, 
+                           Top_Idle_State, NULL, NULL, NULL, NULL, 
+                           qEnabled, NULL); 
+/*Setup the signal-queue for the Top FSM*/
+qStateMachine_SignalQueueSetup( &Top_SM, topsm_sig_stack, MAX_FSM_SIGNALS );
+qStateMachine_TransitionTableInstall( &Top_SM, &Top_ttable, 
+                                      Top_SM_ttable, 6 );
+/*Set the Automated Control state as composite using the AC_SM */
+qStateMachine_Set_CompositeState( &Top_SM, Top_AutomatedControl_State, 
+                                  &AC_SM );
+/*Improve the FSM signal handling for the owner task*/
+qOS_StateMachineTask_SigCon( &SMTask );
+\end{lstlisting}
+
+\subsection{Co-Routines}
+As showed in figure \ref{fig:coroutine}, a task coded as a Co-Routine, is just a task that allows multiple entry points for suspending and resuming execution at certain locations, this feature can bring benefits by improving the task cooperative scheme and providing a linear code execution for event-driven systems without complex state machines or full multi-threading. \\
+
+\input{fig/coroutine.tex}
+    
+The QuarkTS implementation uses the Duff's device approach, and is heavily inspired by the Simon Tatham's Co-Routines in C \cite{tatham} and Adam Dunkels Protothreads \cite{dunkels}. This means that a \textit{local-continuation} variable is used to preserve the current state of execution at a particular place of the Co-Routine scope but without any call history or local variables. This brings benefits to lower RAM usage, but at the cost of some restrictions on how a Co-routine can be used. \\
+
+\textbf{Limitations and Restrictions}:
+
+\begin{itemize}
+    \item The stack of a Co-Routine  is not maintained when a Co-Routine  yields. This means variables allocated on the stack will loose their values. To overcome this, a variable that must maintain its value across a blocking call must be declared as \lstinline{static}.
+    \item Calls to API functions that could cause the Co-Routine to block, can only be made from the Co-Routine  function itself - not from within a function called by the Co-Routine .
+    \item The implementation does not permit yielding or blocking calls to be made from within a \lstinline{switch} statement.
+\end{itemize}
+
+\subsubsection{Coding a Co-Routine}
+The application writer just needs to create the body of the Co-Routine . This means starting a Co-Routine segment with \lstinline{qCR_Begin} \index{\lstinline{qCR_Begin}} and end with \lstinline{qCR_End} statement \index{\lstinline{qCR_End}}. From now on, yields and blocking calls from the Co-Routine scope are allowed. \\
+
+\begin{lstlisting}[style=CStyle]
+void CoroutineTask_Callback( qEvent_t e ){
+    qCR_Begin{        
+        if( EventNotComing() ){
+            qCR_Yield;
+        }
+        DoTheEventProcessing();
+    }qCR_End;
+}
+\end{lstlisting}   
+
+A \lstinline{qCR_Yield} \index{\lstinline{qCR_Yield}} call return the CPU control back to the scheduler but saving the execution progress. With the next task activation, the Co-Routine will resume the execution after the last \lstinline{qCR_Yield} statement. \\
+
+\begin{tcolorbox}
+\HandRight All the Co-routine statements the \textit{qCR} appended at the beginning of their name.
+\end{tcolorbox}
+
+\begin{tcolorbox}
+\HandRight Co-Routine statements can only be invoked from the scope of the Co-Routine.
+\end{tcolorbox}
+
+
+\subsubsection{Blocking calls}
+Blocking calls inside a Co-Routine should be made with the provided statements, all of them with a common feature: an implicit yield.
+
+A widely used procedure is to wait for a fixed period of time. For this, the \lstinline{qCR_Delay()} should be used \index{\lstinline{qCR_Delay}}. 
+
+\begin{lstlisting}[style=CStyle]
+qCR_Delay( qTime_t tDelay ) 
+\end{lstlisting}
+
+As expected, this statement makes an apparent blocking over the application flow, but to be precise, a yield is performed until the requested time expires, this allows other tasks to be executed until the blocking call finish. This \textit{"yielding until condition meet"} behavior its the common pattern among the other blocking statements. \\
+
+Another common blocking call is \lstinline{qCR_WaitUntil()} \index{\lstinline{qCR_WaitUntil}}:
+
+\begin{lstlisting}[style=CStyle]
+qCR_WaitUntil( Condition ) 
+\end{lstlisting}
+
+This statement takes a \lstinline{Condition} argument, a logical expression that will be performed when the Co-Routine resumes their execution. As mentioned before, this type of statement exposes the expected behavior, yielding until the condition is met. \\
+
+
+Optionally, the \lstinline{Do-Until} \index{\lstinline{qCR_Do}} \index{\lstinline{qCR_Until}} structure are also provided to perform a multi-line job before the yield, allowing more complex actions to be performed after the Co-Routine  resumes: \\
+
+\begin{lstlisting}[style=CStyle]
+qCR_Do{
+    /* Job : a set of instructions*/
+}qCR_Until( Condition );
+\end{lstlisting}
+
+\subsubsection*{Usage example:}
+\begin{lstlisting}[style=CStyle]
+void Sender_Task( qEvent_t e ){
+    static qSTimer_t timeout;
+    qCR_Begin{                  
+        Send_Packet();
+        /* 
+           Wait until an acknowledgment has been received, or until
+           the timer expires. If the timer expires, we should send
+           the packet again. 
+        */
+        qSTimer_Set( &timeout, TIMEOUT_TIME );
+        qCR_WaitUntil( PacketACK_Received() || 
+                       qSTimer_Expired(&timeout));
+    }qCR_End;
+}
+
+void Receiver_Task( qEvent_t e ){
+    qCR_Begin{                  
+        /* Wait until a packet has been received*/
+        qCR_WaitUntil( Packet_Received() );
+        Send_Acknowledgement();  
+    }qCR_End;
+}
+\end{lstlisting} 
+
+\subsubsection{Positional jumps}
+This feature provides positional local jumps, control flow that deviates from the usual Co-Routine call. 
+
+The complementary statements \lstinline{qCR_PositionGet()} \index{\lstinline{qCR_PositionGet}} and \lstinline{qCR_PositionRestore()} \index{\lstinline{qCR_PositionRestore}} provide this functionality.
+The first one saves the Co-Routine state at some point of their execution into \lstinline{CRPos}, a variable of type \lstinline{qCR_Position_t} \index{\lstinline{qCR_Position_t}},  that can be used at some later point of program execution by \lstinline{qCR_PositionRestore()} to restore the Co-Routine  state to the one saved by \lstinline{qCR_PositionGet()} into \lstinline{CRPos}. This process can be imagined to be a "jump" back to the point of program execution where \lstinline{qCR_PositionGet()} saved the Co-Routine  environment. \\
+
+\begin{lstlisting}[style=CStyle]
+qCR_PositionGet( CRPos )
+\end{lstlisting}
+
+\begin{lstlisting}[style=CStyle]
+qCR_PositionRestore( CRPos )
+\end{lstlisting}
+
+And to reset the \lstinline{CRPos} variable to the beginning of the Co-Routine, use \index{\lstinline{qCR_PositionReset}}:
+
+\begin{lstlisting}[style=CStyle]
+qCR_PositionReset( CRPos )
+\end{lstlisting}
+
+\subsubsection{Semaphores}
+This module implements counting semaphores on top of Co-Routines. Semaphores are a synchronization primitive that provide two operations: \textit{wait} and \textit{signal}. The \textit{wait} operation checks the semaphore counter and blocks the Co-Routine if the counter is zero. The \textit{signal} operation increases the semaphore counter but does not block. If another Co-Routine has blocked waiting for the semaphore that is signaled, the blocked Co-Routines will become runnable again.
+
+Semaphores are referenced by handles, a variable of type \lstinline{qCR_Semaphore_t} \index{\lstinline{qCR_Semaphore_t}}and must be initialized with \lstinline{qCR_SemInit()} \index{\lstinline{qCR_SemInit}} before any usage.  Here, a value for the counter is required. Internally, semaphores use an \lstinline{unsigned int} to represent the counter, therefore the \lstinline{Value} argument should be within range of this data-type. \\
+
+\begin{lstlisting}[style=CStyle]
+qCR_SemInit( sem, Value )
+\end{lstlisting}
+
+To perform the \textit{wait} operation, the \lstinline{qCR_SemWait()} \index{\lstinline{qCR_SemWait}} statement should be used. The wait operation causes the Co-routine to block while the counter is zero. When the counter reaches a value larger than zero, the Co-Routine will continue. \\
+
+
+\begin{lstlisting}[style=CStyle]
+qCR_SemWait( sem )
+\end{lstlisting}
+
+Finally, \lstinline{qCR_SemSignal()} \index{\lstinline{qCR_SemSignal}} carries out the \textit{signal} operation on the semaphore. This signaling increments the counter inside the semaphore, which eventually will cause waiting Co-routines to continue executing. \\
+
+\begin{lstlisting}[style=CStyle]
+qCR_SemSignal( sem )
+\end{lstlisting}
+
+
+\subsubsection*{Usage example:}
+The following example shows how to implement the bounded buffer problem using Co-Routines and semaphores. The example uses two tasks: one that produces items and other that consumes items.
+
+Note that there is no need for a mutex to guard the \lstinline{add_to_buffer()} and \lstinline{get_from_buffer()} functions because of the implicit locking semantics of Co-Routines, so it will never be preempted and will never block except in an explicit \lstinline{qCR_SemWait} statement. \\
+
+\begin{lstlisting}[style=CStyle]
+#include "HAL.h"
+#include "QuarkTS.h"
+#include "AppLibrary.h"
+
+#define NUM_ITEMS 32
+#define BUFSIZE 8
+
+qTask_t ProducerTask, ConsumerTask;
+qCR_Semaphore_t mutex, full, empty;
+/*===================================================================*/
+void ProducerTask_Callback( qEvent_t e ){
+  static int produced;
+  
+  qCR_Begin{
+     for(produced = 0; produced < NUM_ITEMS; ++produced) {
+        qCR_SemWait( &full );
+        qCR_SemWait( &mutex );
+
+        add_to_buffer( produce_item() );  
+  
+        qCR_SemSignal( &mutex );
+        qCR_SemSignal( &empty );
+     }
+  }qCR_End;
+}
+/*===================================================================*/
+void ConsumerTask_Callback( qEvent_t e ){{
+  static int consumed;
+  
+  qCR_Begin{
+      for(consumed = 0; consumed < NUM_ITEMS; ++consumed) {
+        qCR_SemWait( &empty );
+        qCR_SemWait( &mutex );    
+
+        consume_item( get_from_buffer() );    
+
+        qCR_SemSignal( &mutex ); 
+        qCR_SemSignal( &full );
+      }
+  }qCR_End;
+}
+/*===================================================================*/
+void IdleTask_Callback( qEvent_t e ){
+    /*nothing to do*/
+} 
+/*===================================================================*/
+int main(void){ 
+  HAL_Init();
+
+  qOS_Setup( HAL_GetTick, 0.001, IdleTask_Callback );
+  qCR_SemInit( &empty, 0 );
+  qCR_SemInit( &full, BUFSIZE );
+  qCR_SemInit( &mutex, 1 );	
+  
+  qOS_Add_Task( &ProducerTask, ProducerTask_Callback,
+                qMedium_Priority, 0.1, qPeriodic, qEnabled, NULL );
+  qOS_Add_Task( &ConsumerTask, ConsumerTask_Callback,
+                qMedium_Priority, 0.1, qPeriodic, qEnabled, NULL );
+  qOS_Run(); 	
+  return 0;
+}
+\end{lstlisting}
+
+\subsection{AT Command Line Interface} 
+A command-line interface (CLI) is a way to interact directly with the software of an embedded system in the form of text commands and responses. It can be seen as a typed set of commands to produce a result, but here, the commands are typed in real-time by a user through a specific interface, for example, UART, USB, LAN, etc. 
+
+A CLI is often developed to aid initial driver development and debugging. This CLI might become the interface (or one of the interfaces) used by a sophisticated end-user to interact with the product. Think of typing commands to control a machine, or perhaps for low-level access to the control system as a development tool, tweaking time-constants and monitoring low-level system performance during testing. 
+
+
+\subsubsection{The components of the CLI}
+The provided development API parses and handles input commands, following a simplified form of the extended AT-commands syntax. 
+
+\input{fig/atparser.tex}
+
+As seen in figure \ref{fig:atparser}, the CLI has a few components described below:
+\begin{itemize}
+    \item  \textit{Input Handler} : It is responsible for collecting incoming data from the \textit{input} in the form of ASCII characters inside a buffer. When this buffer is ready by receiving an \lstinline{EOL}(\textit{End-Of-Line}) byte, it notifies the \textit{validator} to perform the initial checks.
+    \item \textit{Validator}: Take the input string and perform three checks over it:
+    \begin{enumerate}
+        \item The input matches one of the subscribed commands.
+        \item The input matches one of the default commands.
+        \item The input is unknown
+    \end{enumerate}
+    \item \textit{Pre-Parser}: Takes the input if the \textit{validator} asserts the first check. It is responsible for syntax validation and classification. Also, prepares the input argument for the next component.
+    \item \textit{Callback or Post-Parser}: If input at the \textit{pre-parser} is valid, the respective command-callback is invoked. Here, the application writer is free to handle the command execution and the output response.
+    \item \textit{Output printer} : Takes all the return status of the previous components to print out a response at the output.
+\end{itemize}
+
+\begin{tcolorbox}
+\HandRight Here, \textit{Input} and \textit{Output} should be provided by the application writer, for example, if a UART interface is chosen, the input should take the received bytes from an ISR and the output is a function to print out a single byte.
+\end{tcolorbox}
+
+\subsubsection{Supported syntax} \label{atsyntax}
+
+The syntax is straightforward and the rules are provided below:
+
+\begin{itemize}
+    \item All command lines must start with \lstinline{AT} and end with an \lstinline{EOL} character. By default, the CLI uses the carriage return character. (We will use \lstinline{<CR>} to represent a carriage return character in this document).
+    \item AT commands are case-insensitive 
+    \item Only four types of AT commands are allowed:
+    \begin{itemize}
+        \item \textbf{Acting} (\lstinline{QATCLI_CMDTYPE_ACT}) : This is the simplest type of commands that can be subscribed. Its normally used to execute the action that the command should do. This type doesn't take arguments or modifiers, for example,
+        \begin{lstlisting}
+        AT+CMD
+        \end{lstlisting}
+        \item \textbf{Read} (\lstinline{QATCLI_CMDTYPE_READ}) : This type of command allows you to read or test a value already configured for the specified parameter. Only one argument is allowed.
+        \begin{lstlisting}
+        AT+CMD?
+        AT+CMD?PARAM1
+        \end{lstlisting}        
+        \item \textbf{Test} (\lstinline{QATCLI_CMDTYPE_TEST}) : These types of commands allow you to get the values that can be set for its parameters. No parameters are allowed here.
+        \begin{lstlisting}
+        AT+CMD=?
+        \end{lstlisting}
+        \item \textbf{Parameter Set} (\lstinline{QATCLI_CMDTYPE_PARA}) : These types of commands allow \textit{n} arguments to be passed for setting parameters, for example:
+        \begin{lstlisting}
+        AT+CMD=x,y
+        \end{lstlisting}
+    \end{itemize}
+    If none of the types is given at the input, the command response will be \lstinline{ERROR}
+    \item The possible output responses are:
+    \begin{itemize}
+        \item \lstinline{OK}: Indicates the successful execution of the command.
+        \item \lstinline{ERROR}: A generalized message to indicate failure in executing the command. 
+        \item \lstinline{UNKNOWN} : The input command its not subscribed.
+        \item \lstinline{NOT ALLOWED} : The command syntax is not one of the allowed types.
+        \item \lstinline{User-defined}: A custom output message defined by the application writer.
+        \item \lstinline{NONE} : No response.
+    \end{itemize}
+\end{itemize}
+
+All responses are followed by a \lstinline{<CR><LF>}. \\
+
+Errors generated during the execution of these AT commands could be due to the following reasons:
+\begin{itemize}
+    \item Incorrect syntax/parameters of the AT command
+    \item Bad parameters or not allowed operations defined by the application writer.
+\end{itemize}
+
+In case of an error, the string \lstinline{ERROR} or \lstinline{ERROR:<error_no>} are displayed.
+
+\subsubsection{Setting up an AT-CLI instance}
+Before starting the CLI development, the corresponding instance must be defined; a data structure of type \lstinline{qATCLI_t} \index{\lstinline{qATCLI_t}}. 
+The instance should be initialized using the \lstinline{qATCLI_Setup()} API \index{\lstinline{qATCLI_Setup}}.
+
+A detailed description of this function is shown bellow:  \\
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qATCLI_Setup( qATCLI_t * const cli, const qPutChar_t OutputFcn, 
+                      char *Input, const size_t SizeInput, char *Output, 
+                      const size_t SizeOutput, const char *Identifier, 
+                      const char *OK_Response, const char *ERROR_Response, 
+                      const char *NOTFOUND_Response, const char *term_EOL )
+\end{lstlisting}
+
+\subsubsection*{Parameters}
+\begin{itemize}
+    \item \lstinline{cli} : A pointer to the AT Command Line Interface instance. 
+    \item \lstinline{OutputFcn} : The basic output-char wrapper function. All the CLI responses  will be printed-out through this function.
+    \item \lstinline{Input} : A memory location to store the parser input (mandatory) 
+    \item \lstinline{SizeInput} : The size of the memory allocated in \lstinline{Input}. 
+    \item \lstinline{Output} : A memory location to store the parser output. If not used, pass \lstinline{NULL}.
+    \item \lstinline{SizeOutput} : The size of the memory allocated in \lstinline{Output}. 
+    \item \lstinline{Identifier} : The device identifier string. This string will be printed-out after a call to the \lstinline{AT_DEFAULT_ID_COMMAND}.
+    \item \lstinline{OK_Response} : The output message when a command callback returns \lstinline{QATCLI_OK}. To use the default, pass \lstinline{NULL}.
+    \item \lstinline{ERROR_Response} : The output message when a command callback returns \lstinline{QATCLI_ERROR} or any \lstinline{QATCLI_ERRORCODE(#)}. To use the default, pass \lstinline{NULL}.
+    \item \lstinline{NOTFOUND_Response } : The output message when input doesn't match with any of  the available commands. To use the default, pass \lstinline{NULL}.
+    \item \lstinline{term_EOL} : The \textit{End-Of-Line} string printed out after any of the parser messages. To use the default, pass \lstinline{NULL}. 
+\end{itemize}
+
+\subsubsection{Subscribing commands to the parser}
+The AT CLI is able to subscribe any number of custom AT commands. For this, the 
+\lstinline{qATCLI_CmdSubscribe()} \index{\lstinline{qATCLI_CmdSubscribe}} API should be used.
+
+This function subscribes the CLI instance to a specific command with an associated callback function, so that next time the required command is sent to the CLI input, the callback function will be executed. \\
+The CLI module only analyzes commands that follow the simplified AT-Commands syntax already described in section \ref{atsyntax}. \\
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qATCLI_CmdSubscribe( qATCLI_t * const cli, 
+                             qATCLI_Command_t * const Command, 
+                             const char *TextCommand, 
+                             qATCLI_CommandCallback_t Callback, 
+                             qATCLI_Options_t CmdOpt, void *param )
+\end{lstlisting}
+
+\subsubsection*{Parameters}
+\begin{itemize}
+    \item \lstinline{cli} : A pointer to the AT Command Line Inteface instance. 
+    \item \lstinline{Command} :  A pointer to the AT command object.
+    \item \lstinline{TextCommand} : The string (name) of the command we want to subscribe to. Since this service only handles AT commands, this string has to begin by the \lstinline{"at"} characters and should be in lower case.
+    \item \lstinline{Callback} : The handler of the callback function associated to the command. Prototype: 
+    \lstinline{qATCLI_Response_t xCallback(qATCLI_Handler_t, qATCLI_PreCmd_t )}
+    \item \lstinline{CmdOpt} : This flag combines with a bitwise ‘OR’ (‘|’) the following information:
+    \begin{itemize}
+        \item \lstinline{QATCLI_CMDTYPE_PARA} : \lstinline{AT+cmd=x,y} is allowed. The execution of the callback function also depends on whether the number of argument is valid or not. Information about number of arguments is combined with a bitwise 'OR' : \lstinline{QATCLI_CMDTYPE_PARA | 0xXY} , where \lstinline{X} which defines maximum argument number for incoming command and \lstinline{Y} which defines minimum argument number for incoming command.
+        \item \lstinline{QATCLI_CMDTYPE_TEST} : \lstinline{AT+cmd=?} is allowed. 
+        \item \lstinline{QATCLI_CMDTYPE_READ} : \lstinline{AT+cmd?} is allowed. 
+        \item \lstinline{QATCLI_CMDTYPE_ACT} : \lstinline{AT+cmd} is allowed. 
+    \end{itemize}
+    \item \lstinline{param} :  User storage pointer.
+\end{itemize}
+
+\subsubsection{Writing a command callback}
+The command callback should be coded by the application writter. Here, the following prototype should be used: \\
+
+\begin{lstlisting}[style=CStyle]
+qATCLI_Response_t CMD_Callback( qATCLI_Handler_t h, qATCLI_PreCmd_t p ){
+    
+}
+\end{lstlisting}
+
+The callback takes two arguments and returns a single value. The first argument is just a pointer to public data of the parser instance where the command it subscribed. From the callback context, it can be used to print out extra information as a command response. \\
+
+The second one is the main parameter from the point of view of the application writer, and correspond to a handle of type \lstinline{qATCLI_PreCmd_t} \index{\lstinline{qATCLI_PreCmd_t}}. The members inside points to data filled by the Pre-Parser component to give information about the detected command, like the type, number of arguments and the subsequent string after the command text.The pointed members are described as follows:
+
+\begin{itemize}
+    \item \lstinline{Command} : A pointer to the calling AT Command object.
+    \item \lstinline{Type} : The command type.
+    \item \lstinline{StrData} : The string data after the command text.
+    \item \lstinline{StrLen} : The length of \lstinline{StrData}.
+    \item \lstinline{NumArgs} : Number of arguments, only available if \lstinline{Type = QATCLI_CMDTYPE_PARA}.
+\end{itemize}
+
+The return value (an enum of type \lstinline{qATCLI_Response_t}) \index{\lstinline{qATCLI_Response_t}} determines the response shown by the \textit{Output printer} component. The possible allowed values are:
+
+\begin{itemize}
+    \item \lstinline{QATCLI_OK} : as expected, print out the \lstinline{OK} string.
+    \item \lstinline{QATCLI_ERROR} : as expected, print out the \lstinline{ERROR} string.
+    \item \lstinline{QATCLI_ERRORCODE(no)} : Used to indicate an error code. This code is defined by the application writer and should be a value between 1 and 32766. For example, a return value of \lstinline{QATCLI_ERRORCODE(15)}, will print out the string \lstinline{ERROR:15}.
+    \item \lstinline{QATCLI_NORESPONSE} : No response will be printed out.
+\end{itemize}
+
+
+A simple example of how the command callback should be coded is showed below: \\
+
+\begin{lstlisting}[style=CStyle]
+qATCLI_Response_t CMD_Callback( qATCLI_Handler_t h, qATCLI_PreCmd_t p ){
+	qATCLI_Response_t Response = QATCLI_NORESPONSE;
+	switch(param->Type){
+		case QATCLI_CMDTYPE_PARA:
+			Response = QATCLI_OK;
+			break;
+		case QATCLI_CMDTYPE_TEST:
+			Response = QATCLI_OK;
+			break;
+		case QATCLI_CMDTYPE_READ:
+		    strcpy( h->Output , "Test");
+			Response = QATCLI_OK;
+			break;
+		case QATCLI_CMDTYPE_ACT:
+			Response = QATCLI_OK;
+			break;			
+		default:
+			Response = QATCLI_ERROR;
+			break;
+	}
+	return Response;
+}
+\end{lstlisting}
+
+
+\subsubsection{Handling the input}
+Input handling is simplified using the provided APIs. The \lstinline{qATCLI_ISRHandler()} \index{\lstinline{qATCLI_ISRHandler}} and \lstinline{qATCLI_ISRHandlerBlock()}  \index{\lstinline{qATCLI_ISRHandlerBlock}} functions are intended to be used from the interrupt context. This avoids any kind of polling implementation and allows the CLI application to be designed using an event-driven pattern.
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qATCLI_ISRHandler( qATCLI_t * const cli, char c )
+\end{lstlisting}
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qATCLI_ISRHandlerBlock( qATCLI_t * const cli, char *data, 
+                                const size_t n )
+\end{lstlisting}
+
+Both functions feed the parser input, the first one with a single character and the second with a string. The application writer should call one of these functions from the desired hardware interface, for example, from a UART receive ISR. 
+
+\subsubsection*{Parameters}
+\begin{itemize}
+    \item \lstinline{cli} : Both APIs take a pointer to AT Command Line Interface instance.
+\end{itemize}
+
+for \lstinline{qATCLI_ISRHandler} :
+\begin{itemize}
+    \item \lstinline{c} : The incoming byte/char to the input. 
+\end{itemize}
+
+for \lstinline{qATCLI_ISRHandlerBlock} :
+\begin{itemize}
+    \item \lstinline{data} : The incoming string.
+    \item \lstinline{n} : The length of the \lstinline{data} argument.
+\end{itemize}
+
+\subsubsection*{Return Value}
+\lstinline{qTrue} when the CLI is ready to process the input, otherwise return \lstinline{qFalse}.
+
+\noindent\hrulefill
+\newline
+If there are no intention to feed the input from the ISR context, the APIs \lstinline{qATCLI_Raise} \index{\lstinline{qATCLI_Raise}} or \lstinline{qATCLI_Exec} \index{\lstinline{qATCLI_Exec}} can be called at demand from the base context. \\
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qATCLI_Raise( qATCLI_t * const cli, const char *cmd )
+\end{lstlisting}
+
+\begin{lstlisting}[style=CStyle]
+qATCLI_Response_t qATCLI_Exec( qATCLI_t * const cli, const char *cmd )
+\end{lstlisting}
+
+As expected, both functions send the string to the specified CLI.
+The difference between both APIs is that \lstinline{qATCLI_Raise()} sends the command through the input, marking it as ready for parsing and acting as the \textit{Input handler} component.
+The \lstinline{qATCLI_Exec()}, on the other hand, executes the components of \textit{Pre-parsing} and \textit{Post-parsing} bypassing the other components, including the \textit{Output printer}, so that it must be handled by the application writer.
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{cli} : A pointer to the AT Command Line Inteface instance.
+    \item \lstinline{cmd} : The command string, including arguments if required.
+\end{itemize}
+
+\subsubsection*{Return value:}
+For \lstinline{qATCLI_Raise()}, \lstinline{qTrue} if the command was successfully raised, otherwise returns \lstinline{qFalse}.
+
+For \lstinline{qATCLI_Exec()}, the same value returned by the respective callback function. If the input string doesn't match any of the subscribed commands, returns \lstinline{QAT_NOTFOUND}. If the input syntax is not allowed, returns \lstinline{qAT_NOTALLOWED}. \\
+
+\begin{tcolorbox}
+\ArrowBoldDownRight \textit{Note}: All functions involved with the component \textit{Input-handler},  ignores non-graphic characters and cast any uppercase to lowercase.
+\end{tcolorbox}
+
+\subsubsection{Running the parser} \label{runningparser}
+The parser can be invoked directly using the \lstinline{qATCLI_Run()} \index{\lstinline{qATCLI_Run}} API. Almost all the components that make up the CLI are performed by this API, except for the \textit{Input Handler}, that should be managed by the application writer itself. \\
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qATCLI_Run( qATCLI_t * const Parser )
+\end{lstlisting}
+
+In this way, the writer of the application must implement the logic that leads this function to be called when the \textit{input-ready} condition is given.
+
+The simple approach for this is to check the return value of any of the input feeder APIs and set a notification variable when they report a ready input. Later in the base context, a polling job should be performed over this notification variable, running the parser when their value is true, then clearing the value after to avoid unnecessary overhead. 
+
+The recommended implementation is to leave this job be handled by a task instead of coding the logic to know when the CLI should run. For this, the \lstinline{qOS_Add_ATCLITask()} is provided. This API \index{\lstinline{qOS_Add_ATCLITask}} add a task to the scheduling scheme running an AT Command Line Interface and treated as an event-triggered task. The address of the parser instance will be stored in the \lstinline{TaskData} storage-Pointer. \\
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qOS_Add_ATCLITask( qTask_t * const Task, 
+                           qATCLI_t *cli, 
+                           qPriority_t Priority )
+\end{lstlisting}
+
+\subsubsection*{Parameters}
+\begin{itemize}
+    \item \lstinline{Task} : A pointer to the task node. 
+    \item \lstinline{Parser} :  A pointer to the AT Command Line Interface instance.
+    \item \lstinline{Priority} : Task priority Value. [0(min) - \lstinline{Q_PRIORITY_LEVELS}(max)]
+\end{itemize}
+
+After invoked, both CLI and task are linked together in such a way that when an \textit{input-ready} condition is given, a notification event is sent to the task launching the CLI components. As the task is event-triggered, there is no additional overhead and the writer of the application can assign a priority value to balance the application against other tasks in the scheduling scheme.
+
+\subsubsection{Retrieving arguments inside a command-callback}
+
+The following APIs should be only invoked from a command-callback context: \\
+
+\begin{lstlisting}[style=CStyle]
+char* qATCLI_GetArgString( const qATCLI_PreCmd_t param, qINT8_t n,
+                           char* out)
+\end{lstlisting}
+
+Get the argument parsed as string from the incoming AT command. \index{\lstinline{qATCLI_GetArgString}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{param} : A handle to the pre-parser instance(only available from the AT-Command callback).
+    \item \lstinline{n} : The number of the argument.
+    \item \lstinline{out} :  Array in memory where to store the resulting null-terminated string.
+\end{itemize}
+
+\subsubsection*{Return value:}
+Same as \lstinline{out} on success, otherwise returns \lstinline{NULL}.
+
+\noindent\hrulefill
+\newline
+Next APIs takes the same arguments: \\
+
+\begin{lstlisting}[style=CStyle]
+char* qATCLI_GetArgPtr( const qATCLI_PreCmd_t param, qINT8_t n )
+\end{lstlisting}
+
+To get the pointer where the desired argument starts. \index{\lstinline{qATCLI_GetArgPtr}}
+
+\begin{lstlisting}[style=CStyle]
+int qATCLI_GetArgInt( const qATCLI_PreCmd_t param, qINT8_t n )
+\end{lstlisting}
+
+To get the argument parsed as integer from the incoming AT command. \index{\lstinline{qATCLI_GetArgInt}}
+
+\begin{lstlisting}[style=CStyle]
+qFloat32_t qATCLI_GetArgFlt( const qATCLI_PreCmd_t param, qINT8_t n )
+\end{lstlisting}
+
+To get the argument parsed as float from the incoming AT command. \index{\lstinline{qATCLI_GetArgFlt}}
+
+\begin{lstlisting}[style=CStyle]
+qUINT32_t qATCLI_GetArgHex( const qATCLI_PreCmd_t param, qINT8_t n )
+\end{lstlisting}
+
+To get the HEX argument parsed as \lstinline{qUINT32_t} from the incoming AT command. \index{\lstinline{qATCLI_GetArgHex}}
+
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{param} : A handle to the pre-parser instance(only available from the AT-Command callback).
+    \item \lstinline{n} : The number of the argument.
+\end{itemize}
+
+\subsubsection*{Return value:}
+For \lstinline{qATCLI_GetArgPtr()}, a pointer to the desired argument. \lstinline{NULL} pointer if the argument is not present. \\
+For \lstinline{qATCLI_GetArgInt()}, the argument parsed as integer. Same behavior of \lstinline{qIOUtil_AtoI}. If argument not found returns 0.\\
+For \lstinline{qATCLI_GetArgFlt()}, the argument parsed as \lstinline{float}. Same behavior of \lstinline{qIOUtil_AtoF}. If argument not found returns 0.\\
+For \lstinline{qATCLI_GetArgHex()}, the HEX argument parsed as \lstinline{qUINT32_t}. Same behavior of \lstinline{qIOUtil_XtoU32}. If argument not found returns 0.
+
+\subsection{Memory Management} \label{memmanagement}
+Memory can be allocated using the standard C library malloc() and free() functions, but they may not be suitable in most embedded applications because they are not always available on small microcontrollers or their implementation can be relatively large, taking up valuable code space. Additionally, some implementations can suffer from fragmentation.
+
+To get around this problem, the OS  provides its own memory allocation API. When the application requires RAM, instead of calling \textit{malloc()},  call \lstinline{qMalloc()} \index{\lstinline{qMalloc}}. When RAM is being freed, instead of calling \textit{free()}, use \lstinline{qFree()} \index{\lstinline{qFree}}. Both functions have the same prototype as the standard C library counterparts.
+
+\subsubsection{Principle of operation}
+The allocation scheme works by subdividing a static array into smaller blocks and using the \textit{First-Fit} approach (see figure \ref{fig:memman}). 
+
+\input{fig/memman.tex}
+
+If adjacent free blocks are available, the implementation combines them into a single larger block, minimizing the risk of fragmentation, making it suitable for applications that repeatedly allocate and free different sized blocks of RAM. \\
+
+\begin{tcolorbox}
+\ArrowBoldDownRight \textit{Note}: Because memory is statically declared, it will make the application appear to consume a lot of RAM, even before any memory has been allocated from it.
+\end{tcolorbox}
+
+\begin{tcolorbox}
+\AsteriskBold \textit{Warning}: All the memory management APIs are NOT interrupt-safe. Use these APIs only from the base context.
+\end{tcolorbox}
+
+\subsubsection{Memory pools}
+
+A memory pool is a kernel object that allows memory blocks to be dynamically allocated from a user-designated memory region. Instead of typical pools with fixed-size block allocation, the pools in QuarkTS can be of any size, thereby the user is responsible for selecting the appropriate memory pool to allocate data with the same size. 
+
+The \textit{default} memory management unit resides in a memory pool object. Also called the \textit{default pool}. The total amount of available heap space in the default memory pool is set by \lstinline{Q_DEFAULT_HEAP_SIZE}, which is defined in \lstinline{qconfig.h}.
+
+Besides the \textit{default} pool, any number of additional memory pools can be defined. Like any other kernel object in QuarkTS, memory pools are referenced by handles, a variable of type \lstinline{qMemMang_Pool_t} \index{\lstinline{qMemMang_Pool_t}} and should be initialized before use with the \lstinline{qMemMang_Pool_Setup()} \index{\lstinline{qMemMang_Pool_Setup}} API function. \\
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qMemMang_Pool_Setup( qMemMang_Pool_t * const mPool, void* Area, 
+                             size_t size )
+\end{lstlisting}
+
+\subsubsection*{Parameters}
+\begin{itemize}
+    \item \lstinline{mPool} : A pointer to the memory pool instance. 
+    \item \lstinline{Area} :  A pointer to a memory region (\lstinline{qUINT8_t}) statically allocated to act as Heap of the memory pool. The size of this block should match the \lstinline{size} argument.
+    \item \lstinline{size} : The size of the memory block pointed by \lstinline{Area}. 
+\end{itemize}
+
+To perform operations in another memory pool, besides the \textit{default} pool, an explicit switch should be performed using \lstinline{qMemMang_Pool_Select()} \index{\lstinline{qMemMang_Pool_Select}}. Here, a pointer to the target pool should be passed as input argument.  From now on, every call to \lstinline{qMalloc()}, or \lstinline{qFree()} will run over the newly selected memory pool. To return to  the \textit{default pool},  a new call to  \lstinline{qMemMang_Pool_Select()} is required passing \lstinline{NULL} as input argument. \\ 
+
+\begin{lstlisting}[style=CStyle]
+void qMemMang_Pool_Select( qMemMang_Pool_t * const mPool )
+\end{lstlisting}
+
+\\
+To keep track of the memory usage, the \lstinline{qMemMang_Get_FreeSize()} \index{\lstinline{qMemMang_Get_FreeSize}} API function returns the number of free bytes in the memory pool at the time the function is called.
+\begin{lstlisting}[style=CStyle]
+size_t qMemMang_Get_FreeSize( void )
+\end{lstlisting}
+
+\subsubsection*{Usage example:}
+
+\begin{lstlisting}[style=CStyle]
+#include <stdio.h>
+#include <stdlib.h>
+#include "QuarkTS.h"
+#include "HAL.h"
+#include "Core.h"
+
+qTask_t taskA;
+qMemMang_Pool_t another_heap;
+void taskA_Callback( qEvent_t e );
+
+void taskA_Callback( qEvent_t e ){
+    int *xdata = NULL;
+    int *ydata = NULL;
+    int *xyoper = NULL;
+    int n = 20;
+    int i;
+    
+    xyoper = (int*)qMalloc( n*sizeof(int) );
+    xdata = (int*)qMalloc( n*sizeof(int) );
+    qMemMang_Pool_Select( &another_heap ); /*change the memory pool*/
+    /*ydata will point to a segment allocated in another pool*/
+    ydata = (int*)qMalloc( n*sizeof(int) ); 
+    
+    /*use the memory if could be allocated*/
+    if( xdata && ydata && xyoper ){ 
+        for(i=0; i<n; i++){
+            xdata[i] = GetXData();
+            ydata[i] = GetYData();
+            xyoper[i] = xdata[i] * ydata[i];
+        }
+        UseTheMemmory(xyoper);
+    }
+    else{
+        qTrace_Message("ERROR:ALLOCATION_FAIL");
+    }
+
+    qFree( ydata );
+    qMemMang_Pool_Select( NULL ); /*return to the default pool*/
+    qFree( xdata );
+    qFree( xyoper );
+}
+
+int main(void){
+    char area_another_heap[512]={0};
+    qTrace_Set_OutputFcn( OutPutChar );
+    /*Create a memory heap*/
+    qMemMang_Pool_Setup( &another_heap, area_another_heap, 512); 
+    qOS_Setup( HAL_GetTick, 0.001, IdleTaskCallback );
+    qOS_Add_Task( &taskA, taskA_Callback, qLowest_Priority, 0.1, 
+                  qPeriodic, qEnabled, NULL);
+    qOS_Run();
+    return 0;
+}
+
+\end{lstlisting}  
+
+\subsection{Trace and debugging}
+QuarkTS include some basic macros to print out debugging messages. Messages can be simple text or the value of variables in specific base-formats. 
+To use the trace macros, a single-char output function must be defined using the \lstinline{qTrace_Set_OutputFcn()} macro.\index{\lstinline{qTrace_Set_OutputFcn}} \\
+
+\begin{lstlisting}[style=CStyle]
+qTrace_Set_OutputFcn( qPutChar_t fcn )
+\end{lstlisting}
+
+Where \lstinline{fcn} is a pointer to the single-char output function following the prototype: \\
+
+\begin{lstlisting}[style=CStyle]
+void SingleChar_OutputFcn( void *sp, const char c ){
+    /*
+    TODO : print out the c variable using the
+    selected peripheral.
+    */
+}
+\end{lstlisting}
+
+The body of this user-defined function should have a hardware-dependent code to print out the \lstinline{c} variable through a specific peripheral.
+
+\subsubsection{Viewing variables}
+For viewing or tracing a variable (up to 32-bit data) through debug, one of the following macros are available: \index{\lstinline{qTrace_Var}} \index{\lstinline{qTrace_Variable}} \index{\lstinline{qDebug_Var}} \index{\lstinline{qDebug_Variable}}
+
+\begin{lstlisting}[style=CStyle]
+qTrace_Var( Var, DISP_TYPE_MODE )
+qTrace_Variable( Var, DISP_TYPE_MODE )
+\end{lstlisting}
+\begin{lstlisting}[style=CStyle]
+qDebug_Var( Var, DISP_TYPE_MODE )
+qDebug_Variable( Var, DISP_TYPE_MODE )
+\end{lstlisting}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{Var} : The target variable. 
+    \item \lstinline{DISP_TYPE_MODE } :  Visualization mode. It must be one of the following parameters(case sensitive): \lstinline{Bool}, \lstinline{Float}, \lstinline{Binary}, \lstinline{Octal}, \lstinline{Decimal}, \lstinline{Hexadecimal}, \lstinline{UnsignedBinary}, \lstinline{UnsignedOctal}, \lstinline{UnsignedDecimal}, \lstinline{UnsignedHexadecimal}. 
+\end{itemize}
+
+The only difference between \lstinline{qTrace_} and  \lstinline{Debug}, is that \lstinline{qTrace_} macros, print out additional information provided by the \lstinline{__FILE__}, \lstinline{__LINE__} and \lstinline{__func__} built-in preprocessing macros, mostly available in common C compilers. 
+
+\subsubsection{Viewing a memory block}
+For tracing memory from a specified target address, one of the following macros are available: \index{\lstinline{qTrace_Mem}} \index{\lstinline{qTrace_Memory}}
+
+\begin{lstlisting}[style=CStyle]
+qTrace_Mem( Pointer, BlockSize )
+qTrace_Memory( Pointer, BlockSize )
+\end{lstlisting}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{Pointer} : The target memory address.
+    \item \lstinline{Size} : Number of bytes to be visualized.
+\end{itemize}
+
+Hexadecimal notation it's used to format the output of these macros.
+
+\subsubsection{Usage}
+
+In the example below, an UART output function is coded to act as the printer. Here, the target MCU is an ARM-Cortex M0 with the UART1 as the selected peripheral for this purpose. \\
+
+\begin{lstlisting}[style=CStyle]
+void putUART1( void *sp, const char c ){
+    /* hardware specific code */
+    UART1_D = c;
+    while ( !(UART1_S1 & UART_S1_TC_MASK) ) {} /*wait until TX is done*/ 
+}
+\end{lstlisting}  
+
+As seen above, the function follows the required prototype. Later, in the main thread, a call to the \lstinline{qSetDebugFcn()} is used to set up the output-function.
+
+\begin{lstlisting}[style=CStyle]
+int main( void ){
+   qTrace_Set_OutputFcn( putUART1 );
+   ... 
+   ...
+}
+\end{lstlisting}  
+
+After that, trace macros will be available for use.
+
+\begin{lstlisting}[style=CStyle]
+void IO_TASK_Callback( qEvent_t e ){
+   static qUINT32_t Counter = 0;
+   float Sample;
+   ...
+   ... 
+   qTrace_Message( "IO TASK running..." );
+   Counter++;
+   qTrace_Variable( Counter, UnsignedDecimal );
+   Sample = SensorGetSample();
+   qTrace_Variable( Sample, Float );
+   ...
+   ...
+}
+\end{lstlisting}
+
+\newpage
