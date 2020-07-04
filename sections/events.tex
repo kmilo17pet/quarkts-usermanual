@@ -25,9 +25,8 @@ Here, we understand events, as any identifiable occurrence that has significance
 
 As shown in figure 5, two main scenarios are presented, \textit{ISR-to-task} and \textit{task-to-task} interaction.  When using interrupts to catch external events, it is expected to be handled with fast and lightweight code to reduce the variable ISR overhead introduced by the code itself. If too much overhead is used inside an ISR, the system will tend to lose future events. In some specific situations, the best approach is to synchronize the ISR with a task to leave the heavy job in the base-level instead of the interrupt-level, this is also called  \textit{Deferred Interrupt Handling}.
 
-The other scenario is when a task is performing a specific job and another task must be awakened to perform some activities when the other task finishes.
+The other scenario is when a task is performing a specific job and another task must be awakened to perform some activities when the other task finishes.\newline
 
-\newline
 Both scenarios require some ways in which tasks can communicate with each other.
 For this, the OS does not impose any specific event processing strategy to the application designer but does provide features that allow the chosen strategy to be implemented in a simple and maintainable way. From the OS perspective, these features are just sources of asynchronous events with specific triggers and related data. 
 \newline
@@ -161,12 +160,11 @@ void qTask_EventFlags_Modify( qTask_t * const Task, qTaskFlag_t flags,
     \lstinline{ QEVENTFLAG_01 | QEVENTFLAG_02 | QEVENTFLAG_03 | ... | QEVENTFLAG_20 }
     \item \lstinline{action} : \lstinline{QEVENTFLAG_SET} or \lstinline{QEVENTFLAG_CLEAR}. 
 \end{itemize}
-\newline
 
 \begin{tcolorbox}
 \HandRight The scheduler will put the task into a \textit{qReady} state when any of the available event-flags is set. The flags should be cleared by the application writer explicitly. 
 \end{tcolorbox}
-\newline
+
 To read or check the event flags, the application can use one of the following API functions: \\
 
 \begin{lstlisting}[style=CStyle]
@@ -352,7 +350,7 @@ int main( void ){
 }
 \end{lstlisting}
 
-\subsubsection{Setting up a queue : \lstinline{qQueue_Setup} } \index{\lstinline{qQueue_Setup}} \label{queuecreate}
+\subsubsection{Setting up a queue : \texorpdfstring{\lstinline{qQueue_Setup}}{qQueue_Setup} } \index{\lstinline{qQueue_Setup}} \label{queuecreate}
 A queue must be explicitly initialized before it can be used. \\
 These objects are referenced by handles, which are variables of type \lstinline{qQueue_t}. The \lstinline{qQueue_Setup()} API function configures the queue and initialize the instance. 
 

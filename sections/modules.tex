@@ -148,10 +148,11 @@ Figure \ref{fig:substates} shows that these \textit{sub-states} (if enabled) are
 \end{itemize}
 
 
-\subsubsection{Setting up a state machine : \lstinline{qStateMachine_Setup} }
+\subsubsection{Setting up a state machine : \texorpdfstring{\lstinline{qStateMachine_Setup}}{qStateMachine_Setup} }
 Like any other OS object, a Finite State Machine (FSM) must be explicitly initialized before it can be used. FSMs are referenced by handles, which are variables of type \lstinline{qSM_t}. \index{\lstinline{qSM_t}}
 
-The \lstinline{qStateMachine_Setup()} API \index{\lstinline{qStateMachine_Setup}}  initializes the instance, sets the initial state and conditioned sub-states.\\
+The \lstinline{qStateMachine_Setup()} API \index{\lstinline{qStateMachine_Setup}}  initializes the instance, sets the initial state and conditioned sub-states.
+
 
 
 \begin{lstlisting}[style=CStyle]
@@ -186,7 +187,7 @@ void SubState_Example( qSM_Handler_t m ){
 }
 \end{lstlisting}  
 
-\subsubsection{Running a state machine : \lstinline{qStateMachine_Run} }
+\subsubsection{Running a state machine : \texorpdfstring{\lstinline{qStateMachine_Run}}{qStateMachine_Run} }
 This API \index{\lstinline{qStateMachine_Run}} is used to execute the Finite State Machine. Only a single cycle is performed invoking the callback of the current active state (including nested states of the hierarchical topology), and of course, the available sub-states according to figure \ref{fig:substates}. \\
 
 \begin{lstlisting}[style=CStyle]
@@ -254,7 +255,7 @@ qSM_Status_t Some_State( qSM_Handler_t m ){
 }
 \end{lstlisting}  
 
-\subsubsection{Adding a state machine as a task : \lstinline{qOS_Add_StateMachineTask} } \label{statemachinetask}
+\subsubsection{Adding a state machine as a task : \texorpdfstring{\lstinline{qOS_Add_StateMachineTask}}{qOS_Add_StateMachineTask} } \label{statemachinetask}
 The best strategy to implement a FSM is delegating it to a task. For this, the provided \index{\lstinline{qOS_Add_StateMachineTask}} API should be used. Here, the task doesn't have a specific callback, instead, it will evaluate the active state of FSM, and later, all the other possible states in response to events that mark their own transition. The task will be scheduled to run every \lstinline{Time} seconds in \lstinline{qPeriodic} mode. 
 
 
@@ -548,8 +549,6 @@ qBool_t Signal_Action( qSM_Handler_t ){
     return qTrue; /*allow the state transition*/
 }
 \end{lstlisting}
-
-\newline
 
 The return value is checked after to allow or reject the state transition. The application writer can code a boolean expression to implement statechart guards or perform some pre-transition procedure.
 
@@ -1482,7 +1481,6 @@ To perform operations in another memory pool, besides the \textit{default} pool,
 void qMemMang_Pool_Select( qMemMang_Pool_t * const mPool )
 \end{lstlisting}
 
-\\
 To keep track of the memory usage, the \lstinline{qMemMang_Get_FreeSize()} \index{\lstinline{qMemMang_Get_FreeSize}} API function returns the number of free bytes in the memory pool at the time the function is called.
 \begin{lstlisting}[style=CStyle]
 size_t qMemMang_Get_FreeSize( void )

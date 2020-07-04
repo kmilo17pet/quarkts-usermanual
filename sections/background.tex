@@ -35,8 +35,9 @@ The following cores have been powered with QuarkTS successfully:
 
 \subsubsection{Memory usage}
 As a quasi-static scheduler is implemented here, dynamic memory allocation is not required and the assignment of tasks must be done before program execution begins.
-The kernel is designed to allow unlimited tasks and kernel objects, but of course, the whole application will be constrained by the memory specifications of the embedded system. \\
-The kernel's memory footprint can be scaled down to contain only the features required for your application, typically 2.5 KBytes of code space and less than 1 KByte of data space. \\
+The kernel is designed to allow unlimited tasks and kernel objects, but of course, the whole application will be constrained by the memory specifications of the embedded system. 
+The kernel's memory footprint can be scaled down to contain only the features required for your application, typically 2.5 KBytes of code space and less than 1 KByte of data space. 
+
 
 \begin{tabular}{ |p{10cm}||p{1.5cm}|  }
  \hline
@@ -77,7 +78,7 @@ For this, the kernel allows you to select the reference clock source among these
         Here, a hardware timer should raise an interrupt periodically. After the \textit{Interrupt Service Routine} (ISR) has been implemented using the platform-dependent code, the \lstinline{qClock_SysTick()} \index{\lstinline{qClock_SysTick}} API must be called inside. It is recommended that the reserved ISR should only be used by QuarkTS.
 \end{itemize}
 
-\subsection{Setting up the OS kernel : \lstinline{qOS_Setup}} \label{settingupkernel}
+\subsection{Setting up the OS kernel : \texorpdfstring{\lstinline{qOS_Setup}}{qOS_Setup} } \label{settingupkernel}
  This function should be the first call to the OS APIs. \lstinline{qOS_Setup()} \index{\lstinline{qOS_Setup}} prepares the kernel instance, sets the reference clock, defines the \textit{Idle-Task} callback and allocates the stack for the internal queue. \\
  
 \begin{lstlisting}[style=CStyle]
