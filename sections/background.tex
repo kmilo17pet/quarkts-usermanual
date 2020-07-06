@@ -38,29 +38,30 @@ As a quasi-static scheduler is implemented here, dynamic memory allocation is no
 The kernel is designed to allow unlimited tasks and kernel objects, but of course, the whole application will be constrained by the memory specifications of the embedded system. 
 The kernel's memory footprint can be scaled down to contain only the features required for your application, typically 2.5 KBytes of code space and less than 1 KByte of data space. 
 
-
+\begin{center}
 \begin{tabular}{ |p{10cm}||p{1.5cm}|  }
- \hline
- \multicolumn{2}{|c|}{ \textbf{OS Memory Footprint} \scriptsize{(Measured in a 32bit MCU)}} \\
- \hline
- \textbf{Functionality} & \textbf{Size}\scriptsize{(bytes)}\\
- \hline
- Kernel, scheduler and task management& 2637\\
- A task node ({\lstinline!qTask_t!}) & 64\\
- Finite State-Machines(FSM) handling and related APIs& 314\\
- A FSM object ({\lstinline!qSM_t!}) & 37 \\
- STimers handling and related APIs & 258\\
- A STimer object ({\lstinline!qSTimer_t!})& 8\\
- qQueues handling and related APIS & 544\\
- A qQueue object ({\lstinline!qQueue_t!}) & 28\\
- Memory management & 407\\
- A memory pool ({\lstinline!qMemMang_Pool_t!}) & 28 \\ 
- The AT Command Parser & 1724\\
- An AT-Parser instance ({\lstinline!qATCLI_t!})& 112\\
- An AT command object ({\lstinline!qATCLI_Command_t!})& 24\\
- Remaining utilities& 2980\\
- \hline
+    \hline
+    \multicolumn{2}{|c|}{ \textbf{OS Memory Footprint} \scriptsize{(Measured in a 32bit MCU)}} \\
+    \hline
+    \textbf{Functionality} & \textbf{Size}\scriptsize{(bytes)}\\
+    \hline
+    Kernel, scheduler and task management& 2637\\
+    A task node ({\lstinline!qTask_t!}) & 64\\
+    Finite State-Machines(FSM) handling and related APIs& 314\\
+    A FSM object ({\lstinline!qSM_t!}) & 37 \\
+    STimers handling and related APIs & 258\\
+    A STimer object ({\lstinline!qSTimer_t!})& 8\\
+    qQueues handling and related APIS & 544\\
+    A qQueue object ({\lstinline!qQueue_t!}) & 28\\
+    Memory management & 407\\
+    A memory pool ({\lstinline!qMemMang_Pool_t!}) & 28 \\ 
+    The AT Command Parser & 1724\\
+    An AT-Parser instance ({\lstinline!qATCLI_t!})& 112\\
+    An AT command object ({\lstinline!qATCLI_Command_t!})& 24\\
+    Remaining utilities& 2980\\
+    \hline
 \end{tabular}
+\end{center}
 
  \begin{tcolorbox}
  \HandRight Although the kernel does not use dynamically-allocated resources internally, the application writer can create an object dynamically using the heap implementation provided by the memory management module described in section \ref{memmanagement}.
@@ -87,7 +88,6 @@ void qOS_Setup( const qGetTickFcn_t TickProvider,
                 const qTimingBase_t BaseTimming, 
                 qTaskFcn_t IdleCallback )
 \end{lstlisting}
-
 
 \subsubsection*{Parameters}
 \begin{itemize}
@@ -649,7 +649,6 @@ A \lstinline{qUINT32_t} value containing the number of task activations.
 
 \noindent\hrulefill
 
-
 \begin{lstlisting}[style=CStyle]
 qState_t qTask_Get_State( const qTask_t * const Task )
 \end{lstlisting}
@@ -660,7 +659,6 @@ Retrieve the task operational state. \index{\lstinline{qTask_Get_State}}
 \begin{itemize}
     \item \lstinline{Task} : A pointer to the task node.
 \end{itemize}
-
 
 \subsubsection*{Return value:}
 \lstinline{qEnabled} or \lstinline{qDisabled} if the task is \lstinline{qAwaken}. \lstinline{qAsleep} if the task is in a sleep operational state.
