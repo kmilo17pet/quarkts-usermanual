@@ -53,14 +53,26 @@
 
 \makeatletter
 \let\oldtitle\@title
-\def\@title{\includegraphics[scale=0.5]{fig/quarkts.png}\\\oldtitle}
+%\def\@title{\includegraphics[scale=0.5]{fig/quarkts.png}\\\oldtitle}
+\def\@title{
+    \begin{tikzpicture}[y=0.80pt, x=0.80pt, yscale=-1, xscale=1, inner sep=0pt, outer sep=0pt]
+    \input{fig/logo}
+    \end{tikzpicture}
+\\\oldtitle}
+
 \makeatother
 
 \author{J. Camilo Gómez C.}
 \date{\today}
 \pagestyle{fancy}
 \fancyhf{}
-\lhead{\includegraphics[scale=0.2]{fig/quarkts.png}}
+\lhead{
+    \begin{tikzpicture}[y=0.80pt, x=0.80pt, yscale=-1, xscale=1, inner sep=0pt, outer sep=0pt,scale=0.3]
+    \input{fig/logo}
+    \end{tikzpicture}
+}
+
+
 \rhead{Quick user manual for v6.2}
 \renewcommand{\headrulewidth}{2pt}
 \renewcommand{\footrulewidth}{1pt}
