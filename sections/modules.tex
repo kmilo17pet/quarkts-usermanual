@@ -23,7 +23,8 @@ Thanks to modular arithmetic, both of these are guaranteed to work fine across t
 A STimer is referenced by a handle, a variable of type \lstinline{qSTimer_t} \index{\lstinline{qSTimer_t}} and preferably, should be initialized by the \lstinline{QSTIMER_INITIALIZER} constant before any usage. 
 
 To use them, the code should follow a specific pattern that deals with the states of this object. All related APIs are designed to be non-blocking, this means there are ideal for use in cooperative environments as the one provided by the OS itself. To minimize the implementation, this object is intentionally created to behave like a binary object, this implies that it only handles two states, \textit{Armed} and \textit{Disarmed}. 
-\newline
+\medskip
+
 An \textit{Armed} timer means that it is already running with a specified preset value and a \textit{Disarmed} timer is the opposite, which means that it doesn't have a preset value, so consequently, it is not running at all.
 
 The arming action can be performed with \lstinline{qSTimer_Set()} \index{\lstinline{qSTimer_Set}} or \lstinline{qSTimer_FreeRun()} \index{\lstinline{qSTimer_FreeRun}} and disarming with \lstinline{qSTimer_Disarm()}.\index{\lstinline{qSTimer_Disarm}} 
@@ -54,13 +55,14 @@ Here, \lstinline{qSTimer_FreeRun()} is a more advanced API, it checks the timer 
 
 \subsubsection*{Return Value}
 For \lstinline{qSTimer_Set()} \lstinline{qTrue} on success, otherwise, returns \lstinline{qFalse}.
-\medskip
+
 For \lstinline{qSTimer_FreeRun()} returns \lstinline{qTrue} when the STimer expires, otherwise, returns \lstinline{qFalse}. For a disarmed STimer, also returns \lstinline{qFalse}. 
-\medskip
+
 None for \lstinline{qSTimer_Disarm()}.
 
 \noindent\hrulefill
-\newline
+
+\medskip
 All possible checking actions are also provided for this object, including \lstinline{qSTimer_Elapsed()} \index{\lstinline{qSTimer_Elapsed}}, \lstinline{qSTimer_Remaining()} \index{\lstinline{qSTimer_Remaining}} and \lstinline{qSTimer_Expired()} \index{\lstinline{qSTimer_Expired}}, with the last one being the most commonly used for timing applications.
 Finally, to get the current status of the STimer (check if is Armed or Disarmed) the \lstinline{qSTimer_Status()} \index{\lstinline{qSTimer_Status}} API should be used.
 \medskip
@@ -115,22 +117,22 @@ void Example_Task( qEvent_t e ){
 \end{lstlisting}  
 
 \subsection{Finite State Machines (FSM)}
-The state machine is one of the fundamental programming patterns. Designers use this approach frequently for solving complex engineering problems. State machines break down the design into a series of finite steps called "states". Each state performs some narrowly defined actions. Events, on the other hand, are the stimuli that cause the state to move or produce a transition between states. 
-The provided implementation features a powerful state-machine coding-abstraction including hierarchical patterns and transition tables, allowing the designer to build scalable solutions from simple state-machines to complex statecharts. 
+The state machine is one of the fundamental programming patterns that is used frequently for solving complex engineering problems. This approach breaks down the design into a series of finite steps called "states" that perform some narrowly defined actions. A state can change to another as consequence of incoming stimuli also called events or signals. 
+The provided implementation features a powerful coding abstraction including hierarchical patterns and transition tables, allowing to build scalable solutions from simple state-machines to complex statecharts. 
 
 In QuarkTS, states must be defined as functions taking a \lstinline{qSM_Handler_t} object and returning a \lstinline{qSM_Status_t} value. An example is shown in the following code snippet:
 \medskip
 
 \begin{lstlisting}[style=CStyle]
 qSM_Status_t Example_State( qSM_Handler_t m ){
-    /*
-    TODO: State code
-    */
+    /* TODO: State code */
     return qSM_EXIT_SUCCESS;
 }
 \end{lstlisting}    
 
-Here, the return value represents the finish status of the state, allowing only the values listed below.
+At any given moment in time, the FSM can be in only a single state. The state that is currently occupied by the FSM is called \textit{current state} ($P$).
+
+As shown above, the return value represents the exit status of the state, and it can be handled with additional \textit{sub-states}($S_{(b,s,u,f)}$) established at the moment of the FSM setup. The values allowed to return are listed below.
 
 \begin{itemize}
     \item \lstinline{qSM_EXIT_SUCCESS(-32768)}.
@@ -138,8 +140,7 @@ Here, the return value represents the finish status of the state, allowing only 
     \item Any other integer value between \lstinline{-32766} and \lstinline{32767}.
 \end{itemize} 
 
-Every state machine has the concept of \textit{current state} ($P$). This is the state that FSM currently occupies. At any given moment in time, the state machine can be in only a single state. The exit status can be handled with additional \textit{sub-states}($S_{(b,s,u,f)}$) established at the moment of the FSM initialization. This workflow between the \textit{current state} and the \textit{sub-states} is better shown in the graph below: 
-
+This workflow between the \textit{current state} and \textit{sub-states} is shown in the graph below: 
 \input{fig/substates.tex}
 
 Figure \ref{fig:substates} shows that these \textit{sub-states} (if enabled) are implicitly linked in the workflow to every state in the FSM. These \textit{sub-states}, and the way they are called are described below:
@@ -157,10 +158,8 @@ Figure \ref{fig:substates} shows that these \textit{sub-states} (if enabled) are
 
 \subsubsection{Setting up a state machine : \texorpdfstring{\lstinline{qStateMachine_Setup}}{qStateMachine_Setup} }
 Like any other OS object, a Finite State Machine (FSM) must be explicitly initialized before it can be used. FSMs are referenced by handles, which are variables of type \lstinline{qSM_t}. \index{\lstinline{qSM_t}}
-
 The \lstinline{qStateMachine_Setup()} API \index{\lstinline{qStateMachine_Setup}}  initializes the instance, sets the initial state and conditioned sub-states.
-
-
+\medskip
 
 \begin{lstlisting}[style=CStyle]
 qBool_t qStateMachine_Setup( qSM_t * const obj, qSM_State_t InitState,
@@ -415,7 +414,6 @@ qSM_Status_t State_LED_Blink( qSM_Handler_t m ){
 \end{lstlisting}
 
 Finally, we add the task to the scheduling scheme running the dedicated state machine.
-\medskip
 
 Remember that you must set up the scheduler before adding a task to the scheduling scheme.
 \medskip
@@ -693,9 +691,7 @@ qOS_Add_StateMachineTask( &LED_Task, qHigh_Priority, 0.1, &LED_FSM,
                           
 qStateMachine_TransitionTableInstall( &LED_FSM, &LED_FSM_TransTable,   
                                      LED_FSM_TransEntries, 5 );
-                                     
 qStateMachine_SignalQueueSetup( &LED_FSM, LED_FSM_SignalArea, 4 ):
-
 /*improve the transition table signal-response*/                                    
 qOS_StateMachineTask_SigCon( &LED_Task );  
 \end{lstlisting}
@@ -711,8 +707,7 @@ To setup a composite state, the following API should be used:
 
 \begin{lstlisting}[style=CStyle]
 qBool_t qStateMachine_Set_CompositeState( qSM_t * const parent, 
-                                          qSM_State_t state, 
-                                          qSM_t * const child )
+                                    qSM_State_t state, qSM_t * const child )
 \end{lstlisting}
 
 \begin{itemize}
@@ -722,7 +717,7 @@ qBool_t qStateMachine_Set_CompositeState( qSM_t * const parent,
 \end{itemize}
 
 \subsubsection*{Return Value}
-Returns \lstinline{qTrue} on success, otherwise returns \lstinline{qFalse};
+Returns \lstinline{qTrue} on success, otherwise returns \lstinline{qFalse}.
 
 \hrulefill
 \medskip
@@ -734,17 +729,17 @@ Returns \lstinline{qTrue} on success, otherwise returns \lstinline{qFalse};
 
 \paragraph{Demonstrative example using a composite state :} This example takes the "Cruise Control" study case from \cite{gomaa}, a real-time system that manages the speed of an automobile based on inputs from the driver. 
 
+\input{fig/fsmej}
+
 The behavior of this system is state-dependent in that the executed actions correspond not only to the driver input, but also on the current state of the system and with the status of the engine and the brake. 
 The figure \ref{fig:fsmej} illustrate the modeling of this system with the "Automated Control" state acting as composite.
 \medskip
-
-
 
 \begin{tcolorbox}
 \HandRight Transitions to a specific state inside a composite state and vice versa, should be parametrized in the last two parameters of the transition entry. Please see the transition layout in table \ref{ttable_layout}.
 \end{tcolorbox}
 
-\input{fig/fsmej}
+
 
 Before getting started, the required user-defined signals, variables, and transition tables should be defined:
 
@@ -892,8 +887,10 @@ qStateMachine_TransitionTableInstall( &AC_SM, &AC_ttable,
 qOS_Add_StateMachineTask(  &SMTask, qMedium_Priority, 0.1f, &Top_SM, 
                            Top_Idle_State, NULL, NULL, NULL, NULL, 
                            qEnabled, NULL); 
+                           
 /*Setup the signal-queue for the Top FSM*/
 qStateMachine_SignalQueueSetup( &Top_SM, topsm_sig_stack, MAX_FSM_SIGNALS );
+
 qStateMachine_TransitionTableInstall( &Top_SM, &Top_ttable, 
                                       Top_SM_ttable, 6 );
 /*Set the Automated Control state as composite using the AC_SM */
@@ -951,6 +948,8 @@ A \lstinline{qCR_Yield} \index{\lstinline{qCR_Yield}} call return the CPU contro
 Blocking calls inside a Co-Routine should be made with the provided statements, all of them with a common feature: an implicit yield.
 
 A widely used procedure is to wait for a fixed period of time. For this, the \lstinline{qCR_Delay()} should be used \index{\lstinline{qCR_Delay}}. 
+\medskip
+
 
 \begin{lstlisting}[style=CStyle]
 qCR_Delay( qTime_t tDelay ) 
@@ -1145,6 +1144,7 @@ As seen in figure \ref{fig:atparser}, the CLI has a few components described bel
     \item \textit{Callback or Post-Parser}: If input at the \textit{pre-parser} is valid, the respective command-callback is invoked. Here, the application writer is free to handle the command execution and the output response.
     \item \textit{Output printer} : Takes all the return status of the previous components to print out a response at the output.
 \end{itemize}
+\bigskip
 
 \begin{tcolorbox}
 \HandRight Here, \textit{Input} and \textit{Output} should be provided by the application writer, for example, if a UART interface is chosen, the input should take the received bytes from an ISR and the output is a function to print out a single byte.
@@ -1328,7 +1328,7 @@ qATCLI_Response_t CMD_Callback( qATCLI_Handler_t h, qATCLI_PreCmd_t p ){
 
 \subsubsection{Handling the input}
 Input handling is simplified using the provided APIs. The \lstinline{qATCLI_ISRHandler()} \index{\lstinline{qATCLI_ISRHandler}} and \lstinline{qATCLI_ISRHandlerBlock()}  \index{\lstinline{qATCLI_ISRHandlerBlock}} functions are intended to be used from the interrupt context. This avoids any kind of polling implementation and allows the CLI application to be designed using an event-driven pattern.
-
+\medskip
 \begin{lstlisting}[style=CStyle]
 qBool_t qATCLI_ISRHandler( qATCLI_t * const cli, char c )
 \end{lstlisting}
@@ -1482,25 +1482,24 @@ To get the HEX argument parsed as \lstinline{qUINT32_t} from the incoming AT com
 
 \subsubsection*{Return value:}
 For \lstinline{qATCLI_GetArgPtr()}, a pointer to the desired argument. \lstinline{NULL} pointer if the argument is not present.
-\medskip
+
 For \lstinline{qATCLI_GetArgInt()}, the argument parsed as integer. Same behavior of \lstinline{qIOUtil_AtoI}. If argument not found returns 0.
-\medskip
+
 For \lstinline{qATCLI_GetArgFlt()}, the argument parsed as \lstinline{float}. Same behavior of \lstinline{qIOUtil_AtoF}. If argument not found returns 0.
-\medskip
+
 For \lstinline{qATCLI_GetArgHex()}, the HEX argument parsed as \lstinline{qUINT32_t}. Same behavior of \lstinline{qIOUtil_XtoU32}. If argument not found returns 0.
 
 \subsection{Memory Management} \label{memmanagement}
-Memory can be allocated using the standard C library malloc() and free() functions, but they may not be suitable in most embedded applications because they are not always available on small microcontrollers or their implementation can be relatively large, taking up valuable code space. Additionally, some implementations can suffer from fragmentation.
+Memory can be allocated using the standard C library \textit{malloc()} and \textit{free()} functions, but they may not be suitable in most embedded applications because they are not always available on small microcontrollers or their implementation can be relatively large, taking up valuable code space. Additionally, some implementations can suffer from fragmentation.
 
 To get around this problem, the OS  provides its own memory allocation API. When the application requires RAM, instead of calling \textit{malloc()},  call \lstinline{qMalloc()} \index{\lstinline{qMalloc}}. When RAM is being freed, instead of calling \textit{free()}, use \lstinline{qFree()} \index{\lstinline{qFree}}. Both functions have the same prototype as the standard C library counterparts.
 
 \subsubsection{Principle of operation}
 The allocation scheme works by subdividing a static array into smaller blocks and using the \textit{First-Fit} approach (see figure \ref{fig:memman}). 
 
-\input{fig/memman.tex}
-
 If adjacent free blocks are available, the implementation combines them into a single larger block, minimizing the risk of fragmentation, making it suitable for applications that repeatedly allocate and free different sized blocks of RAM.
-\medskip
+
+\input{fig/memman.tex}
 
 \begin{tcolorbox}
 \ArrowBoldDownRight \textit{Note}: Because memory is statically declared, it will make the application appear to consume a lot of RAM, even before any memory has been allocated from it.
@@ -1539,6 +1538,8 @@ void qMemMang_Pool_Select( qMemMang_Pool_t * const mPool )
 \end{lstlisting}
 
 To keep track of the memory usage, the \lstinline{qMemMang_Get_FreeSize()} \index{\lstinline{qMemMang_Get_FreeSize}} API function returns the number of free bytes in the memory pool at the time the function is called.
+\medskip
+
 \begin{lstlisting}[style=CStyle]
 size_t qMemMang_Get_FreeSize( void )
 \end{lstlisting}
@@ -1626,7 +1627,9 @@ void SingleChar_OutputFcn( void *sp, const char c ){
 The body of this user-defined function should have a hardware-dependent code to print out the \lstinline{c} variable through a specific peripheral.
 
 \subsubsection{Viewing variables}
-For viewing or tracing a variable (up to 32-bit data) through debug, one of the following macros are available: \index{\lstinline{qTrace_Var}} \index{\lstinline{qTrace_Variable}} \index{\lstinline{qDebug_Var}} \index{\lstinline{qDebug_Variable}}
+For viewing or tracing a variable (up to 32-bit data) through debug, one of the following macros are available:
+\index{\lstinline{qTrace_Var}} \index{\lstinline{qTrace_Variable}} \index{\lstinline{qDebug_Var}} \index{\lstinline{qDebug_Variable}}
+\medskip
 
 \begin{lstlisting}[style=CStyle]
 qTrace_Var( Var, DISP_TYPE_MODE )
