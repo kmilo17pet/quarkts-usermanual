@@ -35,7 +35,7 @@
 \usepackage{bookmark}
 \usepackage{parskip} 
 
-
+\input{fig/logo.tex}
 \usetikzlibrary{positioning, arrows, automata, chains, shapes, positioning}
 \usetikzlibrary{decorations.pathreplacing}
 
@@ -52,25 +52,14 @@
 \title{ \large{Quick user manual} }
 
 \makeatletter
-\let\oldtitle\@title
-%\def\@title{\includegraphics[scale=0.5]{fig/quarkts.png}\\\oldtitle}
-\def\@title{
-    \begin{tikzpicture}[y=0.80pt, x=0.80pt, yscale=-1, xscale=1, inner sep=0pt, outer sep=0pt]
-    \input{fig/logo}
-    \end{tikzpicture}
-\\\oldtitle}
-
+\let\oldtitle\@title\def\@title{\insertlogo{1}\\\oldtitle}
 \makeatother
 
 \author{J. Camilo Gómez C.}
 \date{\today}
 \pagestyle{fancy}
 \fancyhf{}
-\lhead{
-    \begin{tikzpicture}[y=0.80pt, x=0.80pt, yscale=-1, xscale=1, inner sep=0pt, outer sep=0pt,scale=0.3]
-    \input{fig/logo}
-    \end{tikzpicture}
-}
+\lhead{\insertlogo{0.3}}
 
 
 \rhead{Quick user manual for v6.2}
