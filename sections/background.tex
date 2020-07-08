@@ -109,44 +109,11 @@ void qOS_Setup( const qGetTickFcn_t TickProvider,
 
 \subsubsection*{Usage example:}
 Scenario 1: When tick is already provided
-\begin{lstlisting}[style=CStyle]
-#include "QuarkTS.h"
-#include "HAL.h"
-
-#define TIMER_TICK   0.001   /* 1ms */ 
-
-void main( void ){
-    HAL_Init(); 
-    qOS_Setup( HAL_GetTick, TIMER_TICK, IdleTask_Callback );
-    
-    /*
-    TODO: add Tasks to the scheduler scheme and run the OS
-    */
-}
-\end{lstlisting}
+\lstinputlisting[style=CStyle]{sec1scenario1.c}
 
 
 Scenario 2: When the tick is not provided
-\begin{lstlisting}[style=CStyle]
-#include "QuarkTS.h"
-#include "DeviceHeader.h"
-
-#define TIMER_TICK   0.001   /* 1ms */ 
-
-void Interrupt_Timer0( void ){
-    qClock_SysTick();
-}
-
-void main( void ){
-    MCU_Init();
-    BSP_Setup_Timer0(); 
-    qOS_Setup( NULL, TIMER_TICK, IdleTask_Callback ); 
-    
-    /*
-    TODO: add Tasks to the scheduler scheme and run the OS
-    */
-}
-\end{lstlisting}
+\lstinputlisting[style=CStyle]{sec1scenario2.c}
 
 \subsection{Tasks}
 Like many operating systems, the basic unit of work is the task. Tasks can perform certain functions, which could require periodic or one-time execution, update of specific variables or waiting for specific events. Tasks also could be controlling specific hardware or be triggered by hardware interrupts. In the QuarkTS OS, a task is seen as a node concept that links together:
@@ -370,21 +337,8 @@ Unpack the source files and copy them into your project. Also, add a copy of the
 \medskip
 
 File: \lstinline{main.c}
-\begin{lstlisting}[style=CStyle]
-#include "QuarkTS.h"
-#define TIMER_TICK   0.001   /* 1ms */ 
+\lstinputlisting[style=CStyle]{sec1gettingstarted.c}
 
-void main( void ){
-    /*start of hardware specific code*/
-    HardwareSetup();  
-    Configure_Periodic_Timer_Interrupt_1ms(); 
-    /*end of hardware specific code*/
-    qOS_Setup( NULL, TIMER_TICK, IdleTask_Callback ); 
-    /*
-    TODO: add Tasks to the scheduler scheme and run the OS
-    */
-}
-\end{lstlisting}
 
 In the above code, the following considerations should be taken
 \begin{itemize}
@@ -403,91 +357,13 @@ To make the handling of the tasks available in other contexts, nodes should be g
 \medskip
 
 File: \lstinline{MyAppTasks.h}
-\begin{lstlisting}[style=CStyle]
-#ifndef MYAPPTASK_H
-    #define MYAPPTASK_H
-    
-    #include "Globals.h"
-    #include "QuarkTS.h"
-    
-    extern qTask_t CommunicationTask, HardwareCheckTask, 
-                  CheckUserEventsTask, SignalAnalisysTask;
-    
-    void CommunicationTask_Callback( qEvent_t );
-    void HardwareCheckTask_Callback( qEvent_t );
-    void CheckUserEventsTask_Callback( qEvent_t );
-    void SignalAnalisysTask_Callback( qEvent_t );
-#endif
-\end{lstlisting}
+\lstinputlisting[style=CStyle]{MyAppTasks.h}
 
 File: \lstinline{MyAppTasks.c}
-\begin{lstlisting}[style=CStyle]
-#include "MyAppTasks.h"
-
-qTask_t CommunicationTask, HardwareCheckTask, 
-        CheckUserEventsTask, SignalAnalisysTask;
-
-void CommunicationTask_Callback( qEvent_t e ){
-    /*
-    TODO: Communication Task code
-    */
-}
-
-void HardwareCheckTask_Callback( qEvent_t e ){
-    /*
-    TODO: Hardware Check Task code
-    */
-}
-
-void CheckUserEventsTask_Callback( qEvent_t e ){
-    /*
-    TODO: Check User Events Task code
-    */
-}
-
-void SignalAnalisysTask_Callback( qEvent_t e ){
-    /*
-    TODO: Signal Analisys Task code
-    */
-}
-
-/*this task doesnt need an Identifier*/
-void IdleTask_Callback( qEvent_t e ){ 
-    /*
-    TODO: Idle Task code
-    */
-}
-\end{lstlisting}
+\lstinputlisting[style=CStyle]{MyAppTasks.c}
 
 File: \lstinline{main.c}
-\begin{lstlisting}[style=CStyle]
-#include "QuarkTS.h"
-#include "Globals.h"
-#include "MyAppTasks.h"
-
-void interrupt OnTimerInterrupt( void ){ //hardware specific code
-    qClock_SysTick();
-}
-
-void main( void ){
-    /*start of hardware specific code*/
-    HardwareSetup();
-    Configure_Periodic_Timer_Interrupt_10ms(); 
-    /*end of hardware specific code*/
-    qOS_Setup( NULL, 0.01, IdleTask_Callback ); 
-    qOS_Add_Task( HardwareCheckTask, HardwareCheckTask_Callback,
-                  qLowest_Priority, 0.25, qPeriodic, qEnabled, NULL );
-    qOS_Add_Task( SignalAnalisysTask, SignalAnalisysTask_Callback, 
-                  qHigh_Priority, 0.1, 200, qEnabled, NULL );
-    qOS_Add_EventTask( CheckEventsTask, CheckEventsTask_Callback, 
-                       qMedium_Priority, NULL ); 
-    qOS_Add_Task( CommunicationTask, CommunicationTask_Callback, 
-                  qHigh_Priority, qTimeImmediate, qPeriodic, 
-                  qEnabled, NULL );
-    qOS_Run();
-    for(;;){}
-}
-\end{lstlisting}
+\lstinputlisting[style=CStyle]{sec1recpattern.c}
 
 
 \subsection{Critical sections}
@@ -716,56 +592,7 @@ Check if the task has pending notifications. Please read section \ref{osnotifica
 This example demonstrates a simple environment setup for multiple tasks. Initially, only \lstinline{task1} and \lstinline{task2} are enabled. \lstinline{task1} runs every 2 seconds 10 times and then stops. \lstinline{task2} runs every 3 seconds indefinitely. \lstinline{task1} enables \lstinline{task3} at its first run. \lstinline{task3} run every 5 seconds. \lstinline{task1} disables \lstinline{task3} on its last iteration and changed \lstinline{task2} to run every 1/2 seconds. In the end, \lstinline{task2} is the only task running every 1/2 seconds.
 \medskip
 
-\begin{lstlisting}[style=CStyle]
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include "BSP.h"
-
-#include "QuarkTS.h"
-#define TIMER_TICK   0.001   /* 1ms */ 
-
-qTask_t task1, task2, task3; /*task nodes*/
-/*==================================================================*/
-void interrupt Timer0_ISR( void ) {
-    qClock_SysTick();   
-}
-/*==================================================================*/
-void Task1_Callback( qEvent_t e ){
-    BSP_UART1_WriteString( "Task1" );
-
-    if( e->FirstIteration ){
-        qTask_Resume( &Task3 );    
-    }
-    
-    if( e->LastIteration ){
-        qTask_Suspend( &Task3 );
-        qTask_Set_Time( &Task2, 0.5 );
-    }
-}
-/*==================================================================*/
-void Task2_Callback( qEvent_t e ){
-    BSP_UART1_WriteString( "Task2" );
-}
-/*==================================================================*/
-void Task3_Callback( qEvent_t e ){
-    BSP_UART1_WriteString( "Task3" );
-}
-/*==================================================================*/
-int main( void ) {    
-    HardwareSetup();  /*hardware initialization function*/
-    /*function to fire an interrupt at 1ms - timer tick*/
-    Configure_Periodic_Timer0_Interrupt_1ms(); 
-    
-    qOS_Setup( NULL, TIMER_TICK, NULL );     
-    qOS_Add_Task( &Task1, Task1_Callback, 50, 2.0, 10, qEnabled, NULL );
-    qOS_Add_Task( &Task2, Task2_Callback, 50, 3.0, qPeriodic, qEnabled, NULL );
-    qOS_Add_Task( &Task2, Task3_Callback, 50, 5.0, qPeriodic, qDisabled, NULL );
-    qOS_Run();
-	
-    return 0;
-}
-\end{lstlisting}
+\lstinputlisting[style=CStyle]{sec1demosimple.c}
 
 \subsubsection{Using the task argument}
 As seen in section \ref{addtask}, tasks can accept a parameter of type pointer to void (\lstinline{void*}). 
@@ -777,36 +604,7 @@ Consider a scenario where you have to build a digital controller for many physic
 Let's define a PID data structure with the I/O variables and gains.
 \medskip
  
-\begin{lstlisting}[style=CStyle]
-   typedef struct{
-        float yt; /*Measured variable (Controller Input)*/
-        float ut; /*Controlled variable (Controller Output)*/
-        float ie; /*Accumulated error*/
-        float pe; /*Previous error*/
-        float dt; /*Controller Time Step*/
-        float sp; /*Set-Point*/
-        float Kc, Ki, Kd; /*PID Gains*/ 
-    }PID_Params_t;
-    
-    PID_Params_t TemperatureControl = {
-       0,0,0,0, /*Initial IO state of yt and ut*/
-       1.5, /*time step*/
-       28.5, /*Set-Point*/
-       0.89, 0.122, 0.001 /*Kc, Ki, Kd*/
-    };
-    PID_Params_t HumidityControl= {
-       0,0,0,0, /*Initial IO state of yt and ut*/
-       1, /*time step*/
-       60.0, /*Set-Point*/
-       2.5, 0.2354, 0.0015 /*Kc, Ki, Kd*/
-    };
-    PID_Params_t LightControl= {
-       0,0,0,0, /*Initial IO state of yt and ut*/
-       0.5, /*time step*/
-       45.0, /*Set-Point*/
-       5.36, 0.0891, 0.0 /*Kc, Ki, Kd*/
-    };
-\end{lstlisting}
+\lstinputlisting[style=CStyle]{sec1demo2def.c}
 
 A task will be added to the scheme to collect the sensor data and apply the respective control output. 
 \medskip
@@ -816,54 +614,14 @@ qOS_Add_Task( &IO_TASK, IO_TASK_Callback, qMedium_Priority, 0.1, qPeriodic,
               qEnabled, "iotask");
 \end{lstlisting}
 
-\begin{lstlisting}[style=CStyle]
-void IO_TASK_Callback( qEvent_t e ){
-    TemperatureControl.yt  = SampleTemperatureSensor();
-    HumidityControl.yt  = SampleHumiditySensor();
-    LightControl.yt  = SampleLightSensor();
-    WriteTemperatureActuatorValue( TemperatureControl.ut );
-    WriteHumidityActuatorValue( HumidityControl.ut );
-    WriteLightActuatorValue( LightControl.ut ); 
-}
-\end{lstlisting}
+\lstinputlisting[style=CStyle]{sec1demo2iotask.c}
 
 Then, three different tasks are created to apply the respective PID controller. Note that these tasks refer to the same callback methods and we assign pointers to the respective variables. 
 \medskip
 
-\begin{lstlisting}[style=CStyle]
-qOS_Add_Task( &TEMPERATURE_CONTROL_TASK, PIDControl_Callback,
-              qHigh_Priority, TemperatureControl.dt , 
-              qPeriodic, qEnabled, &TemperatureControl );
-qOS_Add_Task( &HUMIDITY_CONTROL_TASK, PIDControl_Callback, 
-              qHigh_Priority, HumidityControl.dt, 
-              qPeriodic, qEnabled, &HumidityControl );
-qOS_Add_Task( &LIGHT_CONTROL_TASK, PIDControl_Callback, 
-              qHigh_Priority, LightControl.dt, 
-              qPeriodic, qEnabled, &LightControl );
-\end{lstlisting}
+\lstinputlisting[style=CStyle]{sec1demo2addtasks.c}
 
-\begin{lstlisting}[style=CStyle]
-void PIDControl_Callback( qEvent_t e ){
-    float Error, derivative;
-    /* 
-    Obtain the reference to the specific PID controller 
-    using the TaskData field from the qEvent structure
-    */
-    PID_Params_t *Controller = (PID_Params_t *)e->TaskData; 
-    /*Compute the error*/
-    Error = Controller->sp - Controller->yt;
-    /*Compute the accumulated error using backward integral approximation*/
-    Controller->ie += Error*Controller->dt;
-    /*update and compute the derivative term*/
-    derivative = (Error - Controller->pe)/Controller->dt;
-    /*update the previous error*/
-    Controller->pe = Error;
-    /*compute the pid control law*/
-    Controller->ut = Controller->Kc*Error  +  
-                     Controller->Ki*Controller->ie + 
-                     Controller->Kd*derivative;
-}
-\end{lstlisting}
+\lstinputlisting[style=CStyle]{sec1demo2pidtask.c}
 
 \newpage
 
