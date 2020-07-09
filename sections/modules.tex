@@ -551,13 +551,13 @@ As showed in figure \ref{fig:coroutine}, a task coded as a Co-Routine, is just a
 
 \input{fig/coroutine.tex}
     
-The QuarkTS implementation uses the Duff's device approach, and is heavily inspired by the Simon Tatham's Co-Routines in C \cite{tatham} and Adam Dunkels Protothreads \cite{dunkels}. This means that a \textit{local-continuation} variable is used to preserve the current state of execution at a particular place of the Co-Routine scope but without any call history or local variables. This brings benefits to lower RAM usage, but at the cost of some restrictions on how a Co-routine can be used.
+The QuarkTS implementation uses the Duff's device approach, and is heavily inspired by the Knuth approach\cite{knuth}, Simon Tatham's Co-Routines in C \cite{tatham} and Adam Dunkels Protothreads \cite{dunkels}. This means that a \textit{local-continuation} variable is used to preserve the current state of execution at a particular place of the Co-Routine scope but without any call history or local variables. This brings benefits to lower RAM usage, but at the cost of some restrictions on how a Co-routine can be used.
 \medskip
 
 \textbf{Limitations and Restrictions}:
 
 \begin{itemize}
-    \item The stack of a Co-Routine  is not maintained when a Co-Routine  yields. This means variables allocated on the stack will loose their values. To overcome this, a variable that must maintain its value across a blocking call must be declared as \lstinline{static}.
+    \item The stack of a Co-Routine  is not maintained when a yield is performed. This means variables allocated on the stack will loose their values. To overcome this, a variable that must maintain its value across a blocking call must be declared as \lstinline{static}.
     \item Calls to API functions that could cause the Co-Routine to block, can only be made from the Co-Routine  function itself - not from within a function called by the Co-Routine .
     \item The implementation does not permit yielding or blocking calls to be made from within a \lstinline{switch} statement.
 \end{itemize}
