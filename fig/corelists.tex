@@ -2,13 +2,12 @@
     \centering
     \tikzset{every picture/.style={line width=0.75pt}} %set default line width to 0.75pt        
     \begin{tikzpicture}[x=0.75pt,y=0.75pt,yscale=-1,xscale=1, scale=1.4]
-        \draw   (70,30) -- (140,30) -- (140,40) -- (70,40) -- cycle ;
-        \draw   (70,70) -- (140,70) -- (140,80) -- (70,80) -- cycle ;
-        \draw   (70,80) -- (140,80) -- (140,90) -- (70,90) -- cycle ;
-        \draw   (70,40) -- (140,40) -- (140,50) -- (70,50) -- cycle ;
-        \draw   (70,60) -- (140,60) -- (140,70) -- (70,70) -- cycle ;
-        \draw   (70,50) -- (140,50) -- (140,60) -- (70,60) -- cycle ;
-        \draw   (70,90) -- (140,90) -- (140,110) -- (70,110) -- cycle ;
+        
+        \foreach \x in {30,40,...,80}{
+            \draw   (70,\x) -- (140,\x) -- (140,\x+10) -- (70,\x+10) -- cycle ;
+        }
+        
+        \draw   (70,90) -- (140,90) -- (140,100) -- (70,100) -- cycle ;
         \draw   (200,10) -- (220,10) -- (220,30) -- (200,30) -- cycle ;
         \draw   (250,10) -- (270,10) -- (270,30) -- (250,30) -- cycle ;
         \draw  [fill={rgb, 255:red, 210; green, 210; blue, 210 }  ,fill opacity=0.62 ] (200,10) -- (220,10) -- (220,20) -- (200,20) -- cycle ;
@@ -89,7 +88,7 @@
         \draw (105,35) node  [font=\tiny] [align=left] {ReadyList[0]};
         \draw (105,45) node  [font=\tiny] [align=left] {ReadyList[1]};
         \draw (105,65) node  [font=\tiny] [align=left] {ReadyList[n]};
-        \draw (105,100) node  [font=\tiny] [align=left] {Core data...};
+        \draw (105,95) node  [font=\tiny] [align=left] {Core data...};
         \draw (102.5,23) node  [font=\scriptsize] [align=left] {KCB};
         \draw (210.5,25) node  [font=\tiny] [align=left] {TCB};
         \draw (259.5,25) node  [font=\tiny] [align=left] {TCB};
