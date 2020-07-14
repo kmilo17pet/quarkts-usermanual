@@ -2,9 +2,7 @@
     \centering
     \begin{tikzpicture}[every node/.style= {font=\scriptsize, text height=1ex, text depth=.25ex,},scale=1.5]
         \draw[->] (0,0) -- (8.5,0);
-        \foreach \x in {0,1,...,8}{
-            \draw (\x cm,3pt) -- (\x cm,0pt);
-        }
+        \foreach \x in {0,1,...,8}{ \draw (\x cm,3pt) -- (\x cm,0pt); }
         \node[anchor=north] at (1,0) {$t_0$};
         \node[anchor=north] at (1,-0.2) {armed};
         \node[anchor=north] at (2,0) {...};

@@ -2,17 +2,17 @@
     \centering
     \begin{tikzpicture}[initial text={...}, ->,>=stealth',shorten >=1pt,auto,node distance=1.8cm, semithick]
         \draw[dotted] (0.8,-2.8) -- (9.99,-2.8) -- (9.99,3.2) -- (0.8,3.2) -- (0.8,-2.8 ) -- cycle;
-        \node[dashed, initial,state]                    (A)              {$P_{-1}$};
-        \node[fill=gray!20, state]                      (B) [right of=A] {$S_b$};
-        \node[rectangle, fill=gray]                    (W) [right of=B] {};
-        \node[fill=gray!80, state, accepting]           (C) [right of=W] {$P$};
-        \node[fill=gray!20, state]                      (D) [right of=C] {$S_u$};
-        \node[fill=gray!20, state]                      (E) [above of=D] {$S_s$};
-        \node[fill=gray!20, state]                      (F) [below of=D] {$S_f$};
-        \node[rectangle, fill=black]                    (T) [right of=D] {};
-        \node[dashed, state]                            (G) [right of=T] {$P_{+1}$};
-        \node[rectangle, fill=black]                    (R) [above of=T] {};
-        \node[state,draw=none]                          (H) [right of=G] {};
+        \node[dashed, initial,state]            (A)              {$P_{-1}$};
+        \node[fill=gray!20, state]              (B) [right of=A] {$S_b$};
+        \node[rectangle, fill=gray]             (W) [right of=B] {};
+        \node[fill=gray!80, state, accepting]   (C) [right of=W] {$P$};
+        \node[fill=gray!20, state]              (D) [right of=C] {$S_u$};
+        \node[fill=gray!20, state]              (E) [above of=D] {$S_s$};
+        \node[fill=gray!20, state]              (F) [below of=D] {$S_f$};
+        \node[rectangle, fill=black]            (T) [right of=D] {};
+        \node[dashed, state]                    (G) [right of=T] {$P_{+1}$};
+        \node[rectangle, fill=black]            (R) [above of=T] {};
+        \node[state,draw=none]                  (H) [right of=G] {};
         \node at (9.99, 0.4)   (D1) [font=\ttfamily, text width=2cm]{\tiny NextState};    
         \node at (9.99, 0.2)   (D2) [font=\ttfamily, text width=2cm]{\tiny = P+1};  
         \node at (9.99, 2.2)   (D3) [font=\ttfamily, text width=2cm]{\tiny NextState};
