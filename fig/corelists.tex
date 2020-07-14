@@ -2,11 +2,7 @@
     \centering
     \tikzset{every picture/.style={line width=0.75pt}} %set default line width to 0.75pt        
     \begin{tikzpicture}[x=0.75pt,y=0.75pt,yscale=-1,xscale=1, scale=1.4]
-        
-        \foreach \x in {30,40,...,80}{
-            \draw   (70,\x) -- (140,\x) -- (140,\x+10) -- (70,\x+10) -- cycle ;
-        }
-        
+        \foreach \x in {30,40,...,80}{ \draw   (70,\x) -- (140,\x) -- (140,\x+10) -- (70,\x+10) -- cycle; }
         \draw   (70,90) -- (140,90) -- (140,100) -- (70,100) -- cycle ;
         \draw   (200,10) -- (220,10) -- (220,30) -- (200,30) -- cycle ;
         \draw   (250,10) -- (270,10) -- (270,30) -- (250,30) -- cycle ;
