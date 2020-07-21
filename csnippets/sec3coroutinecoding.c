@@ -4,7 +4,7 @@ void CoroutineTask_Callback( qEvent_t e ){
             qCR_Yield;
         }
         DoTheEventProcessing();
-        qCRDelay( WAIT_TIME_S );
+        qCR_Delay( WAIT_TIME_S );
         PerformActions();
     }qCR_End;
 }

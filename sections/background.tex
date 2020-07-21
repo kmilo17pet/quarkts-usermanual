@@ -260,7 +260,7 @@ This API \index{\lstinline{qOS_Scheduler_Release}} stop the kernel scheduling. I
 Although producing this action is not a typical desired behavior in any application, it can be used to handle a critical exception.
 
 When used, the release will take place after the current scheduling cycle finish. The kernel can optionally include a release callback function that can be configured to get called if the scheduler is released. 
-Defining the release callback,  will help to take actions over the exception that caused the release action. To enable this functionality, the \lstinline{qOS_Set_SchedulerReleaseCallback()} \index{\lstinline{qOS_Set_SchedulerReleaseCallback}} API should be used. 
+Defining the release callback,  will help to take actions over the exception that caused the release action. To perform a release action, the \lstinline{qOS_Set_SchedulerReleaseCallback()} \index{\lstinline{qOS_Set_SchedulerReleaseCallback}} API should be used. 
 \medskip
 
 \begin{lstlisting}[style=CStyle]

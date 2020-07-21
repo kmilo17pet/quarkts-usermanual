@@ -118,9 +118,9 @@ At any given moment in time, the FSM can be in only a single state. The state th
 As shown above, the return value represents the exit status of the state, and it can be handled with additional \textit{sub-states}($S_{(b,s,u,f)}$) established at the moment of the FSM setup. The values allowed to return are listed below.
 
 \begin{itemize}
-    \item \lstinline{qSM_EXIT_SUCCESS(-32768)}.
-    \item \lstinline{qSM_EXIT_FAILURE(-32767)}.
-    \item Any other integer value between \lstinline{-32766} and \lstinline{32767}.
+    \item \lstinline{qSM_EXIT_SUCCESS(-32767)}.
+    \item \lstinline{qSM_EXIT_FAILURE(-32766)}.
+    \item Any other integer value between \lstinline{-32765} and \lstinline{32767}.
 \end{itemize} 
 
 This workflow between the \textit{current state} and \textit{sub-states} is shown in the graph below: 
@@ -568,17 +568,23 @@ The application writer just needs to create the body of the Co-Routine . This me
 
 \lstinputlisting[style=CStyle]{sec3coroutinecoding.c}  
 
-A \lstinline{qCR_Yield} \index{\lstinline{qCR_Yield}} call return the CPU control back to the scheduler but saving the execution progress. With the next task activation, the Co-Routine will resume the execution after the last \lstinline{qCR_Yield} statement.
+The \lstinline{qCR_Begin} statement should be placed at the start of the task function in which the Co-routine runs. All C statements above the \lstinline{qCR_Begin} will be executed as if they were in an endless-loop each time the task is scheduled.
+
+A \lstinline{qCR_Yield} \index{\lstinline{qCR_Yield}} statement return the CPU control back to the scheduler but saving the execution progress, thereby allowing other processing tasks to take place in the system. With the next task activation, the Co-Routine will resume the execution after the last \lstinline{qCR_Yield} statement.
 \medskip
 
 \begin{tcolorbox}
-\HandRight All the Co-routine statements the \textit{qCR} appended at the beginning of their name.
+\HandRight All the Co-routine statements has the \textit{qCR} appended at the beginning of their name.
 \end{tcolorbox}
 
 \begin{tcolorbox}
 \HandRight Co-Routine statements can only be invoked from the scope of the Co-Routine.
 \end{tcolorbox}
 
+
+\begin{tcolorbox}
+\HandRight Do not use an endless-loop inside a Co-routine ,this behavior it's already hardcoded within the segment definition.
+\end{tcolorbox}
 
 \subsubsection{Blocking calls}
 Blocking calls inside a Co-Routine should be made with the provided statements, all of them with a common feature: an implicit yield.
@@ -603,8 +609,14 @@ qCR_WaitUntil( Condition )
 This statement takes a \lstinline{Condition} argument, a logical expression that will be performed when the Co-Routine resumes their execution. As mentioned before, this type of statement exposes the expected behavior, yielding until the condition is met.
 \medskip
 
+An additional wait statement is also provided that sets a timeout for the logical condition to be met, with a similar behavior of \lstinline{qCR_WaitUntil}. \index{\lstinline{qCR_TimedWaitUntil}}
+\medskip
 
-Optionally, the \lstinline{Do-Until} \index{\lstinline{qCR_Do}} \index{\lstinline{qCR_Until}} structure are also provided to perform a multi-line job before the yield, allowing more complex actions to be performed after the Co-Routine  resumes: 
+\begin{lstlisting}[style=CStyle]
+qCR_TimedWaitUntil( Condition, qTime_t Timeout )
+\end{lstlisting}
+
+Optionally, the \lstinline{Do-Until} \index{\lstinline{qCR_Do}} \index{\lstinline{qCR_Until}} structure gives to application writer the ability to perform a multi-line job before the yield, allowing more complex actions to being performed after the Co-Routine resumes: 
 \medskip
 
 \begin{lstlisting}[style=CStyle]
@@ -624,17 +636,17 @@ The first one saves the Co-Routine state at some point of their execution into \
 \medskip
 
 \begin{lstlisting}[style=CStyle]
-qCR_PositionGet( CRPos )
+qCR_PositionGet( qCR_Position_t CRPos )
 \end{lstlisting}
 
 \begin{lstlisting}[style=CStyle]
-qCR_PositionRestore( CRPos )
+qCR_PositionRestore( qCR_Position_t CRPos )
 \end{lstlisting}
 
 And to reset the \lstinline{CRPos} variable to the beginning of the Co-Routine, use \index{\lstinline{qCR_PositionReset}}:
 
 \begin{lstlisting}[style=CStyle]
-qCR_PositionReset( CRPos )
+qCR_PositionReset( qCR_Position_t CRPos )
 \end{lstlisting}
 
 \subsubsection{Semaphores}
@@ -644,7 +656,7 @@ Semaphores are referenced by handles, a variable of type \lstinline{qCR_Semaphor
 \medskip
 
 \begin{lstlisting}[style=CStyle]
-qCR_SemInit( sem, Value )
+qCR_SemInit( qCR_Semaphore_t *sem, qUINT16_t Value )
 \end{lstlisting}
 
 To perform the \textit{wait} operation, the \lstinline{qCR_SemWait()} \index{\lstinline{qCR_SemWait}} statement should be used. The wait operation causes the Co-routine to block while the counter is zero. When the counter reaches a value larger than zero, the Co-Routine will continue.
@@ -652,14 +664,14 @@ To perform the \textit{wait} operation, the \lstinline{qCR_SemWait()} \index{\ls
 
 
 \begin{lstlisting}[style=CStyle]
-qCR_SemWait( sem )
+qCR_SemWait( qCR_Semaphore_t *sem )
 \end{lstlisting}
 
 Finally, \lstinline{qCR_SemSignal()} \index{\lstinline{qCR_SemSignal}} carries out the \textit{signal} operation on the semaphore. This signaling increments the counter inside the semaphore, which eventually will cause waiting Co-routines to continue executing.
 \medskip
 
 \begin{lstlisting}[style=CStyle]
-qCR_SemSignal( sem )
+qCR_SemSignal( qCR_Semaphore_t *sem )
 \end{lstlisting}
 
 
@@ -671,11 +683,46 @@ Note that there is no need for a mutex to guard the \lstinline{add_to_buffer()} 
 
 \lstinputlisting[style=CStyle]{sec3coroutinedem2.c}
 
+\subsubsection{External control}
+There are several circumstances where becomes necessary to control the flow of execution outside the segment that defines the Co-routine itself. This is usually used to defer the job of the Co-routine or resume it in response to specific occurrences that arises in other contexts, either tasks or interrupts.
+
+To code this specific situations, a handler to the Co-routine should be defined, a variable of type \lstinline{qCR_Handle_t}. In addition to this, the scope of the target Co-routine must be started with the \lstinline{qCR_BeginWithHandle} statement instead of \lstinline{qCR_Begin}.
+\medskip
+
+\lstinputlisting[style=CStyle]{sec3coroutinectrlext.c}
+
+As seen in the code snippet above, the Co-routine handle its globally declared to allow other contexts to access it.  The example shows that another task can control the Co-routine using the \lstinline{qCR_ExternControl} API. The actions performed by this API can be only be effective after the handle instantiation, an operation that takes place once on the first call of the Co-routine.
+\medskip
+
+\begin{lstlisting}[style=CStyle]
+void qCR_ExternControl( qCR_Handle_t h, const qCR_ExternAction_t action,  
+                        const qCR_ExtPosition_t action )                      
+\end{lstlisting}\index{\lstinline{qCR_ExternControl}}
+
+\subsubsection*{Parameters}
+\begin{itemize}
+    \item \lstinline{h} : The Co-routine handle.
+    \item \lstinline{action} : The specific action to perform, should be one of the following:
+    \begin{itemize}
+        \item \lstinline{qCR_RESTART} : Restart the Co-routine execution at the place of the \lstinline{qCR_BeginWithHandle} statement.  
+        \item \lstinline{qCR_SUSPEND} :  Suspend the entire Co-routine segment. The task will still running instructions outside the segment.
+        \item \lstinline{qCR_RESUME} : Resume the entire Co-routine segment at the point where it had been left before the suspension.
+        \item \lstinline{qCR_POSITIONSET} : Force the coroutine execution at the position specified in \lstinline{pos}. If a non-valid position is supplied, the Co-routine segment will be suspended.      
+    \end{itemize}
+    \item \lstinline{pos} : The requested position if action = \lstinline{qCR_POSITIONSET}. For other actions this argument its ignored.  
+\end{itemize}
+
+\hrulefill
+\medskip
+
+\begin{tcolorbox}
+\HandRight A \lstinline{NULL} initialization its mandatory on \lstinline{qCR_Handle_t} variables. Undefined behavior may occur if this step is ignored.
+\end{tcolorbox}
+
 \subsection{AT Command Line Interface} 
 A command-line interface (CLI) is a way to interact directly with the software of an embedded system in the form of text commands and responses. It can be seen as a typed set of commands to produce a result, but here, the commands are typed in real-time by a user through a specific interface, for example, UART, USB, LAN, etc. 
 
 A CLI is often developed to aid initial driver development and debugging. This CLI might become the interface (or one of the interfaces) used by a sophisticated end-user to interact with the product. Think of typing commands to control a machine, or perhaps for low-level access to the control system as a development tool, tweaking time-constants and monitoring low-level system performance during testing. 
-
 
 \subsubsection{The components of the CLI}
 The provided development API parses and handles input commands, following a simplified form of the extended AT-commands syntax. 
@@ -753,9 +800,7 @@ In case of an error, the string \lstinline{ERROR} or \lstinline{ERROR:<error_no>
 
 \subsubsection{Setting up an AT-CLI instance}
 Before starting the CLI development, the corresponding instance must be defined; a data structure of type \lstinline{qATCLI_t} \index{\lstinline{qATCLI_t}}. 
-The instance should be initialized using the \lstinline{qATCLI_Setup()} API \index{\lstinline{qATCLI_Setup}}.
-
-A detailed description of this function is shown bellow:
+The instance should be initialized using the \lstinline{qATCLI_Setup()} API \index{\lstinline{qATCLI_Setup}}. A detailed description of this function is shown bellow:
 \medskip
 
 \begin{lstlisting}[style=CStyle]
@@ -828,7 +873,7 @@ qATCLI_Response_t CMD_Callback( qATCLI_Handler_t h, qATCLI_PreCmd_t p ){
 The callback takes two arguments and returns a single value. The first argument is just a pointer to public data of the parser instance where the command it subscribed. From the callback context, it can be used to print out extra information as a command response.
 \medskip
 
-The second one is the main parameter from the point of view of the application writer, and correspond to a handle of type \lstinline{qATCLI_PreCmd_t} \index{\lstinline{qATCLI_PreCmd_t}}. The members inside points to data filled by the Pre-Parser component to give information about the detected command, like the type, number of arguments and the subsequent string after the command text.The pointed members are described as follows:
+The second one is the main parameter from the point of view of the application writer, and correspond to a handle of type \lstinline{qATCLI_PreCmd_t} \index{\lstinline{qATCLI_PreCmd_t}}. The members inside points to data filled by the \textit{Pre-Parser} component to give information about the detected command, like the type, number of arguments and the subsequent string after the command text.The pointed members are described as follows:
 
 \begin{itemize}
     \item \lstinline{Command} : A pointer to the calling AT Command object.
@@ -902,6 +947,7 @@ qATCLI_Response_t qATCLI_Exec( qATCLI_t * const cli, const char *cmd )
 
 As expected, both functions send the string to the specified CLI.
 The difference between both APIs is that \lstinline{qATCLI_Raise()} sends the command through the input, marking it as ready for parsing and acting as the \textit{Input handler} component.
+
 The \lstinline{qATCLI_Exec()}, on the other hand, executes the components of \textit{Pre-parsing} and \textit{Post-parsing} bypassing the other components, including the \textit{Output printer}, so that it must be handled by the application writer.
 
 \subsubsection*{Parameters:}
@@ -1018,9 +1064,11 @@ For \lstinline{qATCLI_GetArgFlt()}, the argument parsed as \lstinline{float}. Sa
 For \lstinline{qATCLI_GetArgHex()}, the HEX argument parsed as \lstinline{qUINT32_t}. Same behavior of \lstinline{qIOUtil_XtoU32}. If argument not found returns 0.
 
 \subsection{Memory Management} \label{memmanagement}
-Memory can be allocated using the standard C library \textit{malloc()} and \textit{free()} functions, but they may not be suitable in most embedded applications because they are not always available on small microcontrollers or their implementation can be relatively large, taking up valuable code space. Additionally, some implementations can suffer from fragmentation.
+As the OS is targered to build safe-critical embedded applications, dynamic memory allocation its not allowed for the kernel design, because can lead to out-of-storage run-time failures, which are undesirable. However, some applications can be easily deployed using this allocation scheme, so a safe and portable implementation becomes relevant in the scope of the user-code. 
 
-To get around this problem, the OS  provides its own memory allocation API. When the application requires RAM, instead of calling \textit{malloc()},  call \lstinline{qMalloc()} \index{\lstinline{qMalloc}}. When RAM is being freed, instead of calling \textit{free()}, use \lstinline{qFree()} \index{\lstinline{qFree}}. Both functions have the same prototype as the standard C library counterparts.
+In a typical C environment, memory can be allocated using the standard library functions  \textit{malloc()} and \textit{free()}, but they may not be suitable in most embedded applications because they are not always available on small microcontrollers or their implementation can be relatively large, taking up valuable code space. Also, there is a range of unspecified and implementation-defined behaviour associated with dynamic memory allocation, as well as a number of other potential pitfalls. Additionally, some implementations can suffer from fragmentation.
+
+To get around this problem, the OS provides its own memory-management interface for dynamic allocation as a fully kernel-independent module. When the application requires RAM, instead of calling \textit{malloc()},  call \lstinline{qMalloc()} \index{\lstinline{qMalloc}}. When RAM is being freed, instead of calling \textit{free()}, use \lstinline{qFree()} \index{\lstinline{qFree}}. Both functions have the same prototype as the standard C library counterparts.
 
 \subsubsection{Principle of operation}
 The allocation scheme works by subdividing a static array into smaller blocks and using the \textit{First-Fit} approach (see figure \ref{fig:memman}). 
@@ -1037,13 +1085,17 @@ If adjacent free blocks are available, the implementation combines them into a s
 \AsteriskBold \textit{Warning}: All the memory management APIs are NOT interrupt-safe. Use these APIs only from the base context.
 \end{tcolorbox}
 
+\begin{tcolorbox}
+\AsteriskBold \textit{Warning}: The application is not exempt from memory leaks if the user does not perform adequate memory management. Here, the worst case scenario can occur in the absence of free memory. 
+\end{tcolorbox}
+
 \subsubsection{Memory pools}
 
-A memory pool is a kernel object that allows memory blocks to be dynamically allocated from a user-designated memory region. Instead of typical pools with fixed-size block allocation, the pools in QuarkTS can be of any size, thereby the user is responsible for selecting the appropriate memory pool to allocate data with the same size. 
+A memory pool its a special resource that allows memory blocks to be dynamically allocated from a user-designated memory region. Instead of typical pools with fixed-size block allocation, the pools in QuarkTS can be of any size, thereby the user is responsible for selecting the appropriate memory pool to allocate data with the same size. 
 
 The \textit{default} memory management unit resides in a memory pool object. Also called the \textit{default pool}. The total amount of available heap space in the default memory pool is set by \lstinline{Q_DEFAULT_HEAP_SIZE}, which is defined in \lstinline{qconfig.h}.
 
-Besides the \textit{default} pool, any number of additional memory pools can be defined. Like any other kernel object in QuarkTS, memory pools are referenced by handles, a variable of type \lstinline{qMemMang_Pool_t} \index{\lstinline{qMemMang_Pool_t}} and should be initialized before use with the \lstinline{qMemMang_Pool_Setup()} \index{\lstinline{qMemMang_Pool_Setup}} API function.
+Besides the \textit{default} pool, any number of additional memory pools can be defined. Like any other object in QuarkTS, memory pools are referenced by handles, a variable of type \lstinline{qMemMang_Pool_t} \index{\lstinline{qMemMang_Pool_t}} and should be initialized before use with the \lstinline{qMemMang_Pool_Setup()} \index{\lstinline{qMemMang_Pool_Setup}} API function.
 \medskip
 
 \begin{lstlisting}[style=CStyle]

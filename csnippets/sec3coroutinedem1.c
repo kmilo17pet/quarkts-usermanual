@@ -12,7 +12,7 @@ void Sender_Task( qEvent_t e ){
                        qSTimer_Expired(&timeout));
     }qCR_End;
 }
-/*-------------------------------------------------------------------*/
+/*===================================================================*/
 void Receiver_Task( qEvent_t e ){
     qCR_Begin{                  
         /* Wait until a packet has been received*/
