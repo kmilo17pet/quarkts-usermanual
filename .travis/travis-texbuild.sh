@@ -28,8 +28,7 @@ setup_git() {
 commit_pdfs() {
   echo `ls tests`
   ls -l
-  #git add -f "*.pdf"
-  git add -A
+  git add -f "*.pdf"
   echo `git status`
   git commit --message "Travis build: $TRAVIS_BUILD_NUMBER"
 }
@@ -37,9 +36,8 @@ commit_pdfs() {
 upload_files() {
   git remote add origin-login "https://${GH_TOKEN}@github.com/$TRAVIS_REPO_SLUG.git"
   #git push --set-upstream -f origin-login "travis-$TRAVIS_BUILD_NUMBER"
-  git push origin-login master
-  #echo "PUSHED PDFS TO BRANCH travis-$TRAVIS_BUILD_NUMBER"
-  echo "PUSHED PDFS TO BRANCH master"
+  git push --set-upstream -f origin-login "travis-pdf"
+  echo "PUSHED PDFS TO BRANCH travis-$TRAVIS_BUILD_NUMBER"
 }
 # Only execute if branch doesn't start with travis-
 if [[ "$TRAVIS_BRANCH" == travis-* ]]; then
