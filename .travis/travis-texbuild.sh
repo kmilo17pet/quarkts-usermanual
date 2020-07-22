@@ -34,7 +34,8 @@ commit_pdfs() {
 
 upload_files() {
   git remote add origin-login "https://${GH_TOKEN}@github.com/$TRAVIS_REPO_SLUG.git"
-  git push --set-upstream -f origin-login "travis-$TRAVIS_BUILD_NUMBER"
+  #git push --set-upstream -f origin-login "travis-$TRAVIS_BUILD_NUMBER"
+  #git push --set-upstream -f origin-login master
   echo "PUSHED PDFS TO BRANCH travis-$TRAVIS_BUILD_NUMBER"
 }
 # Only execute if branch doesn't start with travis-
