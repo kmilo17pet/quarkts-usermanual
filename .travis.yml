@@ -9,14 +9,13 @@ tex-config:
 env:
   global:
   - IS_TRAVIS=true
+  - secure: mNuKUCSJ8xutTEfme0eMyWlYB9IJangwe/xa7rPPoO/FjvsO/kjjWITrKC8rAulj7zPaC3WhzLZ4Yv2KtNwivzWRBBoKAYZy7kuRqD4I08Uvuw/Z5l8YTJxRk8L3BaYtpk+XU3GXOv6+RbyMUUG0Yg2rptxljv9kKll714KxYFpgH/7pbwwIEiSyIhp1iDsQWf5Zv3WwyV9CTeASyXP5zst8/icdHH0CFme6N3bBOz3AORuD/kk4LuIAze7dizT47mc0BQEdqfbB7D7f97ngAA3x7VNWEcGM3XEL23MVJlHiXG6l2Ih66zhtU52O00Hi4czZXw7BDEwAaOrfRJi+HXzT6RxqmYYVaw5HpcE4Htr4StIQquMty9KhGap5opH9Qc6e7w4/i8HgF31BVGUD8jImibMlYTKcZscXPzqexlIIvukS0yRJHM037nwyxXvApUoseDE121HbaOq1mOqqa3yGDutCCHZnsTj3/IFhlcbSf0gaCPX6DToaLkz8HIYK7E45iK9nt7tDex093DvRj+p8en4zY76J5lH1lo62m6kre/HtVDv9CKK3FF1SfoO0PX1CepP4ipgOUTt0xJMClFonYKyqMsAV+nrRVnOTo6mno4seQNl3wC9Vs0NRSvGA1qlxd2uxooO+4Qa9+7XWPvzefqVQ1dxRs9WGGcwalDs=
 script:
 - chmod +x .travis/travis-texbuild.sh
 - ".travis/travis-texbuild.sh"
-dd:
-  secure: sY6Ve8iPsUoj9y/F4vvv9khlthvOck1eONU/FTEyRZlAs7myI0r1gJrNCAUh8Au1xZQosAGWEdOuDvVnauy2Fq5nHgMGoFswDLO1XP/G3GsKg3PspH0uUP8GotwOHq2QJq1dqDYPW3ZYeBqG/ZL6c350/WtY/yaxYPr52zL8XUwzCh+4lAbteyG2YluEAdI58bqG+T3T54S0Z1gLOpc9ek8kEU4KXXJs10SPHYDDh3rMGc0HY0GuTh7X/Af8bMeMcQNt85pOAKASp/jO62HchnBeJ5euCKb65+N5buV+hq4iUgWJpcP6M3XfWRDs+KKWc9Df1NSONGb9SAPNiBx9TN3K1pjUjgvReqmrM4JjMwZuYzk5ug5c8BBrTLQ6PO1j/PSUBdN9vUDr1UOllDsAE3pnj7H/ZyGrXYwCn3960ktzEsHbq2XEqxfhGLhBgjgfyOqS+dmfjXQljypiuwsSyCqNMylC5yqdNFLcoQCaHgCPPCW5LdKgDb8n7e0WZ4NQ7IvzXhioUu4mOLnlmHCRtcUHh04wu0ujZi2gDHKWKzgcJRRZfpPaqyfjgQV/MUUDv0TjnJoJOYTQwc2a0aVyek5aoKCCAXbwPwN3w1bwUzZKXs830CDiPtOo1WNvSOpoIfz2GMn8aYWVYgUaRLWvoS9miejoN4TBbkyF4ztgeXw=
-file: 
-  - ./main.pdf
+file:
+- "./main.pdf"
 skip_cleanup: true
-on:
-    tags: true
-    branch: master
+true:
+  tags: true
+  branch: master
