@@ -27,7 +27,9 @@ setup_git() {
 
 commit_pdfs() {
   echo `ls tests`
-  git add -f "*.pdf"
+  ls -l
+  #git add -f "*.pdf"
+  git add -A
   echo `git status`
   git commit --message "Travis build: $TRAVIS_BUILD_NUMBER"
 }
