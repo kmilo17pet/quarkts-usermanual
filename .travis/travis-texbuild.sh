@@ -20,7 +20,7 @@ setup_git() {
   else
     echo "Testing locally...";
   fi
-  git checkout --orphan "travis-$TRAVIS_BUILD_NUMBER"
+  git checkout --orphan "travis-pdf"
   git reset
   git rm --cached $(git ls-files)
 }
