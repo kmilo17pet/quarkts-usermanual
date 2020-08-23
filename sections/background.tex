@@ -20,12 +20,20 @@ The following cores have been powered with QuarkTS successfully:
     \item PIC (PIC24, dsPIC, 32MX, 32MZ)
 \end{itemize}
 
-\subsubsection{Coding standard and naming convention}
+\subsubsection{Development process and Coding standard}
+
+QuarkTS is developed using a formal and rigorous process framed in compliance of the MISRA C 2012 and CERT coding standard guidelines and complemented with multiple static-analysis checks targered to safe critical applications.  
+
+Simply using QuarkTS in an application, does not mean developers can make a claim related to the development process and compliance of the OS to any requirements or product specification, without first, following a recognized system wide conformance verification process. Conformance evidence must then be presented, audited and accepted by a recognized and relevant independent assessment organization. 
+Without undergoing this process of due diligence, no claim can be made as to the suitability of QuarkTS to be used in any safety or otherwise commercially critical application.
+
+Besides the previous information, the OS sets the following clarifications regarding coding policies and naming convention:
 
 \begin{itemize}
-    \item All the QuarkTS implementation follows the C99 standard.
-    \item The core source files try to conform most of the MISRA C 2004/2012 coding standard guidelines, allowing the OS to be used in safe-critical embedded systems. 
+    \item All the QuarkTS implementation follows the ANSI C99 standard strictly.
+    \item Dynamic memory allocation is banned to conform the industry standards for safety-critical software: MISRA-C, DO178B, IEC 61508, ISO 26262 and so on.
     \item In line with MISRA guides, unqualified standard \lstinline{char} and \lstinline{char *} types are only permitted to hold ASCII characters and strings respectively.
+    \item Special operations and additional checks are performed on strings in some calls from the \lstinline{string.h} due the lack of safety verifications.
     \item In line with MISRA guides and for portability between platforms, we use the \lstinline{stdint.h} with typedefs that indicate size and signedness in place of the basic types.
     \item The \lstinline{_t} suffix its used to denote a type definition (i.e \lstinline{qBool_t, qTask_t, size_t, ...}).   
     \item Functions, macros, \lstinline{enum} values and data-types are prefixed \lstinline{q}. (i.e. \lstinline{qFunction}, \lstinline{qEnumValue}, \lstinline{QCONSTANT}, \lstinline{qType_t}, ...)
@@ -34,7 +42,7 @@ The following cores have been powered with QuarkTS successfully:
 \end{itemize}
 
 \subsubsection{Memory usage}
-As a quasi-static scheduler is implemented here, dynamic memory allocation is not required and the assignment of tasks must be done before program execution begins.
+As a quasi-static scheduler is implemented here, dynamic scheduling is not required and the assignment of tasks must be done before program execution begins.
 The kernel is designed to allow unlimited tasks and kernel objects, but of course, the whole application will be constrained by the memory specifications of the embedded system. 
 The kernel's memory footprint can be scaled down to contain only the features required for your application, typically 2.5 KBytes of code space and less than 1 KByte of data space. 
 
@@ -64,7 +72,7 @@ The kernel's memory footprint can be scaled down to contain only the features re
 \end{center}
 
  \begin{tcolorbox}
- \HandRight Although the kernel does not use dynamically-allocated resources internally, the application writer can create an object dynamically using the heap implementation provided by the memory management module described in section \ref{memmanagement}.
+ \HandRight Although the kernel does not use dynamically-allocated resources internally, the application writer can create an object in run-time using the safe-heap implementation provided by the memory management module, later described in section \ref{memmanagement}. Of course, additional checks must be performed to keep the solution safe.
  \end{tcolorbox}
 
 \subsection{Timing approach}
@@ -286,12 +294,11 @@ These global states are described below:
     \item \textbf{qSuspended} : The task doesn't take part in what is going on. Normally this state is taken after the \textit{qRunning} state or when the task doesn't reach the \textit{qReady} state.
 \end{itemize}
 
+\input{fig/corelists.tex}
 
 The presence of a task in a particular list indicates the task's state. 
 There are many ready-lists as defined in the \lstinline{Q_PRIORITY_LEVELS} macro.
 To select the target ready list, the OS use the user-assigned priority between 0 (the lowest priority) and \lstinline{Q_PRIORITY_LEVELS-1} (the highest priority). For instance, if \lstinline{Q_PRIORITY_LEVELS} is set to 5, then QuarkTS will use 5 priority levels or ready lists: 0 (lowest priority), 1, 2, 3, and 4 (highest priority). 
-
-\input{fig/corelists.tex}
 
 Except for the idle task, a task exists in one of these states. As the real-time embedded system runs, each task moves from one state to another(moving it from a list to another), according to the logic of a simple finite state machine (FSM). Figure \ref{fig:scheduler_states} illustrates the typical flowchart used by QuarkTS to handle the task's states, with brief descriptions of state transitions, additionally you may also notice the interaction between the scheduler and the dispatcher.
 
