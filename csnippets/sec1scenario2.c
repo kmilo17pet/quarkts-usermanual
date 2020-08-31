@@ -1,4 +1,3 @@
-\begin{lstlisting}[style=CStyle]
 #include "QuarkTS.h"
 #include "DeviceHeader.h"
 
@@ -17,4 +16,3 @@ void main( void ){
     TODO: add Tasks to the scheduler scheme and run the OS
     */
 }
-\end{lstlisting}
