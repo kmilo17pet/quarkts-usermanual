@@ -422,6 +422,11 @@ qBool_t qStateMachine_SendSignal( qSM_t * const obj, qSM_Signal_t signal,
 \end{tcolorbox}
 
 \begin{tcolorbox}
+\ArrowBoldDownRight \textit{Note}: Make sure queues are enabled in the \lstinline{qconfig.h} to allow the event-signals be handled by transition tables.
+\end{tcolorbox}
+
+
+\begin{tcolorbox}
 \ArrowBoldDownRight \textit{Note}: When a transition entry is defined. the event-signal should be located as the second parameter of the entry. Please see the transition layout in table \ref{ttable_layout}.
 \end{tcolorbox}
 

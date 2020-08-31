@@ -25,7 +25,9 @@ Here, we understand events, as any identifiable occurrence that has significance
 
 \input{fig/heavyenvy.tex}
 
-As shown in figure 5, two main scenarios are presented, \textit{ISR-to-task} and \textit{task-to-task} interaction.  When using interrupts to catch external events, it is expected to be handled with fast and lightweight code to reduce the variable ISR overhead introduced by the code itself. If too much overhead is used inside an ISR, the system will tend to lose future events. In some specific situations, the best approach is to synchronize the ISR with a task to leave the heavy job in the base-level instead of the interrupt-level, this is also called  \textit{Deferred Interrupt Handling}.
+As shown in figure 5, two main scenarios are presented, \textit{ISR-to-task} and \textit{task-to-task} interaction.  
+
+When using interrupts to catch external events, it is expected to be handled with fast and lightweight code to reduce the variable ISR overhead introduced by the code itself. If too much overhead is used inside an ISR, the system will tend to lose future events. In some specific situations,  in the interest of stack usage predictability and to facilitate system behavioral analysis, the best approach is to synchronize the ISR with a task to leave the heavy job in the base-level instead of the interrupt-level,  so interrupt handlers only collect event data and clear the interrupt source and therefore exit promptly by deferring the processing of the event data to a task, this is also called  \textit{Deferred Interrupt Handling}. 
 
 The other scenario is when a task is performing a specific job and another task must be awakened to perform some activities when the other task finishes.
 \medskip
@@ -87,19 +89,22 @@ qBool_t qTask_Notification_Queue( qTask_t * const Task, void* eventdata )
 \subsubsection*{Return value:}
 
 \lstinline{qTrue} if the notification  has been inserted in the queue, or \lstinline{qFalse} if an error occurred or the queue exceeds the size. 
+
+\hrulefill
 \medskip
-\begin{tcolorbox}
-\HandRight Among all the provided events, queued notifications have the highest precedence.
-\end{tcolorbox}
 
-
-Figure ~\ref{fig:queueexample}, shows a cooperative environment with five tasks. Initially, the scheduler activates \lstinline{Task-E}, then, this task enqueues data to \lstinline{Task-A} and \lstinline{Task-B} respectively using the \lstinline{qTask_Notification_Queue()} function. In the next scheduler cycle, the scheduler realizes that the priority-queue is not empty, generating an activation over the task located at the beginning of the queue. In this case, \lstinline{Task-A} will be launched and its respective data will be extracted from the queue. However, \lstinline{Task-A} also enqueues data to \lstinline{Task-C} and \lstinline{Task-D}. As mentioned previously, this is a priority-queue, so the scheduler makes a new reordering. In this context, the next queue extraction will be for \lstinline{Task-D}, \lstinline{Task-C}, and \lstinline{Task-B} sequentially.
+Figure ~\ref{fig:queueexample}, shows a cooperative environment with five tasks. Initially, the scheduler activates \lstinline{Task-E}, then, this task enqueues data to \lstinline{Task-A} and \lstinline{Task-B} respectively using the \lstinline{qTask_Notification_Queue()} function. In the next scheduler cycle, the scheduler realizes that the priority-queue is not empty, generating an activation over the task located at the beginning of the queue. In this case, \lstinline{Task-A} will be launched and its respective data will be extracted from the queue. However, \lstinline{Task-A} also enqueues data to \lstinline{Task-C} and \lstinline{Task-D}. Following the priority-queue behavior, the scheduler makes a new reordering, so the next queue extraction will be for \lstinline{Task-D}, \lstinline{Task-C}, and \lstinline{Task-B} sequentially.
 
 \input{fig/queueexample.tex}
 
 \begin{tcolorbox}
 \HandRight Any queue extraction involves an activation to the receiving task. The extracted data will be available inside the \lstinline{qEvent_t} structure.
 \end{tcolorbox}
+
+\begin{tcolorbox}
+\HandRight Among all the provided events, queued notifications have the highest precedence.
+\end{tcolorbox}
+
 
 \subsubsection{Spread a notification}
 In some systems, we need the ability to broadcast an event to all tasks. This is often referred to as a \textit{barrier}. This means that a group of tasks should stop activities at some point and cannot proceed until another task or ISR raise a specific event. 
@@ -197,8 +202,7 @@ The EventFlag value of the task.
 \begin{lstlisting}[style=CStyle]
 qBool_t qTask_EventFlags_Check( qTask_t * const Task, 
                                 qTaskFlag_t FlagsToCheck, 
-                                qBool_t ClearOnExit, 
-                                qBool_t CheckForAll )
+                                qBool_t ClearOnExit, qBool_t CheckForAll )
 \end{lstlisting} \index{\lstinline{qTask_EventFlags_Check}}
 
 \subsubsection*{Parameters}
