@@ -365,16 +365,16 @@ qBool_t qTask_Attach_Queue( qTask_t * const Task, qQueue_t * const Queue,
     \item \lstinline{Queue} : A pointer to the queue object
     \item \lstinline{Mode} : Attach mode. This implies the event that will trigger the task according to one of the following modes:
     \begin{itemize}
-        \item \lstinline{qQUEUE_DEQUEUE} : The task will be triggered if there are elements in the queue. 
-        \item \lstinline{qQUEUE_FULL} :  The task will be triggered if the queue is full. 
-        \item \lstinline{qQUEUE_COUNT} :  The task will be triggered if the count of elements in the queue reach the specified value. 
-        \item \lstinline{qQUEUE_EMPTY} :  The task will be triggered if the queue is empty.
+        \item \lstinline{qQueueMode_Receiver} : The task will be triggered if there are elements in the queue. 
+        \item \lstinline{qQueueMode_Full} :  The task will be triggered if the queue is full. 
+        \item \lstinline{qQueueMode_Count} :  The task will be triggered if the count of elements in the queue reach the specified value. 
+        \item \lstinline{qQueueMode_Empty} :  The task will be triggered if the queue is empty.
     \end{itemize}
-    \item \lstinline{arg} : This argument defines if the queue will be attached (\lstinline{qATTACH}) or detached (\lstinline{qDETACH}) from the task. If the \lstinline{qQUEUE_COUNT} mode is specified, this value will be used to check the element count of the queue. A zero value will act as \lstinline{qDETACH} action. 
+    \item \lstinline{arg} : This argument defines if the queue will be attached (\lstinline{qATTACH}) or detached (\lstinline{qDETACH}) from the task. If the \lstinline{qQueueMode_Count} mode is specified, this value will be used to check the element count of the queue. A zero value will act as \lstinline{qDETACH} action. 
 \end{itemize}  
 
 \begin{tcolorbox}
-\HandRight For the \lstinline{qQUEUE_DEQUEUE} mode,  data from the front of the queue will be received automatically in every trigger, this involves a data removal after the task is served. During the respective task execution, the \lstinline{EventData} field of the \lstinline{qEvent_t} structure will be pointing to the extracted data. For the other modes, the \lstinline{EventData} field will point to the queue that triggered the event.
+\HandRight For the \lstinline{qQueueMode_Receiver} mode,  data from the front of the queue will be received automatically in every trigger, this involves a data removal after the task is served. During the respective task execution, the \lstinline{EventData} field of the \lstinline{qEvent_t} structure will be pointing to the extracted data. For the other modes, the \lstinline{EventData} field will point to the queue that triggered the event.
 \end{tcolorbox}
     
 \subsubsection{A queue example}

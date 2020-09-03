@@ -72,16 +72,16 @@ int main( void ) {
     qOS_Add_EventTask( &TSK_CONSUMER, TSK_Consumer_Callback,
                        qMedium_Priority, "consumer" );
     /* the queue will be attached to the consumer task 
-     * in qQUEUE_COUNT mode. This mode sends an event to the consumer
+     * in qQueueMode_Count mode. This mode sends an event to the consumer
      * task when the queue fills to a level of 4 elements
      */
-    qTask_Attach_Queue( &TSK_CONSUMER, &UserQueue, qQUEUE_COUNT, 4 );
+    qTask_Attach_Queue( &TSK_CONSUMER, &UserQueue, qQueueMode_Count, 4 );
     /* the queue will be attached to the producer task in
-     * qQUEUE_EMPTY mode. This mode sends an event to the producer
+     * qQueueMode_Empty mode. This mode sends an event to the producer
      * task when the queue is empty
      */
      
-    qTask_Attach_Queue( &TSK_PRODUCER, &UserQueue, qQUEUE_EMPTY, qATTACH );
+    qTask_Attach_Queue( &TSK_PRODUCER, &UserQueue, qQueueMode_Empty, qATTACH );
     qOS_Run();
     return 0;
 }
