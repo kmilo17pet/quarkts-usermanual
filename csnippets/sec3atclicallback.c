@@ -1,7 +1,7 @@
 qATCLI_Response_t CMD_Callback( qATCLI_Handler_t h, qATCLI_PreCmd_t p ){
 	qATCLI_Response_t Response = QATCLI_NORESPONSE;
 	/*check the command-type*/
-	switch(param->Type){
+	switch( p->Type ){
 		case QATCLI_CMDTYPE_PARA:
 			Response = QATCLI_OK;
 			break;
