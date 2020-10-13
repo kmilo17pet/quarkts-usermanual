@@ -870,22 +870,33 @@ The command callback should be coded by the application writter. Here, the follo
 \medskip
 
 \begin{lstlisting}[style=CStyle]
-qATCLI_Response_t CMD_Callback( qATCLI_Handler_t h, qATCLI_PreCmd_t p ){
+qATCLI_Response_t CMD_Callback( qATCLI_Handler_t h ){
     /* TODO : The command callback */
 }
 \end{lstlisting}
 
-The callback takes two arguments and returns a single value. The first argument is just a pointer to public data of the parser instance where the command it subscribed. From the callback context, it can be used to print out extra information as a command response.
+The callback takes one argument of type \lstinline{qATCLI_Handler_t} and returns a single value.
 \medskip
-
-The second one is the main parameter from the point of view of the application writer, and correspond to a handle of type \lstinline{qATCLI_PreCmd_t} \index{\lstinline{qATCLI_PreCmd_t}}. The members inside points to data filled by the \textit{Pre-Parser} component to give information about the detected command, like the type, number of arguments and the subsequent string after the command text.The pointed members are described as follows:
+The input argument it's just a pointer to public data of the CLI instance where the command it subscribed to. From the callback context, can be used to print out extra information as a command response, parse the command parameters, and query properties with crucial information about the detected command, like the type, the number of arguments, and the subsequent string after the command text. The members are described as follows:
 
 \begin{itemize}
-    \item \lstinline{Command} : A pointer to the calling AT Command object.
-    \item \lstinline{Type} : The command type.
-    \item \lstinline{StrData} : The string data after the command text.
-    \item \lstinline{StrLen} : The length of \lstinline{StrData}.
-    \item \lstinline{NumArgs} : Number of arguments, only available if \lstinline{Type = QATCLI_CMDTYPE_PARA}.
+    \item \lstinline{Command} (read-only) : A pointer to the calling AT Command object.
+    \item \lstinline{Type} (read-only) : The command type.
+    \item \lstinline{StrData} (read-only) : The string data after the command text.
+    \item \lstinline{StrLen} (read-only) : The length of \lstinline{StrData}.
+    \item \lstinline{NumArgs} (read-only) : Number of arguments, only available if \lstinline{Type = QATCLI_CMDTYPE_PARA}.
+    \item \lstinline{Output} : Points to the output buffer storage area.
+    \item \lstinline{UserData} : Points to the user-defined data - Storage Pointer
+    
+    This argument also includes helper methods to write the output and retrieve command arguments:
+    
+    \item \lstinline{void puts(const char* s)} : Writes the string \lstinline{s} to the output.
+    \item \lstinline{void putch(const char c)} : Writes the byte \lstinline{c} to the output.
+    \item \lstinline{char* GetArgPtr( qIndex_t n )} : Get the pointer where the desired argument starts.
+    \item \lstinline{int GetArgInt( qIndex_t n )} : Get the \lstinline{n} argument parsed as integer.
+    \item \lstinline{qUINT32_t GetArgHex( qIndex_t n )} : Get the \lstinline{n} HEX argument parsed as \lstinline{qUINT32_t}.
+    \item \lstinline{qFloat32_t GetArgFlt( qIndex_t n )} : Get the \lstinline{n} argument parsed as float.
+    \item \lstinline{char* GetArgString( qIndex_t n, char *out )} :  get the argument \lstinline{n} by copying the string into \lstinline{out}.
 \end{itemize}
 
 The return value (an enum of type \lstinline{qATCLI_Response_t}) \index{\lstinline{qATCLI_Response_t}} determines the response shown by the \textit{Output printer} component. The possible allowed values are:
@@ -1001,72 +1012,31 @@ qBool_t qOS_Add_ATCLITask( qTask_t * const Task,
 
 After invoked, both CLI and task are linked together in such a way that when an \textit{input-ready} condition is given, a notification event is sent to the task launching the CLI components. As the task is event-triggered, there is no additional overhead and the writer of the application can assign a priority value to balance the application against other tasks in the scheduling scheme.
 
-\subsubsection{Retrieving arguments inside a command-callback}
+\subsubsection{CLI Example}
 
-The following APIs should be only invoked from a command-callback context:
-\medskip
+The following example demonstrates the usage of a simple command-line interface using the UART peripheral with two subscribed commands :
 
-\begin{lstlisting}[style=CStyle]
-char* qATCLI_GetArgString( const qATCLI_PreCmd_t param, qINT8_t n,
-                           char* out)
-\end{lstlisting}
-
-Get the argument parsed as string from the incoming AT command. \index{\lstinline{qATCLI_GetArgString}}
-
-\subsubsection*{Parameters:}
 \begin{itemize}
-    \item \lstinline{param} : A handle to the pre-parser instance(only available from the AT-Command callback).
-    \item \lstinline{n} : The number of the argument.
-    \item \lstinline{out} :  Array in memory where to store the resulting null-terminated string.
+    \item A command to write and read the state of a GPIO pin \lstinline{at+gpio}.
+    \item A command to retrieve the compilation timestamp \lstinline{at+info}.
 \end{itemize}
 
-\subsubsection*{Return value:}
-Same as \lstinline{out} on success, otherwise returns \lstinline{NULL}.
-
-\noindent\hrulefill
-\newline
-Next APIs takes the same arguments:
+First, lets get started defining the required objects to setup the CLI module:
 \medskip
 
-\begin{lstlisting}[style=CStyle]
-char* qATCLI_GetArgPtr( const qATCLI_PreCmd_t param, qINT8_t n )
-\end{lstlisting}
+\lstinputlisting[style=CStyle]{sec3cliexamplep1.c}
 
-To get the pointer where the desired argument starts. \index{\lstinline{qATCLI_GetArgPtr}}
+Then the CLI instance its configured by subscribing commands and adding the task to the OS. A wrapper function its required here to make the UART output-function compatible with the CLI API.
 
-\begin{lstlisting}[style=CStyle]
-int qATCLI_GetArgInt( const qATCLI_PreCmd_t param, qINT8_t n )
-\end{lstlisting}
+\lstinputlisting[style=CStyle]{sec3cliexamplep2.c}
 
-To get the argument parsed as integer from the incoming AT command. \index{\lstinline{qATCLI_GetArgInt}}
+The CLI input its feeded from the interrupt context by using the UART receive ISR:
 
-\begin{lstlisting}[style=CStyle]
-qFloat32_t qATCLI_GetArgFlt( const qATCLI_PreCmd_t param, qINT8_t n )
-\end{lstlisting}
+\lstinputlisting[style=CStyle]{sec3cliexamplep3.c}
 
-To get the argument parsed as float from the incoming AT command. \index{\lstinline{qATCLI_GetArgFlt}}
+Finally, the command-callbacks are later defined to perform the requested operations.
 
-\begin{lstlisting}[style=CStyle]
-qUINT32_t qATCLI_GetArgHex( const qATCLI_PreCmd_t param, qINT8_t n )
-\end{lstlisting}
-
-To get the HEX argument parsed as \lstinline{qUINT32_t} from the incoming AT command. \index{\lstinline{qATCLI_GetArgHex}}
-
-
-\subsubsection*{Parameters:}
-\begin{itemize}
-    \item \lstinline{param} : A handle to the pre-parser instance(only available from the AT-Command callback).
-    \item \lstinline{n} : The number of the argument.
-\end{itemize}
-
-\subsubsection*{Return value:}
-For \lstinline{qATCLI_GetArgPtr()}, a pointer to the desired argument. \lstinline{NULL} pointer if the argument is not present.
-
-For \lstinline{qATCLI_GetArgInt()}, the argument parsed as integer. Same behavior of \lstinline{qIOUtil_AtoI}. If argument not found returns 0.
-
-For \lstinline{qATCLI_GetArgFlt()}, the argument parsed as \lstinline{float}. Same behavior of \lstinline{qIOUtil_AtoF}. If argument not found returns 0.
-
-For \lstinline{qATCLI_GetArgHex()}, the HEX argument parsed as \lstinline{qUINT32_t}. Same behavior of \lstinline{qIOUtil_XtoU32}. If argument not found returns 0.
+\lstinputlisting[style=CStyle]{sec3cliexamplep4.c}
 
 \subsection{Memory Management} \label{memmanagement}
 As the OS is targered to build safe-critical embedded applications, dynamic memory allocation its not allowed for the kernel design, because can lead to out-of-storage run-time failures, which are undesirable. However, some applications can be easily deployed using this allocation scheme, so a safe and portable implementation becomes relevant in the scope of the user-code. 

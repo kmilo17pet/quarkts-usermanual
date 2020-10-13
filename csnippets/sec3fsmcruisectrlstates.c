@@ -57,4 +57,3 @@ qSM_Status_t AC_Cruising_State( qSM_Handler_t h ){
     Speed_Maintain();
     return qSM_EXIT_SUCCESS;
 }
-/*---------------------------------------------------------------------*/

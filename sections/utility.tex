@@ -414,18 +414,24 @@ Operate on each element of the list.
                             
                             Should have this prototype:
                             
-                            \lstinline{ qBool_t Function( void* Node, void *arg, qList_WalkStage_t stage ) }
+                            \lstinline{ qBool_t Function( qList_ForEachHandle_t h ) }
                             
-                            where the \lstinline{stage} argument indicates the loop progress and should be checked by the application writer to perform the specific operations over the list. This variable can take the following values:
+                            where the \lstinline{h} its a handle of the list iterator with the following members:
+                            
                             
                             \begin{itemize}
-                                \item \lstinline{QLIST_WALKINIT} : When the loop is about to start. In this case, A \lstinline{NULL} value will be passed in the node pointer.
-                                \item \lstinline{QLIST_WALKTHROUGH} : When the loop is traversing the list.
-                                \item \lstinline{QLIST_WALKEND} :  When the loop has finished. In this case, A \lstinline{NULL} value will be passed in the node pointer
+                                \item \lstinline{node} : the k-element of the list that is currently being processed in the loop.
+                                \item \lstinline{arg} : same argument of the calling function.
+                                \item  \lstinline{stage} : indicates the loop progress and should be checked by the application writer to perform the specific operations over the list. This variable can take the following values:
+                                \begin{itemize}
+                                    \item \lstinline{QLIST_WALKINIT} : When the loop is about to start. In this case, A \lstinline{NULL} value will be passed inside the \lstinline{node} member.
+                                    \item \lstinline{QLIST_WALKTHROUGH} : When the loop is traversing the list.
+                                    \item \lstinline{QLIST_WALKEND} :  When the loop has finished. In this case, A \lstinline{NULL} value will be passed in the \lstinline{node} member. 
+                                \end{itemize}
                             \end{itemize}
                             
                             By default, \lstinline{Function} should return \lstinline{qFalse}. If a \lstinline{qTrue} value is returned, the walk through loop will be terminated.
-    \item \lstinline{arg} : Argument passed to \lstinline{Fcn}.
+    \item \lstinline{arg} : Argument passed to \lstinline{Fcn} through the iterator handle.
     \item \lstinline{dir} : Use one of the following options:
                             \begin{itemize}
                                 \item \lstinline{QLIST_FORWARD} : to walk through the list forwards.
@@ -442,12 +448,12 @@ Operate on each element of the list.
 
 \begin{lstlisting}[style=CStyle]
 qBool_t qList_Sort( qList_t * const list, 
-                    qBool_t (*CompareFcn)(const void *n1, const void *n2) ) 
+                    qBool_t (*CompareFcn)( qList_CompareHandle_t h ) ) 
 \end{lstlisting} \index{\lstinline{qList_Sort}}
 
 Sort the double linked list using the \lstinline{CompareFcn} function to 
 determine the order.
-The sorting algorithm used by this function compares pairs of adjacent nodes by calling the specified \lstinline{CompareFcn} function with pointers to them as arguments. The sort is performed only modifying node's links without data swapping, improving performance if nodes have a large storage.
+The sorting algorithm used by this function compares pairs of adjacent nodes by calling the specified \lstinline{CompareFcn} function. The sort is performed only modifying node's links without data swapping, improving performance if nodes have a large storage.
 
 \textit{Note:} The function modifies the content of the list by reordering its 
 elements as defined by \lstinline{CompareFcn}.
@@ -457,9 +463,9 @@ elements as defined by \lstinline{CompareFcn}.
     \item \lstinline{list} : Pointer to the list. 
     \item \lstinline{CompareFcn} : Pointer to a function that compares two nodes.
                     This function is called repeatedly by \lstinline{qList_Sort} to compare two nodes. It shall follow the following prototype:
-                    \lstinline{qBool_t (*CompareFcn)(void *node1, void *node2)}
+                    \lstinline{qBool_t (*CompareFcn)( qList_CompareHandle_t h )}
                     
-                    Taking two pointers as arguments (both converted to (\lstinline{const void*}). The function defines the order of the elements by returning a Boolean data, where a \lstinline{qTrue} value indicates that element pointed by \lstinline{node1} goes after the element pointed to by \lstinline{node2}
+                    Taking \lstinline{h} as the conpare-handle argument with two members inside, \lstinline{n1} and \lstinline{n2}, pointing to the nodes being compared (both converted to (\lstinline{const void*}). The function defines the order of the elements by returning a Boolean data, where a \lstinline{qTrue} value indicates that element pointed by \lstinline{n1} goes after the element pointed to by \lstinline{n2}
 \end{itemize}
 
 \subsubsection*{Return value:}
