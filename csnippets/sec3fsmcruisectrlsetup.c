@@ -10,14 +10,12 @@ qSM_Signal_t topsm_sig_stack[ MAX_FSM_SIGNALS ];
 int main( void ){
     qOS_Setup( HAL_GetTick, 0.001f, NULL ); 
     /*Setup the automated control FSM*/
-    qStateMachine_Setup( &AC_SM, AC_Accelerating_State, 
-                         NULL, NULL, NULL, NULL );
+    qStateMachine_Setup( &AC_SM, AC_Accelerating_State, NULL );
     qStateMachine_TransitionTableInstall( &AC_SM, &AC_ttable, 
                                           AutomatedControl_SM_ttable, 6 );
     /*Setup a FSM task for the Top FSM*/    
     qOS_Add_StateMachineTask(  &SMTask, qMedium_Priority, 0.1f, &Top_SM, 
-                               Top_Idle_State, NULL, NULL, NULL, NULL, 
-                               qEnabled, NULL); 
+                               Top_Idle_State, NULL, qEnabled, NULL); 
                                
     /*Setup the signal-queue for the Top FSM*/
     qStateMachine_SignalQueueSetup( &Top_SM, topsm_sig_stack, MAX_SM_SIGNALS );

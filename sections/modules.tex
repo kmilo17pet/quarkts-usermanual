@@ -145,21 +145,15 @@ The \lstinline{qStateMachine_Setup()} API \index{\lstinline{qStateMachine_Setup}
 \medskip
 
 \begin{lstlisting}[style=CStyle]
-qBool_t qStateMachine_Setup( qSM_t * const obj, qSM_State_t InitState,
-                             qSM_SubState_t SuccessState, 
-                             qSM_SubState_t FailureState, 
-                             qSM_SubState_t UnexpectedState, 
-                             qSM_SubState_t BeforeAnyState )
+qBool_t qStateMachine_Setup( qSM_t * const obj, qSM_State_t InitState, 
+                             qSM_SubStatesContainer_t *substates );
 \end{lstlisting}
 
 \subsubsection*{Parameters}
 \begin{itemize}
     \item \lstinline{obj} : A pointer to the FSM object.
     \item \lstinline{InitState} :  The first state to be performed. This argument is a pointer to a callback function, returning \lstinline{qSM_Status_t} and with a \lstinline{qSM_Handler_t} variable as input argument.
-    \item \lstinline{SuccessState} :  Sub-State performed after a state exits with  \lstinline{qSM_EXIT_SUCCESS}. 
-    \item \lstinline{FailureState} :  Sub-State performed after a state exits with  \lstinline{qSM_EXIT_FAILURE}. 
-    \item \lstinline{UnexpectedState} :  Sub-State performed after a state exits with any value between \lstinline{-32766} and \lstinline{32767}. 
-    \item \lstinline{BeforeAnyState} :  A state called before the normal state machine execution.
+    \item \lstinline{substates} : A pointer to the container of Sub-States. To ignore pass \lstinline{NULL}   
 \end{itemize}  
 
 \begin{tcolorbox}
@@ -176,6 +170,20 @@ void SubState_Example( qSM_Handler_t m ){
     */
 }
 \end{lstlisting}  
+
+If substates are not defined at the moment of the FSM setup, they can be later installed using the \lstinline{qStateMachine_SubStatesInstall} function.
+\medskip
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qStateMachine_SubStatesInstall( qSM_t * const obj, 
+                                        qSM_SubStatesContainer_t *substates )
+\end{lstlisting}
+
+\subsubsection*{Parameters}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the FSM object.
+    \item \lstinline{substates} : A pointer to the container of Sub-States. To ignore pass \lstinline{NULL}   
+\end{itemize}  
 
 \subsubsection{Running a state machine : \texorpdfstring{\lstinline{qStateMachine_Run}}{qStateMachine_Run} }
 This API \index{\lstinline{qStateMachine_Run}} is used to execute the Finite State Machine. Only a single cycle is performed invoking the callback of the current active state (including nested states of the hierarchical topology), and of course, the available sub-states according to figure \ref{fig:substates}. 
@@ -222,9 +230,8 @@ Using this API, the kernel will take care of the FSM by itself, so the usage of 
 qBool_t qOS_Add_StateMachineTask( 
             qTask_t * const Task, qPriority_t Priority, qTime_t Time,
             qSM_t * const StateMachine, qSM_State_t InitState, 
-            qSM_SubState_t BeforeAnyState, qSM_SubState_t SuccessState, 
-            qSM_SubState_t FailureState, qSM_SubState_t UnexpectedState,
-            qState_t InitialTaskState, void *arg )
+            qSM_SubStatesContainer_t *substates, qState_t InitialTaskState,
+            void *arg )
 \end{lstlisting}
 
 \subsubsection*{Parameters}
@@ -233,11 +240,8 @@ qBool_t qOS_Add_StateMachineTask(
     \item \lstinline{Priority} : The priority value. [0(min) - \lstinline{Q_PRIORITY_LEVELS}(max)]
     \item \lstinline{Time} : Execution interval defined in seconds (floating-point format). For immediate execution use the  \lstinline{qTimeImmediate} definition. 
     \item \lstinline{StateMachine} : A pointer to Finite State-Machine (FSM) object.
-    \item \lstinline{InitState} :  The first state to be performed. 
-    \item \lstinline{BeforeAnyState} :  The sub-state called before any current state.
-    \item \lstinline{SuccessState} :  Sub-State performed after a state exits with \lstinline{qSM_EXIT_SUCCESS}.
-    \item \lstinline{FailureState} :  Sub-State performed after a state exits with \lstinline{qSM_EXIT_FAILURE}.
-    \item \lstinline{UnexpectedState } : Sub-State performed after a state exits with any value between \lstinline{-32766} and \lstinline{32767}.      
+    \item \lstinline{InitState} : The first state to be performed. 
+    \item \lstinline{substates} : A pointer to the FSM substates container. To ignore pass \lstinline{NULL}.   
     \item \lstinline{TaskInitState } : Specifies the initial operational state of the task (\lstinline{qEnabled}, \lstinline{qDisabled}, \lstinline{qAsleep} or \lstinline{qAwake}).
     \item \lstinline{arg} - Represents the task arguments. All arguments must be passed by reference and cast to \lstinline{(void *)}. 
 \end{itemize}
@@ -288,8 +292,7 @@ Remember that you must set up the scheduler before adding a task to the scheduli
 
 \begin{lstlisting}[style=CStyle]
 qOS_Add_StateMachineTask( &LED_Task, qHigh_Priority, 0.1, &LED_FSM,
-                          State_LED_Off, NULL, NULL, NULL, NULL,
-                          qEnabled, NULL);
+                          State_LED_Off, NULL,  qEnabled, NULL );
 \end{lstlisting}
 
 \subsubsection{Changing the FSM attributes in run-time}
