@@ -12,7 +12,7 @@ qSM_Status_t Example_State( qSM_Handler_t m ){
                     /* TODO: Code for this case */
                 break;
                 case byNotificationSimple:
-                    /* TODO: Code for this case */
+                    m->NextState = AnotherState;  /* transition */
                 break;
                 case byQueueCount:
                     /* TODO: Code for this case */

@@ -123,10 +123,10 @@ As shown above, the return value represents the exit status of the state, and it
     \item Any other integer value between \lstinline{-32764} and \lstinline{32767}.
 \end{itemize} 
 
-This workflow between the \textit{current} and the \textit{surrounding} state is shown in the graph below: 
+This workflow between \textit{current} and \textit{surrounding} state is shown in the graph below: 
 \input{fig/substates.tex}
 
-Figure \ref{fig:substates} shows that the \textit{surrounding state} (if enabled) are implicitly linked in the workflow to every state in the FSM. The \textit{surrounding state}, and the way they are called are described below:
+Figure \ref{fig:substates} shows that the \textit{surrounding state} (if enabled) are implicitly linked in the workflow to every state in the FSM. The \textit{surrounding state}, and the way it gets called is described below:
 
 \begin{itemize}
     \item \textit{BeforeAny} : Performed in every FSM cycle. As its name implies, it is launched before the \textit{current state} executes. 
@@ -141,7 +141,7 @@ Figure \ref{fig:substates} shows that the \textit{surrounding state} (if enabled
 
 \subsubsection{Setting up a state machine : \texorpdfstring{\lstinline{qStateMachine_Setup}}{qStateMachine_Setup} }
 Like any other OS object, a Finite State Machine (FSM) must be explicitly initialized before it can be used. FSMs are referenced by handles, which are variables of type \lstinline{qSM_t}. \index{\lstinline{qSM_t}}
-The \lstinline{qStateMachine_Setup()} API \index{\lstinline{qStateMachine_Setup}}  initializes the instance, sets the initial state and conditioned sub-states.
+The \lstinline{qStateMachine_Setup()} API \index{\lstinline{qStateMachine_Setup}}  initializes the instance, sets the initial state and the surrounding state.
 \medskip
 
 \begin{lstlisting}[style=CStyle]
@@ -160,7 +160,7 @@ qBool_t qStateMachine_Setup( qSM_t * const obj, qSM_State_t InitState,
 \ArrowBoldDownRight \textit{Note}: For the \lstinline{Surrounding} argument, a \lstinline{NULL} value will act as a "disable" action.
 \end{tcolorbox}
 
-Unlike normal states, a Surrounding state should not return anything, thus, the callback for the surrounding should be written as:
+Unlike normal states, the S\textit{Surrounding} state should not return anything, thus, the callback for this special state should be written as:
 \medskip
 
 \begin{lstlisting}[style=CStyle]
@@ -190,12 +190,12 @@ void SurroundingState_Example( qSM_Handler_t m ){
 
 As you can see in the example below, the surrounding execution case its checked through the FSM handle using the \lstinline{LastReturnStatus} field.
 
-If the Surrounding state its not defined at the moment of the FSM setup, they can be later installed using the \lstinline{qStateMachine_Attribute} function.
+If the Surrounding state its not defined at the moment of the FSM setup, they can be later installed using the function  \lstinline{qStateMachine_Attribute}.
 \medskip
 
 
 \subsubsection{Running a state machine : \texorpdfstring{\lstinline{qStateMachine_Run}}{qStateMachine_Run} }
-This API \index{\lstinline{qStateMachine_Run}} is used to execute the Finite State Machine. Only a single cycle is performed invoking the callback of the current active state (including nested states of the hierarchical topology), and of course, the available sub-states according to figure \ref{fig:substates}. 
+This API \index{\lstinline{qStateMachine_Run}} is used to execute the Finite State Machine. Only a single cycle is performed invoking the callback of the current active state (including nested states of the hierarchical topology), and of course, the surrounding state according to figure \ref{fig:substates}. 
 \medskip
 
 \begin{lstlisting}[style=CStyle]
@@ -209,14 +209,14 @@ void qStateMachine_Run( qSM_t * const obj, void *Data )
 \end{itemize}  
 
 \subsubsection{Changing states and retrieving FSM data}
-Both, states and sub-states callbacks take a \lstinline{qSM_Handler_t} \index{\lstinline{qSM_Handler_t}} object as input argument, which is basically a pointer to the involved properties of the invoking FSM. The usage of this object it's required to make the FSM moves between states and additionally get extra execution data. The provided fields are:
+Both, state and surrounding callbacks take a \lstinline{qSM_Handler_t} \index{\lstinline{qSM_Handler_t}} object as input argument, which is basically a pointer to the involved properties of the invoking FSM. The usage of this object it's required to make the FSM moves between states and additionally get extra execution data. The provided fields are:
 
 \begin{itemize}
     \item \lstinline{NextState} : The next state to be executed after the current state finishes. The application writer should change this field to another state callback to produce a state transition in the next FSM's cycle.
     \item \lstinline{PreviousState} (read-only):  Last state seen in the flow chart.
     \item \lstinline{LastState} (read-only):  The last state executed.
     \item \lstinline{PreviousReturnStatus} (read-only): The exit(or return) status of the previous state.
-    \item \lstinline{LastReturnStatus} (read-only): The exit(or return) status of the last state. Can be also used in the \textit{Surrounding state} to perform the corresponding actions for every value, including the {qSM_BEFORE_ANY}.
+    \item \lstinline{LastReturnStatus} (read-only): The exit(or return) status of the last state. Can be also used in the \textit{Surrounding state} to perform the corresponding actions for every value, including the \lstinline{qSM_BEFORE_ANY}.
     \item \lstinline{Signal} (read-only): Received signal. \lstinline{QSM_SIGNAL_NONE} if no signal available. \lstinline{QSM_SIGNAL_ENTRY} if the current state has just entered from another state. \lstinline{QSM_SIGNAL_EXIT} if the current state has just exit to another state. Any other user-defined signal will reside here if the FSM has a signal-queue installed . 
     \item \lstinline{Data} (read-only): State-machine associated data. If the FSM is running as a task, the associated event data can be queried through this field. (here, a cast to \lstinline{qEvent_t} is mandatory). Child FSMs inherit this member.
     \item \lstinline{Parent} (read-only): A pointer to the parent state-machine. Can be used in hierarchical  patterns. \lstinline{NULL} if the FSM its not a child.
@@ -378,7 +378,7 @@ Returns \lstinline{qTrue} on success, otherwise returns \lstinline{qFalse}.
 \begin{itemize}
     \item State transitions are not limited to the specification of the transition table. A state callback owns the higher precedence to change a state. The application writer can use both, a transition table and direct \lstinline{NextState} field manipulation in state callbacks to perform a transition to the FSM.
     \item Special care is required when the table grows very large, that is, when there are many invalid state/event combinations, leading to a waste of memory. There is also a memory penalty as the number of states and events grow. The application writer  need to accurately account for this during initial design. A statechart pattern can be used to improve the design and reduce the number of transition entries. 
-    \item As shown in figure \ref{fig:substates}, an installed transition table is evaluated after the \textit{BeforeAny} sub-state, and later, the current state handler will be evaluated after the table sweep is completed. In summary, the state handler has a higher precedence over the table to perform state transitions.
+    \item As shown in figure \ref{fig:substates}, an installed transition table is evaluated after the surrounding state in the \textit{BeforeAny} case, and later, the current state handler will be evaluated after the table sweep is completed. In summary, the state handler has a higher precedence over the table to perform state transitions.
 \end{itemize}
 
 \paragraph{Signals in transition tables:}
