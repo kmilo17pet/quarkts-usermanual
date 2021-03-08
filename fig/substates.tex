@@ -3,12 +3,12 @@
     \begin{tikzpicture}[initial text={...}, ->,>=stealth',shorten >=1pt,auto,node distance=1.8cm, semithick]
         \draw[dotted] (0.8,-2.8) -- (9.99,-2.8) -- (9.99,3.2) -- (0.8,3.2) -- (0.8,-2.8 ) -- cycle;
         \node[dashed, initial,state]            (A)              {$P_{-1}$};
-        \node[fill=gray!20, state]              (B) [right of=A] {$S_b$};
+        \node[fill=gray!20, state]              (B) [right of=A] {$S_u$};
         \node[rectangle, fill=gray]             (W) [right of=B] {};
         \node[fill=gray!80, state, accepting]   (C) [right of=W] {$P$};
         \node[fill=gray!20, state]              (D) [right of=C] {$S_u$};
-        \node[fill=gray!20, state]              (E) [above of=D] {$S_s$};
-        \node[fill=gray!20, state]              (F) [below of=D] {$S_f$};
+        \node[fill=gray!20, state]              (E) [above of=D] {$S_u$};
+        \node[fill=gray!20, state]              (F) [below of=D] {$S_u$};
         \node[rectangle, fill=black]            (T) [right of=D] {};
         \node[dashed, state]                    (G) [right of=T] {$P_{+1}$};
         \node[rectangle, fill=black]            (R) [above of=T] {};
@@ -47,6 +47,6 @@
                 (T) edge node {} (G)
                 (G) edge node {} (H);
     \end{tikzpicture}
-    \caption{Sub-states evaluated after and before the \textit{current} state}
+    \caption{Surrounding state evaluated after and before the \textit{current} state}
     \label{fig:substates}
 \end{figure}

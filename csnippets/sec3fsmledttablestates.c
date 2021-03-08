@@ -1,6 +1,11 @@
-void SubState_LED_BeforeAny( qSM_Handler_t m ){
-    if( qSTimer_Expired( &LED_FSM_Timeout ) ){
-        qStateMachine_SendSignal( &LED_FSM, SIGNAL_TIMEOUT, qFalse );
+void SurroundingState_LED( qSM_Handler_t m ){
+    switch( m->LastReturnStatus ){
+        case qSM_BEFORE_ANY:
+            if( qSTimer_Expired( &LED_FSM_Timeout ) ){
+                qStateMachine_SendSignal( &LED_FSM, SIGNAL_TIMEOUT, qFalse );
+            }
+        default:
+            break
     }
 }
 /*---------------------------------------------------------------------*/

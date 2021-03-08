@@ -115,27 +115,27 @@ qSM_Status_t Example_State( qSM_Handler_t m ){
 
 At any given moment in time, the FSM can be in only a single state. The state that is currently occupied by the FSM is called \textit{current state} ($P$).
 
-As shown above, the return value represents the exit status of the state, and it can be handled with additional \textit{sub-states}($S_{(b,s,u,f)}$) established at the moment of the FSM setup. The values allowed to return are listed below.
+As shown above, the return value represents the exit status of the state, and it can be handled an additional \textit{surrounding state}($S_u$) established at the moment of the FSM setup. The values allowed to return are listed below.
 
 \begin{itemize}
     \item \lstinline{qSM_EXIT_SUCCESS(-32767)}.
     \item \lstinline{qSM_EXIT_FAILURE(-32766)}.
-    \item Any other integer value between \lstinline{-32765} and \lstinline{32767}.
+    \item Any other integer value between \lstinline{-32764} and \lstinline{32767}.
 \end{itemize} 
 
-This workflow between the \textit{current state} and \textit{sub-states} is shown in the graph below: 
+This workflow between the \textit{current} and the \textit{surrounding} state is shown in the graph below: 
 \input{fig/substates.tex}
 
-Figure \ref{fig:substates} shows that these \textit{sub-states} (if enabled) are implicitly linked in the workflow to every state in the FSM. These \textit{sub-states}, and the way they are called are described below:
+Figure \ref{fig:substates} shows that the \textit{surrounding state} (if enabled) are implicitly linked in the workflow to every state in the FSM. The \textit{surrounding state}, and the way they are called are described below:
 
 \begin{itemize}
-    \item \textit{BeforeAny} ($S_b$) : Performed in every FSM cycle. As its name implies, it is launched before the \textit{current state} executes. 
+    \item \textit{BeforeAny} : Performed in every FSM cycle. As its name implies, it is launched before the \textit{current state} executes. 
     
-    \item \textit{Success} ($S_s$) : This \textit{sub-state} is conditioned to the exit status of the \textit{current state}. If \textit{current state} has exited with  \lstinline{qSM_EXIT_SUCCESS}, this sub-state will be launched next. It can be used to perform the actions of the \textit{current state}, for example, if a certain state is controlling an output, its value would only be written if the state has ended correctly.
+    \item \textit{Success} : This case is conditioned to the exit status of the \textit{current state}. If \textit{current state} has exited with  \lstinline{qSM_EXIT_SUCCESS}, the surrounding will be launched with this flag set. It can be used to perform the actions of the \textit{current state}, for example, if a certain state is controlling an output, its value would only be written if the state has ended correctly.
     
-    \item \textit{Failure} ($S_f$): Same behavior as the previous one, but instead, is conditioned to the exit value \lstinline{qSM_EXIT_FAILURE}. It can be used to handle exceptions.
+    \item \textit{Failure} : Same behavior as the previous one, but instead, is conditioned to the exit value \lstinline{qSM_EXIT_FAILURE}. It can be used to handle exceptions.
     
-    \item \textit{Unexpected} ($S_u$): Same behavior as \textit{Failure} and \textit{Success}, but instead, is conditioned to an exit value between \lstinline{-32766} and \lstinline{32767}. The applications for this sub-state should be defined by the application writer.
+    \item \textit{Unexpected} : Same behavior as \textit{Failure} and \textit{Success}, but instead, is conditioned to an exit value between \lstinline{-32766} and \lstinline{32767}. The applications for this should be defined by the application writer.
 \end{itemize}
 
 
@@ -146,44 +146,53 @@ The \lstinline{qStateMachine_Setup()} API \index{\lstinline{qStateMachine_Setup}
 
 \begin{lstlisting}[style=CStyle]
 qBool_t qStateMachine_Setup( qSM_t * const obj, qSM_State_t InitState, 
-                             qSM_SubStatesContainer_t *substates );
+                             qSM_SurroundingState_t *Surrounding );
 \end{lstlisting}
 
 \subsubsection*{Parameters}
 \begin{itemize}
     \item \lstinline{obj} : A pointer to the FSM object.
     \item \lstinline{InitState} :  The first state to be performed. This argument is a pointer to a callback function, returning \lstinline{qSM_Status_t} and with a \lstinline{qSM_Handler_t} variable as input argument.
-    \item \lstinline{substates} : A pointer to the container of Sub-States. To ignore pass \lstinline{NULL}   
+    \item \lstinline{Surrounding} : The surrounding state. To ignore pass \lstinline{NULL}   
 \end{itemize}  
 
 \begin{tcolorbox}
-\ArrowBoldDownRight \textit{Note}: For every sub-state argument, a \lstinline{NULL} value will act as a "disable" action.
+\ArrowBoldDownRight \textit{Note}: For the \lstinline{Surrounding} argument, a \lstinline{NULL} value will act as a "disable" action.
 \end{tcolorbox}
 
-Unlike normal states, a sub-state should not return anything, thus, the callback for substates should be written as:
+Unlike normal states, a Surrounding state should not return anything, thus, the callback for the surrounding should be written as:
 \medskip
 
 \begin{lstlisting}[style=CStyle]
-void SubState_Example( qSM_Handler_t m ){
-    /*
-    TODO: Sub-State code
-    */
+void SurroundingState_Example( qSM_Handler_t m ){
+    switch( h->LastReturnStatus ){
+        case qSM_BEFORE_ANY:
+            /* TODO: before any code */
+            break;
+        case qSM_EXIT_SUCCESS:
+            /* TODO: success code */
+            break;
+        case qSM_EXIT_FAILURE:
+            /* TODO: failure code */
+            break;
+        case 0: 
+            /* TODO: used defined*/
+            break;
+        case 1:
+            /* TODO: used defined*/
+            break;
+        default: 
+            /*handle the unexpected*/
+            break
+    }
 }
 \end{lstlisting}  
 
-If substates are not defined at the moment of the FSM setup, they can be later installed using the \lstinline{qStateMachine_SubStatesInstall} function.
+As you can see in the example below, the surrounding execution case its checked through the FSM handle using the \lstinline{LastReturnStatus} field.
+
+If the Surrounding state its not defined at the moment of the FSM setup, they can be later installed using the \lstinline{qStateMachine_Attribute} function.
 \medskip
 
-\begin{lstlisting}[style=CStyle]
-qBool_t qStateMachine_SubStatesInstall( qSM_t * const obj, 
-                                        qSM_SubStatesContainer_t *substates )
-\end{lstlisting}
-
-\subsubsection*{Parameters}
-\begin{itemize}
-    \item \lstinline{obj} : A pointer to the FSM object.
-    \item \lstinline{substates} : A pointer to the container of Sub-States. To ignore pass \lstinline{NULL}   
-\end{itemize}  
 
 \subsubsection{Running a state machine : \texorpdfstring{\lstinline{qStateMachine_Run}}{qStateMachine_Run} }
 This API \index{\lstinline{qStateMachine_Run}} is used to execute the Finite State Machine. Only a single cycle is performed invoking the callback of the current active state (including nested states of the hierarchical topology), and of course, the available sub-states according to figure \ref{fig:substates}. 
@@ -207,8 +216,8 @@ Both, states and sub-states callbacks take a \lstinline{qSM_Handler_t} \index{\l
     \item \lstinline{PreviousState} (read-only):  Last state seen in the flow chart.
     \item \lstinline{LastState} (read-only):  The last state executed.
     \item \lstinline{PreviousReturnStatus} (read-only): The exit(or return) status of the previous state.
-    \item \lstinline{LastReturnStatus} (read-only): The exit(or return) status of the last state.
-    \item \lstinline{Signal} (read-only): Received signal. \lstinline{QSM_SIGNAL_NONE} if no signal available. \lstinline{QSM_SIGNAL_ENTRY} if the current state has just entered from another state. \lstinline{QSM_SIGNAL_EXIT} if the current state has just exit to another state. Any other user-defined signal will reside here if the FSM has a signal-queue installed .
+    \item \lstinline{LastReturnStatus} (read-only): The exit(or return) status of the last state. Can be also used in the \textit{Surrounding state} to perform the corresponding actions for every value, including the {qSM_BEFORE_ANY}.
+    \item \lstinline{Signal} (read-only): Received signal. \lstinline{QSM_SIGNAL_NONE} if no signal available. \lstinline{QSM_SIGNAL_ENTRY} if the current state has just entered from another state. \lstinline{QSM_SIGNAL_EXIT} if the current state has just exit to another state. Any other user-defined signal will reside here if the FSM has a signal-queue installed . 
     \item \lstinline{Data} (read-only): State-machine associated data. If the FSM is running as a task, the associated event data can be queried through this field. (here, a cast to \lstinline{qEvent_t} is mandatory). Child FSMs inherit this member.
     \item \lstinline{Parent} (read-only): A pointer to the parent state-machine. Can be used in hierarchical  patterns. \lstinline{NULL} if the FSM its not a child.
 \end{itemize}
@@ -230,8 +239,8 @@ Using this API, the kernel will take care of the FSM by itself, so the usage of 
 qBool_t qOS_Add_StateMachineTask( 
             qTask_t * const Task, qPriority_t Priority, qTime_t Time,
             qSM_t * const StateMachine, qSM_State_t InitState, 
-            qSM_SubStatesContainer_t *substates, qState_t InitialTaskState,
-            void *arg )
+            qSM_SurroundingState_t *Surrounding, 
+            qState_t InitialTaskState, void *arg )
 \end{lstlisting}
 
 \subsubsection*{Parameters}
@@ -241,13 +250,13 @@ qBool_t qOS_Add_StateMachineTask(
     \item \lstinline{Time} : Execution interval defined in seconds (floating-point format). For immediate execution use the  \lstinline{qTimeImmediate} definition. 
     \item \lstinline{StateMachine} : A pointer to Finite State-Machine (FSM) object.
     \item \lstinline{InitState} : The first state to be performed. 
-    \item \lstinline{substates} : A pointer to the FSM substates container. To ignore pass \lstinline{NULL}.   
+    \item \lstinline{Surrounding} : The surrounding state. To ignore pass \lstinline{NULL}.   
     \item \lstinline{TaskInitState } : Specifies the initial operational state of the task (\lstinline{qEnabled}, \lstinline{qDisabled}, \lstinline{qAsleep} or \lstinline{qAwake}).
     \item \lstinline{arg} - Represents the task arguments. All arguments must be passed by reference and cast to \lstinline{(void *)}. 
 \end{itemize}
 
 \begin{tcolorbox}
-\ArrowBoldDownRight \textit{Note}: For every sub-state argument, a \lstinline{NULL} value will act as a disable action.
+\ArrowBoldDownRight \textit{Note}: For the \lstinline{Surrounding} argument, a \lstinline{NULL} value will act as a disable action.
 \end{tcolorbox}
 
 Now that a task is running a dedicated state-machine, the specific task event-info can be obtained in every state callback through the \lstinline{Data} field of the \lstinline{qSM_Handler_t} argument. Check the example below:
@@ -302,7 +311,7 @@ For this, use the API \index{\lstinline{qStateMachine_Attribute}} that is detail
 \begin{lstlisting}[style=CStyle]
 void qStateMachine_Attribute( 
                         qSM_t * const obj, const qSM_Attribute_t Flag, 
-                        qSM_State_t  s, qSM_SubState_t subs )
+                        qSM_State_t  s, qSM_SurroundingState_t Surrounding )
 \end{lstlisting}
 
 \begin{itemize}
@@ -311,14 +320,11 @@ void qStateMachine_Attribute(
     \begin{itemize}
         \item \lstinline{qSM_RESTART} : Restart the FSM (here, the \lstinline{s} argument must correspond to the init-state)
         \item \lstinline{qSM_CLEAR_STATE_FIRST_ENTRY_FLAG} : clear the entry flag for the current state if the \lstinline{NextState} field doesn't change.
-        \item \lstinline{qSM_FAILURE_STATE} : Set the failure sub-state.
-        \item \lstinline{qSM_SUCCESS_STATE} : Set the success sub-state.
-        \item \lstinline{qSM_UNEXPECTED_STATE} : Set the unexpected sub-state.
-        \item \lstinline{qSM_BEFORE_ANY_STATE} : Set the sub-state executed before any state.
+        \item \lstinline{qSM_SURROUNDING_STATE} : Set the surrounding state.
         \item \lstinline{qSM_UNINSTALL_TRANSTABLE} : To uninstall the transition table if available.
     \end{itemize}
     \item \lstinline{s} : The new value for state (only applies in \lstinline{qSM_RESTART}). If not used, pass \lstinline{NULL}.
-    \item \lstinline{subs} : The new value for sub-state (only apply in \lstinline{qSM_FAILURE_STATE}, \lstinline{qSM_SUCCESS_STATE}, \lstinline{qSM_UNEXPECTED_STATE} and \lstinline{qSM_BEFORE_ANY_STATE}. If not used, pass \lstinline{NULL}.
+    \item \lstinline{subs} : The new value for surrounding (only apply in \lstinline{qSM_SURROUNDING_STATE}. If not used, pass \lstinline{NULL}.
 \end{itemize}
 
 \subsubsection{Using a transition table}
