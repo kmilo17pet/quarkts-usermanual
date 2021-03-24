@@ -126,7 +126,7 @@ As shown above, the return value represents the exit status of the state, and it
 This workflow between \textit{current} and \textit{surrounding} state is shown in the graph below: 
 \input{fig/substates.tex}
 
-Figure \ref{fig:substates} shows that the \textit{surrounding state} (if enabled) are implicitly linked in the workflow to every state in the FSM. The \textit{surrounding state}, and the way it gets called is described below:
+Figure \ref{fig:substates}  shows that the \textit{surrounding state} (if enabled), is implicitly linked in the workflow to every state in the FSM. The surrounding state can take any of the following execution cases:
 
 \begin{itemize}
     \item \textit{BeforeAny} : Performed in every FSM cycle. As its name implies, it is launched before the \textit{current state} executes. 
@@ -135,9 +135,12 @@ Figure \ref{fig:substates} shows that the \textit{surrounding state} (if enabled
     
     \item \textit{Failure} : Same behavior as the previous one, but instead, is conditioned to the exit value \lstinline{qSM_EXIT_FAILURE}. It can be used to handle exceptions.
     
-    \item \textit{Unexpected} : Same behavior as \textit{Failure} and \textit{Success}, but instead, is conditioned to an exit value between \lstinline{-32766} and \lstinline{32767}. The applications for this should be defined by the application writer.
+    \item \textit{Unexpected} : Same behavior as \textit{Failure} and \textit{Success}, but instead, is conditioned to an exit value between \lstinline{-32764} and \lstinline{32767}. The applications for this should be defined by the application writer.
 \end{itemize}
 
+\begin{tcolorbox}
+\ArrowBoldDownRight \textit{Note}: The execution case of the \textit{surrounding state} can be queried using the \lstinline{LastReturnStatus} field inside the \lstinline{qSM_Handler_t} argument. Please, see section \ref{qsmhandlerfields} for details.
+\end{tcolorbox}
 
 \subsubsection{Setting up a state machine : \texorpdfstring{\lstinline{qStateMachine_Setup}}{qStateMachine_Setup} }
 Like any other OS object, a Finite State Machine (FSM) must be explicitly initialized before it can be used. FSMs are referenced by handles, which are variables of type \lstinline{qSM_t}. \index{\lstinline{qSM_t}}
@@ -208,7 +211,7 @@ void qStateMachine_Run( qSM_t * const obj, void *Data )
     \item \lstinline{Data} : FSM associated data. Also can be used to represent the FSM arguments. All arguments must be passed by reference and cast to (\lstinline{void *}). For multiple data, create a structure and pass a pointer to that structure.  
 \end{itemize}  
 
-\subsubsection{Changing states and retrieving FSM data}
+\subsubsection{Changing states and retrieving FSM data} \label{qsmhandlerfields} 
 Both, state and surrounding callbacks take a \lstinline{qSM_Handler_t} \index{\lstinline{qSM_Handler_t}} object as input argument, which is basically a pointer to the involved properties of the invoking FSM. The usage of this object it's required to make the FSM moves between states and additionally get extra execution data. The provided fields are:
 
 \begin{itemize}
