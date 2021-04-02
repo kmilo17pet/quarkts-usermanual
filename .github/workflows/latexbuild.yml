@@ -10,3 +10,9 @@ jobs:
         uses: dante-ev/latex-action@master
         with:
           root_file: main.tex
+          
+      - name: Archive production artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: generated-manual
+          path: main.pdf
