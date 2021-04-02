@@ -6,8 +6,7 @@
 void main( void ){
     HAL_Init(); 
     qOS_Setup( HAL_GetTick, TIMER_TICK, IdleTask_Callback );
-    
-    /*
-    TODO: add Tasks to the scheduler scheme and run the OS
+    /* 
+    TODO: add Tasks to the scheduler scheme and run the OS 
     */
 }
