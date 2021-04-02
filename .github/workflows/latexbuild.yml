@@ -20,7 +20,6 @@ jobs:
         run: |
           git checkout --orphan manual
           git reset
-          git rm --cached $(git ls-files)
           git add -f "*.pdf"
           git status
           git commit -m "manual file update"
