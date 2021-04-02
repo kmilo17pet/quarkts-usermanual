@@ -5,7 +5,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Set up Git repository
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false # otherwise, the token used is the GITHUB_TOKEN, instead of your personal token
+          fetch-depth: 0 # otherwise, you will failed to push refs to dest repo        
       - name: Compile LaTeX document
         uses: dante-ev/latex-action@master
         with:
@@ -16,12 +19,17 @@ jobs:
         with:
           name: generated-manual
           path: main.pdf
-      - name: Uploading to the production branch ->manual
+      - name: Updating manual file
         run: |
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"      
           git checkout --orphan manual
           git reset
           git add -f "*.pdf"
           git status
           git commit -m "manual file update"
-          git push origin manual
-          
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: manual
