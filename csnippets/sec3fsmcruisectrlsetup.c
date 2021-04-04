@@ -5,6 +5,7 @@
 #include "CruiseControl_FSM.h"
 
 #define     MAX_SM_SIGNALS     ( 10 )
+qQueue_t SigQueue;
 qSM_Signal_t topsm_sig_stack[ MAX_FSM_SIGNALS ];
 
 int main( void ){
@@ -18,7 +19,8 @@ int main( void ){
                                Top_Idle_State, NULL, qEnabled, NULL); 
                                
     /*Setup the signal-queue for the Top FSM*/
-    qStateMachine_SignalQueueSetup( &Top_SM, topsm_sig_stack, MAX_SM_SIGNALS );
+    qStateMachine_SignalQueueSetup( &Top_SM, &SigQueue, 
+                                    topsm_sig_stack, MAX_SM_SIGNALS );
     
     qStateMachine_TransitionTableInstall( &Top_SM, &Top_ttable, 
                                           Top_SM_ttable, 6 );

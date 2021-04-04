@@ -390,7 +390,7 @@ The signal queue should be installed with \lstinline{qStateMachine_SignalQueueSe
 \medskip
 
 \begin{lstlisting}[style=CStyle]
-qBool_t qStateMachine_SignalQueueSetup( qSM_t * const obj, 
+qBool_t qStateMachine_SignalQueueSetup( qSM_t * const obj, qQueue_t *xQueue,
                                         qSM_Signal_t *AxSignals, 
                                         size_t MaxSignals )
 \end{lstlisting} \index{\lstinline{qStateMachine_SignalQueueSetup}}
@@ -398,6 +398,7 @@ qBool_t qStateMachine_SignalQueueSetup( qSM_t * const obj,
 \subsubsection*{Parameters}
 \begin{itemize}
     \item \lstinline{obj} : A pointer to the FSM object. 
+    \item \lstinline{xQueue} : A pointer to the queue instance. 
     \item \lstinline{AxSignals} : A pointer to signal-queue storage area. A n-array of type \lstinline{qSM_Signal_t[]}.
     \item \lstinline{MaxSignals} : The number of event-signals that the queue can hold.
 \end{itemize}
@@ -424,13 +425,13 @@ qBool_t qStateMachine_SendSignal( qSM_t * const obj, qSM_Signal_t signal,
 \end{itemize}
 
 \subsubsection*{Return Value}
-\lstinline{qTrue} if the provided signal was successfully delivered to the FSM, otherwise return \lstinline{qFalse}.
+\lstinline{qTrue} if the provided signal was successfully delivered, otherwise return \lstinline{qFalse}.
 
 \hrulefill
 \medskip
 
 \begin{tcolorbox}
-\HandRight A FSM can be better exploited if it has both features, the signal queue and the transition table.
+\HandRight A FSM with a transition table performs better if it has a signal queue.
 \end{tcolorbox}
 
 \begin{tcolorbox}
