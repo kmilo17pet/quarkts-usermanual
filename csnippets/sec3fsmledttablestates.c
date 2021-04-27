@@ -1,48 +1,32 @@
-void SurroundingState_LED( qSM_Handler_t m ){
-    switch( m->LastReturnStatus ){
-        case qSM_BEFORE_ANY:
-            if( qSTimer_Expired( &LED_FSM_Timeout ) ){
-                qStateMachine_SendSignal( &LED_FSM, SIGNAL_TIMEOUT, qFalse );
-            }
-        default:
-            break
-    }
-}
-/*---------------------------------------------------------------------*/
-qSM_Status_t State_LED_Off( qSM_Handler_t m ){
-    switch( m->Signal ){
+qSM_Status_t State_LEDOff_Callback( qSM_Handler_t h ){
+    switch( h->Signal ){
         case QSM_SIGNAL_ENTRY:
             BSP_LED_OFF();
             break;
         default:
             break;
     }
-    return qSM_EXIT_SUCCESS;
+    return qSM_STATUS_EXIT_SUCCESS;
 }
 /*---------------------------------------------------------------------*/
-qSM_Status_t State_LED_On( qSM_Handler_t m ){
-    switch( m->Signal ){
+qSM_Status_t State_LEDOn_Callback( qSM_Handler_t h ){
+    switch( h->Signal ){
         case QSM_SIGNAL_ENTRY:
-            qSTimer_Set( &LED_FSM_Timeout, 10.0 ); /*STimer gets armed*/
             BSP_LED_ON();
             break;
         default:
             break;    
     }
-    return qSM_EXIT_SUCCESS;
+    return qSM_STATUS_EXIT_SUCCESS;
 }
 /*---------------------------------------------------------------------*/
-qSM_Status_t State_LED_Blink( qSM_Handler_t m ){
-    static qSTimer_t blinktime;
-    switch( m->Signal ){
-        case QSM_SIGNAL_ENTRY:
-            qSTimer_Set( &LED_FSM_Timeout, 10.0 );
+qSM_Status_t State_LEDBlink_Callback( qSM_Handler_t h ){
+    switch( h->Signal ){
+        case SIGNAL_BLINK:
+            BSP_LED_TOGGLE();
             break;
         default:
-            if( qSTimer_FreeRun( &blinktime, 0.5 ) ){
-                BSP_LED_TOGGLE();
-            }        
             break;        
     }
-    return qSM_EXIT_SUCCESS;
+    return qSM_STATUS_EXIT_SUCCESS;
 }

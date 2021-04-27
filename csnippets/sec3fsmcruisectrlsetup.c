@@ -1,35 +1,15 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include "QuarkTS.h"
-#include "HAL.h"
-#include "CruiseControl_FSM.h"
+qStateMachine_Setup( &Top_SM, state_top_callback, &state_idle, NULL, NULL );
+/*subscribe to the highest level states*/
+qStateMachine_StateSubscribe( &Top_SM, &state_idle, NULL, state_idle_callback, NULL, qFalse ); 
+qStateMachine_StateSubscribe( &Top_SM, &state_initial, NULL, state_initial_callback, NULL, qFalse ); 
+qStateMachine_StateSubscribe( &Top_SM, &state_cruisingoff, NULL, state_cruisingoff_callback, NULL, qFalse );
+qStateMachine_StateSubscribe( &Top_SM, &state_automatedcontrol, NULL, state_automatedcontrol_callback, NULL, qFalse );
+/*subscribe to the states within the state_automatedcontrol*/
+qStateMachine_StateSubscribe( &Top_SM, &state_accelerating, &state_automatedcontrol, state_accelerating_callback, NULL, qFalse );
+qStateMachine_StateSubscribe( &Top_SM, &state_resuming, &state_automatedcontrol, state_resuming_callback, NULL, qFalse );
+qStateMachine_StateSubscribe( &Top_SM, &state_cruising, &state_automatedcontrol, state_cruising_callback, NULL, qFalse );
 
-#define     MAX_SM_SIGNALS     ( 10 )
-qQueue_t SigQueue;
-qSM_Signal_t topsm_sig_stack[ MAX_FSM_SIGNALS ];
-
-int main( void ){
-    qOS_Setup( HAL_GetTick, 0.001f, NULL ); 
-    /*Setup the automated control FSM*/
-    qStateMachine_Setup( &AC_SM, AC_Accelerating_State, NULL );
-    qStateMachine_TransitionTableInstall( &AC_SM, &AC_ttable, 
-                                          AutomatedControl_SM_ttable, 6 );
-    /*Setup a FSM task for the Top FSM*/    
-    qOS_Add_StateMachineTask(  &SMTask, qMedium_Priority, 0.1f, &Top_SM, 
-                               Top_Idle_State, NULL, qEnabled, NULL); 
-                               
-    /*Setup the signal-queue for the Top FSM*/
-    qStateMachine_SignalQueueSetup( &Top_SM, &SigQueue, 
-                                    topsm_sig_stack, MAX_SM_SIGNALS );
-    
-    qStateMachine_TransitionTableInstall( &Top_SM, &Top_ttable, 
-                                          Top_SM_ttable, 6 );
-    /*Set the Automated Control state as composite using the AC_SM */
-    qStateMachine_Set_CompositeState( &Top_SM, Top_AutomatedControl_State, 
-                                      &AC_SM );
-    /*Improve the FSM signal handling for the owner task*/
-    qOS_StateMachineTask_SigCon( &SMTask );
-
-    qOS_Run();
-    return EXIT_SUCCESS;
-}
+qQueue_Setup( &top_sigqueue, topsm_sig_stack, sizeof(qSM_Signal_t), qFLM_ArraySize(topsm_sig_stack) );
+qStateMachine_InstallSignalQueue( &Top_SM, &top_sigqueue );
+qStateMachine_InstallTransitionTable( &Top_SM, table, qFLM_ArraySize(table) );
+qOS_Add_StateMachineTask(  &CruiseControlTask, &Top_SM, qMedium_Priority, 0.1f, qEnabled, NULL  );  

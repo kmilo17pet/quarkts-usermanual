@@ -1,0 +1,38 @@
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[initial text={...}, ->,>=stealth',shorten >=1pt,auto,node distance=1.8cm, semithick]
+        \draw[dotted] (0.8,-1) -- (6.2,-1) -- (6.2,1) -- (0.8,1) -- (0.8,-1 ) -- cycle;
+        \node[dashed, initial,state]            (A)              {$P_{-1}$};
+        \node[fill=gray!20, state]              (B) [right of=A] {$S_u$};
+        \node[fill=gray!80, state, accepting]   (C) [right of=B] {$P$};
+        \node[fill=gray!20, state]              (D) [right of=C] {$S_u$};
+        \node[dashed, state]                    (E) [right of=D] {$P_{+1}$};
+        \node[state,draw=none]                  (H) [right of=E] {};
+        %\node at (9.99, 0.4)   (D1) [font=\ttfamily, text width=2cm]{\tiny NextState};    
+        %\node at (9.99, 0.2)   (D2) [font=\ttfamily, text width=2cm]{\tiny = P+1};  
+        %\node at (9.99, 2.2)   (D3) [font=\ttfamily, text width=2cm]{\tiny NextState};
+        %\node at (9.99, 2.0)   (D4) [font=\ttfamily, text width=2cm]{\tiny unchanged};
+        %\node at (6.40, 1.2)   (D4) [font=\ttfamily, text width=2cm, rotate=45]{\tiny qSM\_EXIT\_SUCCESS};
+        %\node at (6.4, -1.2)   (D4) [font=\ttfamily, text width=2cm, rotate=-45]{\tiny qSM\_EXIT\_FAILURE};
+        %\node at (6.99, 0.2)   (D4) [font=\ttfamily, text width=2cm]{\tiny -32766};
+        %\node at (6.89, -0.2)   (D4) [font=\ttfamily, text width=2cm]{\tiny to 32767};
+        \node at (0.3,-0.8)   (D5) [text width=1.5cm]{\tiny Previous};    
+        \node at (2.1,-0.8)   (D6) [text width=1.5cm]{\tiny BeforeAny};
+        \node at (4.0,-0.8)   (DX) [text width=1.5cm]{\tiny Current};
+        %\node at (3.9,-0.4)   (DY) [text width=1.5cm]{\tiny table};
+        %\node at (3.9,-0.6)   (DY) [text width=1.5cm]{\tiny evaluation};
+        \node at (5.65,-0.8)   (D7) [text width=1.5cm]{\tiny $P$ return value};
+        \node at (7.6,-0.8)    (D8) [text width=1.5cm]{\tiny Next};
+        %\node at (7.29,-0.6)   (D9) [text width=1.5cm]{\tiny Unexpected};
+        %\node at (7.59,-2.5)   (DA) [text width=1.5cm]{\tiny Failure};
+        %\node at (11.29,-0.8)   (DB) [text width=1.5cm]{\tiny Other};
+
+        \path   (A) edge node {} (B)
+                (B) edge node {} (C) 
+                (C) edge node {} (D)
+                (D) edge node {} (E);
+                (E) edge node {} (H);
+    \end{tikzpicture}
+    \caption{Surrounding callback ($S_u$) invocation after and before the \textit{current} state ($P$)}
+    \label{fig:substates}
+\end{figure}

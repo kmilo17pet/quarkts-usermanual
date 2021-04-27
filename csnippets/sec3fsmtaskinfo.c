@@ -1,7 +1,7 @@
-qSM_Status_t Example_State( qSM_Handler_t m ){
-    qEvent_t e = m->Data; 
+qSM_Status_t Example_State( qSM_Handler_t h ){
+    qEvent_t e = h->Data; 
     /* Get the event info of the task that owns this state-machine*/
-    switch( m->Signal ){
+    switch( h->Signal ){
         case QSM_SIGNAL_ENTRY:
             break;
         case QSM_SIGNAL_EXIT:
@@ -22,5 +22,5 @@ qSM_Status_t Example_State( qSM_Handler_t m ){
             /* TODO: State code */
             break;
     }
-    return qSM_EXIT_SUCCESS;
+    return qSM_STATUS_EXIT_SUCCESS;
 }

@@ -1,20 +1,25 @@
 /*define the FSM application event-signals*/
-#define SIGNAL_BUTTON_PRESSED  ( (qSM_Signal_t)1 )
-#define SIGNAL_TIMEOUT         ( (qSM_Signal_t)2 )
+#define SIGNAL_BUTTON_PRESSED   ( (qSM_Signal_t)1 )
+#define SIGNAL_TIMEOUT          (QSM_SIGNAL_TIMEOUT(0))
+#define SIGNAL_BLINK            (QSM_SIGNAL_TIMEOUT(1))
 
 qTask_t LED_Task; /*The task node*/
 qSM_t LED_FSM; /*The state-machine handler*/
-qSM_TransitionTable_t LED_FSM_TransTable; /*the FSM transition table*/
+qSM_State_t State_LEDOff, State_LEDOn, State_LEDBlink;
+qQueue_t LEDsigqueue; /*the signal-queue*/ 
+qSM_Signal_t led_sig_stack[5];  /*the signal-queue storage area*/
+
 /*create the transition table entries with the desired FSM behavior*/
-qSM_Transition_t LED_FSM_TransEntries[] = {
-{ State_LED_Off, SIGNAL_BUTTON_PRESSED, State_LED_On, NULL, NULL, NULL },
-{ State_LED_On, SIGNAL_TIMEOUT, State_LED_Off, NULL, NULL, NULL },
-{ State_LED_On, SIGNAL_BUTTON_PRESSED, State_LED_Blink, NULL, NULL, NULL },
-{ State_LED_Blink, SIGNAL_TIMEOUT, State_LED_Off, NULL, NULL, NULL },
-{ State_LED_Blink, SIGNAL_BUTTON_PRESSED, State_LED_Off, NULL, NULL, NULL }
+qSM_Transition_t LED_TTableEntries[] = {
+    { &State_LEDOff,   SIGNAL_BUTTON_PRESSED, NULL, &State_LEDOn },
+    { &State_LEDOn,    SIGNAL_TIMEOUT,        NULL, &State_LEDOff },
+    { &State_LEDOn,    SIGNAL_BUTTON_PRESSED, NULL, &State_LEDBlink },
+    { &State_LEDBlink, SIGNAL_TIMEOUT,        NULL, &State_LEDOff },
+    { &State_LEDBlink, SIGNAL_BUTTON_PRESSED, NULL, &State_LEDOff }
 };
-/*create the instance and the memory area for the signal-queue*/
-qQueue_t LED_SigQueue;
-qSM_Signal_t LED_FSM_SignalArea[4];
-/*the timeout object*/
-qSTimer_t LED_FSM_Timeout = QSTIMER_INITIALIZER;
+/*create the timeout specifications*/
+qSM_TimeoutStateDefinition_t LED_timeouts[]={
+    { &State_LEDOn,     10.0f,  QSM_TSOPT_INDEX(0) | QSM_TSOPT_SET_ENTRY | QSM_TSOPT_RST_EXIT  },
+    { &State_LEDBlink,  10.0f,  QSM_TSOPT_INDEX(0) | QSM_TSOPT_SET_ENTRY | QSM_TSOPT_RST_EXIT  },
+    { &State_LEDBlink,  0.5f,   QSM_TSOPT_INDEX(1) | QSM_TSOPT_SET_ENTRY | QSM_TSOPT_RST_EXIT | QSM_TSOPT_PERIODIC  },
+};

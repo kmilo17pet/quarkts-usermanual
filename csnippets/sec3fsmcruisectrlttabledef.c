@@ -1,60 +1,37 @@
-#define QSM_SIGNAL_ENGINE_ON            ((qSM_Signal_t)(1))
-#define QSM_SIGNAL_ACCEL                ((qSM_Signal_t)(2))
-#define QSM_SIGNAL_CRUISE               ((qSM_Signal_t)(3))
-#define QSM_SIGNAL_OFF                  ((qSM_Signal_t)(4))
-#define QSM_SIGNAL_RESUME               ((qSM_Signal_t)(5))
-#define QSM_SIGNAL_BRK_PRESSED          ((qSM_Signal_t)(6))
-#define QSM_SIGNAL_REACHED_CRUISING     ((qSM_Signal_t)(7))
-#define QSM_SIGNAL_ENGINE_OFF           ((qSM_Signal_t)(8))
+#define  SIGNAL_ENGINE_ON           ((qSM_Signal_t)(1))   
+#define  SIGNAL_ACCEL               ((qSM_Signal_t)(2))
+#define  SIGNAL_RESUME              ((qSM_Signal_t)(3))
+#define  SIGNAL_OFF                 ((qSM_Signal_t)(4))
+#define  SIGNAL_BRAKE_PRESSED       ((qSM_Signal_t)(5))
+#define  SIGNAL_CRUISE              ((qSM_Signal_t)(6))     
+#define  SIGNAL_REACHED_CRUISING    ((qSM_Signal_t)(7))
+#define  SIGNAL_ENGINE_OFF          ((qSM_Signal_t)(8))
 
-qTask_t SMTask; /* The FSM task */
-qSM_t Top_SM; /* Top state machine */
-qSM_t AC_SM; /* Automated Control state-machine*/
-qSM_TransitionTable_t Top_ttable, AC_ttable; /*transition table handlers*/
+qTask_t CruiseControlTask;
+qSM_t Top_SM;
+
+/*highest level states*/
+qSM_State_t state_idle, state_initial, state_cruisingoff, state_automatedcontrol;
+/*states inside the state_automatedcontrol*/
+qSM_State_t state_accelerating, state_cruising, state_resuming;
+
+qQueue_t top_sigqueue;
+qSM_Signal_t topsm_sig_stack[10];
 
 /*=======================================================================*/
-/*                             TRANSITION TABLES                         */
+/*                             TRANSITION TABLE                          */
 /*=======================================================================*/
-qSM_Transition_t Top_SM_ttable[]={
-
-{ Top_Idle_State, QSM_SIGNAL_ENGINE_ON, Top_Initial_State,  
-SigAct_ClearDesiredSpeed, NULL, NULL },
-
-{ Top_Initial_State, QSM_SIGNAL_ACCEL, Top_AutomatedControl_State, 
-SigAct_CheckBrake, &AC_SM, AC_Accelerating_State },
-
-{ Top_AutomatedControl_State, QSM_SIGNAL_BRK_PRESSED, Top_CruisingOff_State, 
-NULL, NULL, NULL },
-
-{ Top_CruisingOff_State, QSM_SIGNAL_ENGINE_OFF, Top_Idle_State, 
-NULL, NULL, NULL },
-
-{ Top_CruisingOff_State, QSM_SIGNAL_ACCEL, Top_AutomatedControl_State, 
-SigAct_CheckBrake, &AC_SM, AC_Accelerating_State },
-
-{ Top_CruisingOff_State, QSM_SIGNAL_RESUME, Top_AutomatedControl_State, 
-SigAct_CheckBrake, &AC_SM, AC_Resuming_State },
-
+qSM_Transition_t table[] =
+{
+{ &state_idle, SIGNAL_ENGINE_ON, SigAct_ClearDesiredSpeed, &state_initial },
+{ &state_initial, SIGNAL_ACCEL, SigAct_BrakeOff, &state_accelerating },
+{ &state_accelerating, SIGNAL_CRUISE, NULL, &state_cruising },    
+{ &state_cruising, SIGNAL_OFF, NULL, &state_cruisingoff },  
+{ &state_cruising, SIGNAL_ACCEL, NULL, &state_accelerating }, 
+{ &state_resuming, SIGNAL_ACCEL, NULL, &state_accelerating }, 
+{ &state_cruisingoff, SIGNAL_ACCEL, SigAct_BrakeOff, &state_accelerating }, 
+{ &state_cruisingoff, SIGNAL_RESUME, SigAct_BrakeOff, &state_resuming },  
+{ &state_cruisingoff, SIGNAL_ENGINE_OFF, NULL, &state_idle },      
+{ &state_automatedcontrol, SIGNAL_BRAKE_PRESSED, NULL, &state_cruisingoff },   
 };
 /*---------------------------------------------------------------------*/
-qSM_Transition_t AutomatedControl_SM_ttable[]={
-
-{ AC_Accelerating_State, QSM_SIGNAL_CRUISE, AC_Cruising_State,
-NULL, NULL, NULL },
-
-{ AC_Cruising_State, QSM_SIGNAL_ACCEL, AC_Accelerating_State,
-NULL, NULL, NULL },
-
-{ AC_Resuming_State, QSM_SIGNAL_ACCEL, AC_Accelerating_State, 
-NULL, NULL, NULL },
-
-{ AC_Resuming_State, QSM_SIGNAL_REACHED_CRUISING, AC_Cruising_State,
-NULL, NULL, NULL },
-
-{ AC_Resuming_State,  QSM_SIGNAL_OFF, NULL,  
-NULL, &Top_SM, Top_CruisingOff_State },    
-
-{ AC_Cruising_State, QSM_SIGNAL_OFF, NULL, 
-NULL, &Top_SM, Top_CruisingOff_State },    
-
-};

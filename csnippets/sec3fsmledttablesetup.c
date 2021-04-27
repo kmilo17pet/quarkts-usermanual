@@ -1,8 +1,10 @@
-qOS_Add_StateMachineTask( &LED_Task, qHigh_Priority, 0.1, &LED_FSM, 
-                          State_LED_Off, SurroundingState_LED,
-                          qEnabled, NULL );
-qStateMachine_TransitionTableInstall( &LED_FSM, &LED_FSM_TransTable,   
-                                     LED_FSM_TransEntries, 5 );
-qStateMachine_SignalQueueSetup( &LED_FSM, &LED_SigQueue, LED_FSM_SignalArea, 
-                                qFLM_ArraySize(LED_FSM_SignalArea) ):
-qOS_StateMachineTask_SigCon( &LED_Task ); /*improve table signal-response*/       
+qStateMachine_Setup( &LED_FSM, NULL, &State_LEDOff, NULL, NULL ); 
+qStateMachine_StateSubscribe( &LED_FSM, &State_LEDOff, NULL, State_LEDOff_Callback, NULL, qFalse ); 
+qStateMachine_StateSubscribe( &LED_FSM, &State_LEDOn, NULL, State_LEDOn_Callback, NULL, qFalse );
+qStateMachine_StateSubscribe( &LED_FSM, &State_LEDBlink, NULL, State_LEDBlink_Callback, NULL, qFalse ); 
+
+qQueue_Setup( &LEDsigqueue, led_sig_stack, sizeof(qSM_Signal_t), qFLM_ArraySize(led_sig_stack) );
+qStateMachine_InstallSignalQueue( &LED_FSM, &LEDsigqueue );
+qStateMachine_InstallTransitionTable( &LED_FSM, LED_TTableEntries, qFLM_ArraySize(LED_TTableEntries) );
+qStateMachine_InstallTimeoutSpec( &LED_FSM, &tm_spectimeout, LED_timeouts, qFLM_ArraySize(LED_timeouts) );
+qOS_Add_StateMachineTask(  &LED_Task, &LED_FSM, qMedium_Priority, 0.1f, qEnabled, NULL  );   

@@ -99,89 +99,175 @@ The example below shows a simple usage of this object. It is noteworthy that arm
 
 \lstinputlisting[style=CStyle]{sec3stimers.c}
 
-\subsection{Finite State Machines (FSM)}
-The state machine is one of the fundamental programming patterns that is used frequently for solving complex engineering problems. This approach breaks down the design into a series of finite steps called "states" that perform some narrowly defined actions. A state can change to another as consequence of incoming stimuli also called events or signals. 
-The provided implementation features a powerful coding abstraction including hierarchical patterns and transition tables, allowing to build scalable solutions from simple state-machines to complex statecharts. 
+\subsection{Finite State Machines (SM)}
+The state machine is one of the fundamental programming patterns that are most commonly used. This approach breaks down the design into a series of finite steps called "states" that perform some narrowly defined actions. Every state can change to another as a consequence of incoming stimuli also called events or signals. This elemental mechanism allows designers to solve complex engineering problems in a very straightforward way.
+Knowing the importance of this approach in the development of embedded applications, the OS adopts this design pattern as a kernel module.
 
-In QuarkTS, states must be defined as functions taking a \lstinline{qSM_Handler_t} object and returning a \lstinline{qSM_Status_t} value. An example is shown in the following code snippet:
-\medskip
-
-\begin{lstlisting}[style=CStyle]
-qSM_Status_t Example_State( qSM_Handler_t m ){
-    /* TODO: State code */
-    return qSM_EXIT_SUCCESS;
-}
-\end{lstlisting}    
-
-At any given moment in time, the FSM can be in only a single state. The state that is currently occupied by the FSM is called \textit{current state} ($P$).
-
-As shown above, the return value represents the exit status of the state, and it can be handled an additional \textit{surrounding state}($S_u$) established at the moment of the FSM setup. The values allowed to return are listed below.
+In an effort to maximize efficiency and minimize complexity, the module implements the basic features of the Harel statecharts to represent hierarchical state machines. This features form a proper subset that approaches in a very minimalist way, some of the specifications of the UML statecharts, including:
 
 \begin{itemize}
-    \item \lstinline{qSM_EXIT_SUCCESS(-32767)}.
-    \item \lstinline{qSM_EXIT_FAILURE(-32766)}.
-    \item Any other integer value between \lstinline{-32764} and \lstinline{32767}.
+    \item Nested states with proper handling of group transitions and group reactions.
+    \item Guaranteed execution of entry/exit actions upon entering/exiting states.
+    \item Straightforward transitions and guards.
 \end{itemize} 
 
-This workflow between \textit{current} and \textit{surrounding} state is shown in the graph below: 
-\input{fig/substates.tex}
+In addition to this, the provided implementation also features a powerful coding abstraction including transition tables and timeout signals, allowing to build scalable solutions from simple state-machines to complex statecharts. 
 
-Figure \ref{fig:substates}  shows that the \textit{surrounding state} (if enabled), is implicitly linked in the workflow to every state in the FSM. The surrounding state can take any of the following execution cases:
+\subsubsection{The provided approach}
 
-\begin{itemize}
-    \item \textit{BeforeAny} : Performed in every FSM cycle. As its name implies, it is launched before the \textit{current state} executes. 
-    
-    \item \textit{Success} : This case is conditioned to the exit status of the \textit{current state}. If \textit{current state} has exited with  \lstinline{qSM_EXIT_SUCCESS}, the surrounding will be launched with this flag set. It can be used to perform the actions of the \textit{current state}, for example, if a certain state is controlling an output, its value would only be written if the state has ended correctly.
-    
-    \item \textit{Failure} : Same behavior as the previous one, but instead, is conditioned to the exit value \lstinline{qSM_EXIT_FAILURE}. It can be used to handle exceptions.
-    
-    \item \textit{Unexpected} : Same behavior as \textit{Failure} and \textit{Success}, but instead, is conditioned to an exit value between \lstinline{-32764} and \lstinline{32767}. The applications for this should be defined by the application writer.
-\end{itemize}
+In QuarkTS, a state-machine must be instantiated with an object of type \lstinline{qSM_t}. States are represented as instances of the \lstinline{qSM_State_t} object. Here, the state machines are constructed by composition.
 
-\begin{tcolorbox}
-\ArrowBoldDownRight \textit{Note}: The execution case of the \textit{surrounding state} can be queried using the \lstinline{LastReturnStatus} field inside the \lstinline{qSM_Handler_t} argument. Please, see section \ref{qsmhandlerfields} for details.
-\end{tcolorbox}
+\input{fig/fsmdesign}
+
+One important attribute of the \lstinline{qSM_State_t} object is the callback function, to describe the behavior specific to the state and a pointer to the parent state to define nesting of the state.
+As shown in the figure, a state machine consist of a least one state the "top level" state.
+So concrete state machine are built by adding an arbitrary number states and defining callback functions.
 
 \subsubsection{Setting up a state machine : \texorpdfstring{\lstinline{qStateMachine_Setup}}{qStateMachine_Setup} }
-Like any other OS object, a Finite State Machine (FSM) must be explicitly initialized before it can be used. FSMs are referenced by handles, which are variables of type \lstinline{qSM_t}. \index{\lstinline{qSM_t}}
-The \lstinline{qStateMachine_Setup()} API \index{\lstinline{qStateMachine_Setup}}  initializes the instance, sets the initial state and the surrounding state.
+Like any other OS object, a Finite State Machine (FSM) must be explicitly initialized before it can be used. The \lstinline{qStateMachine_Setup()} API \index{\lstinline{qStateMachine_Setup}}  initializes the instance, sets the callback for the top state, sets the initial state and the surrounding callback function.
 \medskip
 
 \begin{lstlisting}[style=CStyle]
-qBool_t qStateMachine_Setup( qSM_t * const obj, qSM_State_t InitState, 
-                             qSM_SurroundingState_t *Surrounding );
+qBool_t qStateMachine_Setup(qSM_t * const m, qSM_StateCallback_t topCallback, 
+                            qSM_State_t * const childstart, 
+                            qSM_SurroundingCallback_t surrounding, void *Data )
 \end{lstlisting}
 
 \subsubsection*{Parameters}
 \begin{itemize}
-    \item \lstinline{obj} : A pointer to the FSM object.
-    \item \lstinline{InitState} :  The first state to be performed. This argument is a pointer to a callback function, returning \lstinline{qSM_Status_t} and with a \lstinline{qSM_Handler_t} variable as input argument.
-    \item \lstinline{Surrounding} : The surrounding state. To ignore pass \lstinline{NULL}   
+    \item \lstinline{m} : A pointer to the FSM object.
+    \item \lstinline{topCallback} :  The callback for the "Top" state. This argument is a pointer to a callback function, returning \lstinline{qSM_Status_t} and with a \lstinline{qSM_Handler_t} variable as input argument.
+    \item \lstinline{childstart} : The first state to be executed (init-state). 
+    \item \lstinline{Surrounding} : The surrounding callback function. To ignore pass \lstinline{NULL}.
+    \item \lstinline{Data} : Represents the FSM arguments. To ignore pass \lstinline{NULL}. All arguments must be passed by reference and cast to (void *). Only one argument is allowed, so, for multiple arguments, create a structure that contains all of the arguments and pass a pointer to that structure. 
 \end{itemize}  
 
 \begin{tcolorbox}
 \ArrowBoldDownRight \textit{Note}: For the \lstinline{Surrounding} argument, a \lstinline{NULL} value will act as a "disable" action.
 \end{tcolorbox}
 
-Unlike normal states, the \textit{Surrounding} state should not return anything, thus, the callback for this special state should be written as:
+
+\subsubsection{Subscribing states and defining callbacks: }
+State  machines  are constructed by composition, therefore, the topology of a state machine is determined upon construction.
+In this module implementation. there are not distinction between composite states(states containing substates) and leaf states. All states are potentially composite. 
+The API \lstinline{qStateMachine_StateSubscribe} should be used to initialize the state and define its position in the topology.
 \medskip
 
 \begin{lstlisting}[style=CStyle]
-void SurroundingState_Example( qSM_Handler_t m ){
-    switch( h->LastReturnStatus ){
-        case qSM_BEFORE_ANY:
+qBool_t qStateMachine_StateSubscribe( qSM_t * const m, 
+                                      qSM_State_t * const state, 
+                                      qSM_State_t * const parent, 
+                                      qSM_StateCallback_t StateFcn, 
+                                      qSM_State_t * const ChildStart, 
+                                      const qBool_t KeepHistory )
+\end{lstlisting}
+
+\subsubsection*{Parameters}
+\begin{itemize}
+    \item \lstinline{m} : a pointer to the FSM object.
+    \item \lstinline{state} :  A pointer to the state object.
+    \item \lstinline{parent} : A pointer to the parent state. Pass \lstinline{NULL} if this state its a child of the \textit{Top} state.
+    \item \lstinline{StateFcn} : The handler function associated to the state. 
+    
+                                 Prototype: \lstinline{ qSM_Status_t xCallback( qSM_Handler_t h ) }.
+    \item \lstinline{ChildStart} : The first child-state to be executed if the subscribed state its a parent in an hierarchical pattern. To ignore pass \lstinline{NULL} as argument.
+    \item \lstinline{KeepHistory} : \lstinline{qTrue} to keep the shallow history of the subscribed state.
+\end{itemize}  
+
+A state callback-functions takes a \lstinline{qSM_Handler_t} object as input argument and returns a \lstinline{qSM_Status_t} value. An example is shown in the following code snippet:
+\medskip
+
+\begin{lstlisting}[style=CStyle]
+qSM_Status_t ExampleState_Callback( qSM_Handler_t h ){
+    /* TODO: State code */
+    return qSM_STATUS_EXIT_SUCCESS;
+}
+\end{lstlisting} 
+
+
+\subsubsection{The state callback handler : Performing transitions and retrieving data : }
+
+Because callback functions are methods derived from the state machine object, they have direct access to some attributes via the \lstinline{qSM_Handler_t} argument. 
+The usage of this object it's required to make the FSM moves between states and additionally get extra data. The provided attributes are:
+
+\begin{itemize}
+    \item \lstinline{NextState} : Desired next state. The application writer should change this field to another state to produce a state transition in the next FSM's cycle. Changing this field will only take effect when the states is executed under user-defined signals or in the absence of signals \lstinline{QSM_SIGNAL_NONE}.
+    \item \lstinline{StartState} :  Desired nested initial state. The application writer should change this field to set the initial state if the current state its a parent(or composite state). Changing this field will only take effect when the state is executed under the \lstinline{QSM_SIGNAL_START} signal.
+    \item \lstinline{machine} (read-only):  A generic pointer to the container state machine.
+    \item \lstinline{Data} (read-only): State-machine associated data. If the FSM is running as a task, the associated event data can be queried through this field. (here, a cast to \lstinline{qEvent_t} is mandatory).
+    \item \lstinline{Signal} (read-only): Received signal. \lstinline{QSM_SIGNAL_NONE} if no signal available. \lstinline{QSM_SIGNAL_ENTRY} if the current state has just entered from another state. \lstinline{QSM_SIGNAL_START} to set nested initial transitions by using the \lstinline{StartState} attribute. \lstinline{QSM_SIGNAL_EXIT} if the current state has just exit to another state. Any other user-defined signal will reside here.
+    \item \lstinline{Status} (read-only): The exit(or return) status of the last state. Should be used in the \textit{Surrounding} callback to perform the corresponding actions for every value. On states callback will take the value \lstinline{qSM_STATUS_NULL};
+\end{itemize}
+
+
+Within the callback function of every state, only one level of dispatching (based on the signal) is necessary. Typically this is archived using a single-level switch statement.
+Callback functions communicate with the state machine engine through the \lstinline{qSM_Handler_t} and the return value of type \lstinline{qSM_Status_t}.
+
+The semantic is simple, if a signal is processed, the callback functions returns the status value \lstinline{qSM_STATUS_SIGNAL_HANDLED}. otherwise it throws the signal for further processing by higher-level states. Also, this returning mechanism can be used to handle exceptions by using the surrounding callback.
+
+\textit{Entry/Exit} actions and default transitions are also implemented inside the callback function in response of pre-defined signals. \lstinline{QSM_SIGNAL_ENTRY}, \lstinline{QSM_SIGNAL_EXIT} and \lstinline{QM_SIGNAL_START}.
+The state machine generates and dispatches this signals to appropriates handlers upon state transitions.
+
+The example below shows what a status callback should look like including the use of the handler.
+\medskip
+
+\begin{lstlisting}[style=CStyle]
+qSM_Status_t ExampleState_Callback( qSM_Handler_t h ){
+    switch( h ){
+        case QSM_SIGNAL_START:
+            break;
+        case QSM_SIGNAL_ENTRY:
+            break;
+        case QSM_SIGNAL_EXIT:
+            break;
+        case USER_DEFINED_SIGNAL:
+            h->NextState  =  &OtherState; /*transition*/
+            break;
+        default:
+            break;
+    }
+    return qSM_STATUS_EXIT_SUCCESS;
+}
+\end{lstlisting} 
+
+As shown above, the return value represents the exit status of the state, and it can be handled with an additional \textit{surrounding} callback function ($S_u$) established at the moment of the FSM setup. The values allowed to return are listed below.
+
+\begin{itemize}
+    \item \lstinline{qSM_STATUS_EXIT_SUCCESS}.
+    \item \lstinline{qSM_STATUS_EXIT_FAILURE}.
+    \item \lstinline{qSM_STATUS_SIGNAL_HANDLED}.
+    \item Any other integer value between \lstinline{-32762} and \lstinline{32767}.
+\end{itemize} 
+
+The developer is free to write and control state transitions. A state jumps from one to another by changing the \lstinline{NextState} attribute. Transitions are only allowed under the availability of user-defined signals. Transitions are not allowed at an entry point (\lstinline{QSM_SIGNAL_ENTRY}), exit point (\lstinline{QSM_SIGNAL_EXIT}), or a start point (\lstinline{QSM_SIGNAL_START}).
+
+
+\subsubsection{The surrounding callback}
+It is a checkpoint before and after each state executes its activities through its callback. The behavior of this surrounding callback must be defined by the programmer.
+
+\input{fig/surrounding}
+
+When the surrounding callback is executed, it indicates its own checkpoint through the status attribute of the \lstinline{qSM_Handler_t} argument.
+
+Unlike a state callback, the \textit{Surrounding} callback should not return anything, thus, the callback should be written as:
+\medskip
+
+\begin{lstlisting}[style=CStyle]
+void SurroundingCallback_Example( qSM_Handler_t m ){
+    switch( h->Status ){
+        case qSM_STATUS_BEFORE_ANY:
             /* TODO: before any code */
             break;
-        case qSM_EXIT_SUCCESS:
+        case qSM_STATUS_EXIT_FAILURE:
             /* TODO: success code */
             break;
-        case qSM_EXIT_FAILURE:
+        case qSM_STATUS_EXIT_SUCCESS:
             /* TODO: failure code */
             break;
-        case 0: 
-            /* TODO: used defined*/
-            break;
-        case 1:
+        case qSM_STATUS_SIGNAL_HANDLED:
+            /* TODO: failure code */
+            break;            
+        case 5: /*user defined return value*/ 
             /* TODO: used defined*/
             break;
         default: 
@@ -191,70 +277,43 @@ void SurroundingState_Example( qSM_Handler_t m ){
 }
 \end{lstlisting}  
 
-As you can see in the example below, the surrounding execution case its checked through the FSM handle using the \lstinline{LastReturnStatus} field.
-
-If the Surrounding state its not defined at the moment of the FSM setup, they can be later installed using the function  \lstinline{qStateMachine_Attribute}.
-\medskip
-
+As you can see in the example below, the surrounding execution case its checked through the FSM handle by reading the \lstinline{Status} field.
 
 \subsubsection{Running a state machine : \texorpdfstring{\lstinline{qStateMachine_Run}}{qStateMachine_Run} }
-This API \index{\lstinline{qStateMachine_Run}} is used to execute the Finite State Machine. Only a single cycle is performed invoking the callback of the current active state (including nested states of the hierarchical topology), and of course, the surrounding state according to figure \ref{fig:substates}. 
+
+This API \index{\lstinline{qStateMachine_Run}} is used to execute the Finite State Machine. Only a single cycle is performed propagating the input signal until it is handled.
 \medskip
 
 \begin{lstlisting}[style=CStyle]
-void qStateMachine_Run( qSM_t * const obj, void *Data )
+qBool_t qStateMachine_Run( qSM_t * const m, qSM_Signal_t xSignal )
 \end{lstlisting}
 
 \subsubsection*{Parameters}
 \begin{itemize}
     \item \lstinline{obj} : a pointer to the FSM object.
-    \item \lstinline{Data} : FSM associated data. Also can be used to represent the FSM arguments. All arguments must be passed by reference and cast to (\lstinline{void *}). For multiple data, create a structure and pass a pointer to that structure.  
+    \item \lstinline{xSignal} :  User-defined signal (this value will be ignored if the installed queue has items available)
 \end{itemize}  
 
-\subsubsection{Changing states and retrieving FSM data} \label{qsmhandlerfields} 
-Both, state and surrounding callbacks take a \lstinline{qSM_Handler_t} \index{\lstinline{qSM_Handler_t}} object as input argument, which is basically a pointer to the involved properties of the invoking FSM. The usage of this object it's required to make the FSM moves between states and additionally get extra execution data. The provided fields are:
-
-\begin{itemize}
-    \item \lstinline{NextState} : The next state to be executed after the current state finishes. The application writer should change this field to another state callback to produce a state transition in the next FSM's cycle.
-    \item \lstinline{PreviousState} (read-only):  Last state seen in the flow chart.
-    \item \lstinline{LastState} (read-only):  The last state executed.
-    \item \lstinline{PreviousReturnStatus} (read-only): The exit(or return) status of the previous state.
-    \item \lstinline{LastReturnStatus} (read-only): The exit(or return) status of the last state. Can be also used in the \textit{Surrounding state} to perform the corresponding actions for every value, including the \lstinline{qSM_BEFORE_ANY}.
-    \item \lstinline{Signal} (read-only): Received signal. \lstinline{QSM_SIGNAL_NONE} if no signal available. \lstinline{QSM_SIGNAL_ENTRY} if the current state has just entered from another state. \lstinline{QSM_SIGNAL_EXIT} if the current state has just exit to another state. Any other user-defined signal will reside here if the FSM has a signal-queue installed . 
-    \item \lstinline{Data} (read-only): State-machine associated data. If the FSM is running as a task, the associated event data can be queried through this field. (here, a cast to \lstinline{qEvent_t} is mandatory). Child FSMs inherit this member.
-    \item \lstinline{Parent} (read-only): A pointer to the parent state-machine. Can be used in hierarchical  patterns. \lstinline{NULL} if the FSM its not a child.
-\end{itemize}
-
-The developer is free to write and control state transitions. A state jumps from one to another by changing the \lstinline{NextState} field. Any transition is allowed at any time.
-
-The code snippet below shows how this input argument should be used to produce a state transition and obtain additional information: 
-\medskip
-
-\lstinputlisting[style=CStyle]{sec3fsmdata.c}
-
 \subsubsection{Adding a state machine as a task : \texorpdfstring{\lstinline{qOS_Add_StateMachineTask}}{qOS_Add_StateMachineTask} } \label{statemachinetask}
-The best strategy to implement a FSM is delegating it to a task. For this, the provided \index{\lstinline{qOS_Add_StateMachineTask}} API should be used. Here, the task doesn't have a specific callback, instead, it will evaluate the active state of FSM, and later, all the other possible states in response to events that mark their own transition. The task will be scheduled to run every \lstinline{Time} seconds in \lstinline{qPeriodic} mode. 
+The best strategy to run a FSM is delegating it to a task. For this, the provided \index{\lstinline{qOS_Add_StateMachineTask}} API should be used. Here, the task doesn't have a specific callback, instead, it will evaluate the active state of the FSM, and later, all the other possible states in response to events that mark their own transition. The task will be scheduled to run every \lstinline{Time} seconds in \lstinline{qPeriodic} mode. 
 
-Using this API, the kernel will take care of the FSM by itself, so the usage of \lstinline{qStateMachine_Setup()} and \lstinline{qStateMachine_Run()} can be omitted. 
+Using this API, the kernel will take care of the FSM by itself, \lstinline{qStateMachine_Run()} can be omitted. 
 \medskip
 
 \begin{lstlisting}[style=CStyle]
-qBool_t qOS_Add_StateMachineTask( 
-            qTask_t * const Task, qPriority_t Priority, qTime_t Time,
-            qSM_t * const StateMachine, qSM_State_t InitState, 
-            qSM_SurroundingState_t *Surrounding, 
-            qState_t InitialTaskState, void *arg )
+qBool_t qOS_Add_StateMachineTask( qTask_t * const Task, qSM_t *m, 
+                                  qPriority_t Priority, 
+                                  qTime_t Time, qState_t InitialTaskState,
+                                  void *arg )
 \end{lstlisting}
 
 \subsubsection*{Parameters}
 \begin{itemize}
     \item \lstinline{Task} : A pointer to the task node. 
+    \item \lstinline{m} : A pointer to Finite State-Machine (FSM) object.
     \item \lstinline{Priority} : The priority value. [0(min) - \lstinline{Q_PRIORITY_LEVELS}(max)]
     \item \lstinline{Time} : Execution interval defined in seconds (floating-point format). For immediate execution use the  \lstinline{qTimeImmediate} definition. 
-    \item \lstinline{StateMachine} : A pointer to Finite State-Machine (FSM) object.
-    \item \lstinline{InitState} : The first state to be performed. 
-    \item \lstinline{Surrounding} : The surrounding state. To ignore pass \lstinline{NULL}.   
-    \item \lstinline{TaskInitState } : Specifies the initial operational state of the task (\lstinline{qEnabled}, \lstinline{qDisabled}, \lstinline{qAsleep} or \lstinline{qAwake}).
+    \item \lstinline{InitialTaskState } : Specifies the initial operational state of the task (\lstinline{qEnabled}, \lstinline{qDisabled}, \lstinline{qAsleep} or \lstinline{qAwake}).
     \item \lstinline{arg} - Represents the task arguments. All arguments must be passed by reference and cast to \lstinline{(void *)}. 
 \end{itemize}
 
@@ -291,6 +350,7 @@ To start the implementation, let's define the necessary global variables...
 \begin{lstlisting}[style=CStyle]
 qTask_t LED_Task; /*The task node*/
 qSM_t LED_FSM; /*The state-machine handle*/
+qSM_State_t State_LEDOff, State_LEDOn, State_LEDBlink;
 \end{lstlisting}
 
 Then, we define our states as the flow-diagram showed in figure \ref{fig:fsmexample}.
@@ -303,104 +363,69 @@ Remember that you must set up the scheduler before adding a task to the scheduli
 \medskip
 
 \begin{lstlisting}[style=CStyle]
-qOS_Add_StateMachineTask( &LED_Task, qHigh_Priority, 0.1, &LED_FSM,
-                          State_LED_Off, NULL,  qEnabled, NULL );
+qStateMachine_Setup( &LED_FSM, NULL, &State_LEDOff, NULL, NULL ); 
+qStateMachine_StateSubscribe( &LED_FSM, &State_LEDOff, NULL, 
+                              State_LEDOff_Callback, NULL, qFalse ); 
+qStateMachine_StateSubscribe( &LED_FSM, &State_LEDOn, NULL, 
+                              State_LEDOn_Callback, NULL, qFalse );
+qStateMachine_StateSubscribe( &LED_FSM, &State_LEDBlink, NULL, 
+                              State_LEDBlink_Callback, NULL, qFalse ); 
+qOS_Add_StateMachineTask( &LED_Task, &LED_FSM, qHigh_Priority, 
+                          0.1, qEnabled, NULL );
 \end{lstlisting}
 
-\subsubsection{Changing the FSM attributes in run-time}
-For this, use the API \index{\lstinline{qStateMachine_Attribute}} that is detailed below:
+
+\subsubsection{Sending signals}
+The user can benefit from the event abstraction that is provided through signals. On the one hand, there would be a more uniform programming when writing states callbacks and on the other hand, the communication of the state machine from other contexts becomes easier.
+
+To send a signal to a state machine, use the following API:
 \medskip
 
 \begin{lstlisting}[style=CStyle]
-void qStateMachine_Attribute( 
-                        qSM_t * const obj, const qSM_Attribute_t Flag, 
-                        qSM_State_t  s, qSM_SurroundingState_t Surrounding )
-\end{lstlisting}
-
-\begin{itemize}
-    \item \lstinline{obj} : A pointer to the FSM object.
-    \item \lstinline{Flag} : The attribute/action to be taken. Should be one of the following:
-    \begin{itemize}
-        \item \lstinline{qSM_RESTART} : Restart the FSM (here, the \lstinline{s} argument must correspond to the init-state)
-        \item \lstinline{qSM_CLEAR_STATE_FIRST_ENTRY_FLAG} : clear the entry flag for the current state if the \lstinline{NextState} field doesn't change.
-        \item \lstinline{qSM_SURROUNDING_STATE} : Set the surrounding state.
-        \item \lstinline{qSM_UNINSTALL_TRANSTABLE} : To uninstall the transition table if available.
-    \end{itemize}
-    \item \lstinline{s} : The new value for state (only applies in \lstinline{qSM_RESTART}). If not used, pass \lstinline{NULL}.
-    \item \lstinline{subs} : The new value for surrounding (only apply in \lstinline{qSM_SURROUNDING_STATE}. If not used, pass \lstinline{NULL}.
-\end{itemize}
-
-\subsubsection{Using a transition table}
-In this approach, the FSM is coded in a table relating states and signal-events. 
-This is an elegant method to translate the FSM to actual implementation as the handling for every state and event combination is encapsulated in the table. 
-
-\begin{table}[h!]
-\centering
-\begin{tabular}{||c c c c c c||} 
- \hline
- \textit{Current} & \textit{Signal} & \textit{Next} & \textit{Signal action} & \textit{Target FSM} & \textit{Next in target} \\ [0.5ex] 
- 
- \hline\hline
- \ttfamily{StateA} & \ttfamily{Signal1} & \ttfamily{StateB} & \ttfamily{NULL} & \ttfamily{NULL} & \ttfamily{NULL} \\ 
- \ttfamily{StateB} & \ttfamily{Signal3} & \ttfamily{StateD} & \ttfamily{DoOnSignal3}& \ttfamily{NULL} & \ttfamily{NULL}   \\
- ... & ... & ... & ... & ... &...\\
- \ttfamily{StateD} & \ttfamily{Signal6} & \ttfamily{StateA} & \ttfamily{NULL} & \ttfamily{NULL} & \ttfamily{NULL}\\ [1ex] 
- \hline
-\end{tabular}
-\caption{Transition table layout in QuarkTS}
-\label{ttable_layout}
-\end{table}
-
-Here, the application writer get a quick picture of the FSM and the embedded software maintenance is also much more under control. A transition table is referenced through an object of type \lstinline{qSM_TransitionTable_t} and should be explicitly installed in the target FSM with the corresponding entries, an \textit{n}-sized array of \lstinline{qSM_Transition_t} elements. 
-
-Events on the other hand, are represented in the table with FSM-Signals, an unsigned number of type \lstinline{qSM_Signal_t}. Here, the designer is free to name event signals according the FSM application. 
-
-The API \lstinline{qStateMachine_TransitionTableInstall()}, should be used to perform the transition table installation to the target FSM.
-\medskip
-
-\begin{lstlisting}[style=CStyle]
-qBool_t qStateMachine_TransitionTableInstall( qSM_t * const obj,   
-            qSM_TransitionTable_t *table, qSM_Transition_t *entries, 
-            size_t NoOfEntries )
-\end{lstlisting} \index{\lstinline{qStateMachine_TransitionTableInstall}}
+ qBool_t qStateMachine_SendSignal( qSM_t * const m, qSM_Signal_t xSignal, 
+                                   const qBool_t isUrgent )
+\end{lstlisting} \index{\lstinline{qStateMachine_SendSignal}}
 
 \subsubsection*{Parameters}
 \begin{itemize}
-    \item \lstinline{obj} : A pointer to the FSM object. 
-    \item \lstinline{table} : A pointer to the transition table instance.
-    \item \lstinline{entries} : The array of transitions (\lstinline{qSM_Transition_t[]}). 
-    \item \lstinline{NoOfEntries} : The number of transitions inside \lstinline{entries}.
+    \item \lstinline{m} : A pointer to the FSM object. 
+    \item \lstinline{xSignal} : The user-defined signal.
+    \item \lstinline{isUrgent} : If \lstinline{qTrue}, the signal will be sent to the front of the queue. (only if the there is a signal-queue available)
 \end{itemize}
 
 \subsubsection*{Return Value}
-Returns \lstinline{qTrue} on success, otherwise returns \lstinline{qFalse}.
+\lstinline{qTrue} on success, otherwise returns \lstinline{qFalse}.
+\lstinline{qFalse} if there is a queue, and the signal cannot be inserted because it is full.
 
 \hrulefill
+\medskip
 
-\subsubsection*{Caveats}
+This API can manage their delivery to one of these possible destinations: an \textit{exclusion variable} or a \textit{signal queue}:
 \begin{itemize}
-    \item State transitions are not limited to the specification of the transition table. A state callback owns the higher precedence to change a state. The application writer can use both, a transition table and direct \lstinline{NextState} field manipulation in state callbacks to perform a transition to the FSM.
-    \item Special care is required when the table grows very large, that is, when there are many invalid state/event combinations, leading to a waste of memory. There is also a memory penalty as the number of states and events grow. The application writer  need to accurately account for this during initial design. A statechart pattern can be used to improve the design and reduce the number of transition entries. 
-    \item As shown in figure \ref{fig:substates}, an installed transition table is evaluated after the surrounding state in the \textit{BeforeAny} case, and later, the current state handler will be evaluated after the table sweep is completed. In summary, the state handler has a higher precedence over the table to perform state transitions.
+    \item An \textit{exclusion variable} its a variable with an important distinction, it can only be written if it is empty. The empty situation only happens, if the engine has already propagated the signal within the state machine. If the signal has not yet propagated, the signal sending cannot be carried out.
+    \item When a \textit{signal queue} is used, the signal is put into a FIFO structure and the engine takes care of dispatching the signal in an orderly manner. The only situation where the signal cannot be delivered is if the queue is full.
+    This its the preferred destination, as long as there is a previously installed signal queue (for this, please review the next section.
 \end{itemize}
 
-\paragraph{Signals in transition tables:}
-When using transition tables, signals are the selected event-abstraction to produce a transition from one state to another. Signals can be asynchronously delivered to the FSM, as they are handled internally with an exclusive FIFO queue. 
-The signal queue should be installed with \lstinline{qStateMachine_SignalQueueSetup} after the FSM setup.
+\begin{tcolorbox}
+\ArrowBoldDownRight \textit{Note}: If the signal-queue its available, the \lstinline{qStateMachine_SendSignal} will always select it as destination.
+\end{tcolorbox}
+
+\subsubsection{Installing a signal queue}
+A state machine can have a FIFO queue to allow the delivery of signals from another contexts. If the signal queue its installed, the state-machine engine constantly monitors the queue for available signals. The engine then propagates the signal through the hierarchy until it is processed. 
+To enable this functionality in your state machine, the queue must be installed by using \lstinline{qStateMachine_InstallSignalQueue} API.
+
+The install operation should be performed after both, the queue and the FSM are correctly initialized by using \lstinline{qQueue_Setup}  and \lstinline{qStateMachine_Setup}  respectively.
 \medskip
 
 \begin{lstlisting}[style=CStyle]
-qBool_t qStateMachine_SignalQueueSetup( qSM_t * const obj, qQueue_t *xQueue,
-                                        qSM_Signal_t *AxSignals, 
-                                        size_t MaxSignals )
-\end{lstlisting} \index{\lstinline{qStateMachine_SignalQueueSetup}}
+qBool_t qStateMachine_InstallSignalQueue( qSM_t * const m, qQueue_t *queue );
+\end{lstlisting} \index{\lstinline{qStateMachine_InstallSignalQueue}}
 
 \subsubsection*{Parameters}
 \begin{itemize}
-    \item \lstinline{obj} : A pointer to the FSM object. 
-    \item \lstinline{xQueue} : A pointer to the queue instance. 
-    \item \lstinline{AxSignals} : A pointer to signal-queue storage area. A n-array of type \lstinline{qSM_Signal_t[]}.
-    \item \lstinline{MaxSignals} : The number of event-signals that the queue can hold.
+    \item \lstinline{m} : A pointer to the FSM object. 
+    \item \lstinline{queue} : A pointer to the queue instance. 
 \end{itemize}
 
 \subsubsection*{Return Value}
@@ -413,15 +438,15 @@ To perform a signal delivering to a FSMs, the following API should be used:
 \medskip
 
 \begin{lstlisting}[style=CStyle]
-qBool_t qStateMachine_SendSignal( qSM_t * const obj, qSM_Signal_t signal, 
-                                  qBool_t isUrgent )
+qBool_t qStateMachine_SendSignal( qSM_t * const m, qSM_Signal_t xSignal, 
+                                  const qBool_t isUrgent ){
 \end{lstlisting} \index{\lstinline{qStateMachine_SendSignal}}
 
 \subsubsection*{Parameters}
 \begin{itemize}
-    \item \lstinline{obj} : A pointer to the FSM object. 
+    \item \lstinline{m} : A pointer to the FSM object. 
     \item \lstinline{signal} : The user-defined signal.
-    \item \lstinline{isUrgent} : If \lstinline{qTrue}, the signal will be sent to the front of the transition-table queue.
+    \item \lstinline{isUrgent} : If \lstinline{qTrue}, the signal will be sent to the front of the signal-queue.
 \end{itemize}
 
 \subsubsection*{Return Value}
@@ -431,23 +456,79 @@ qBool_t qStateMachine_SendSignal( qSM_t * const obj, qSM_Signal_t signal,
 \medskip
 
 \begin{tcolorbox}
-\HandRight A FSM with a transition table performs better if it has a signal queue.
+\ArrowBoldDownRight \textit{Note}: Make sure that queues are enabled in the \lstinline{qconfig.h}.
 \end{tcolorbox}
 
 \begin{tcolorbox}
-\ArrowBoldDownRight \textit{Note}: Make sure queues are enabled in the \lstinline{qconfig.h} to allow the event-signals be handled by transition tables.
+\HandRight When configuring signal queue with \lstinline{qQueue_Setup}, remember to size it based on the type \lstinline{qSM_Signal_t}.
 \end{tcolorbox}
+
+\begin{tcolorbox}
+\HandRight If the state-machines its delegated to a task, make sure to install the queue prior to setting up the task. In this way, a kernel connection can be performed between the FSM signal-queue and the FSM-task, allowing the OS to catch signals to produce a task event, this prevents the wait of the task for the specified period, resulting in a faster handling of incoming signals.
+\end{tcolorbox}
+
+\subsubsection{Using a transition table}
+In this approach, the FSM is coded in a table relating states and signal-events. 
+This is an elegant method to translate the FSM to actual implementation as the handling for every state and event combination is encapsulated in the table. 
+
+\begin{table}[H]
+\centering
+\begin{tabular}{||c c c c||} 
+ \hline
+ \textit{Current state} & \textit{Signal} & \textit{Signal action/guard} & \textit{Next state} \\ [0.5ex] 
+ 
+ \hline\hline
+ \ttfamily{StateA} & \ttfamily{Signal1} & \ttfamily{NULL} & \ttfamily{StateB}  \\ 
+ \ttfamily{StateB} & \ttfamily{Signal3} & \ttfamily{DoOnSignal3} & \ttfamily{StateD} \\
+ ... & ... & ... & ... \\
+ \ttfamily{StateD} & \ttfamily{Signal6} & \ttfamily{NULL} & \ttfamily{StateA} \\ [1ex] 
+ \hline
+\end{tabular}
+\caption{Transition table layout for the state-machine module}
+\label{ttable_layout}
+\end{table}
+
+Here, the application writer get a quick picture of the FSM and the embedded software maintenance is also much more under control. A transition should be explicitly installed in the target FSM with the corresponding entries, an \textit{n}-sized array of \lstinline{qSM_Transition_t} elements. 
+
+The API \lstinline{qStateMachine_InstallTransitionTable()}, should be used to perform the transition table installation to the target FSM.
+\medskip
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qStateMachine_InstallTransitionTable( qSM_t * const m, 
+                                              qSM_Transition_t * const table,
+                                              const size_t n )
+\end{lstlisting} \index{\lstinline{qStateMachine_InstallTransitionTable}}
+
+\subsubsection*{Parameters}
+\begin{itemize}
+    \item \lstinline{m} : A pointer to the FSM object. 
+    \item \lstinline{table} : The array of transitions (\lstinline{qSM_Transition_t[]}) that describes the state-machine behavior.. 
+    \item \lstinline{n} : The number of transitions available within the \lstinline{table}.
+\end{itemize}
+
+\subsubsection*{Return Value}
+Returns \lstinline{qTrue} on success, otherwise returns \lstinline{qFalse}.
+
+\hrulefill
+
+\subsubsection*{Caveats}
+\begin{itemize}
+    \item State transitions are not limited to the specification of the transition table. A state callback owns the higher precedence to change a state. The application writer can use both, a transition table and direct \lstinline{NextState} field manipulation in state callbacks to perform a transition to the FSM.
+    \item Special care is required when the table grows very large, that is, when there are many invalid state/event combinations, leading to a waste of memory. There is also a memory penalty as the number of states and events grow. The application writer  need to accurately account for this during initial design. A statechart pattern can be used to improve the design and reduce the number of transition entries. 
+    \item The user is responsible for defining the transitions according to the topology of the state machine. Undefined behaviors can occur if the topology is broken with poorly defined transitions.
+\end{itemize}
 
 
 \begin{tcolorbox}
 \ArrowBoldDownRight \textit{Note}: When a transition entry is defined. the event-signal should be located as the second parameter of the entry. Please see the transition layout in table \ref{ttable_layout}.
 \end{tcolorbox}
 
-\paragraph{Signal actions and guards:} Transition tables allow the usage of this feature. When an event-signal is received from the queue, the signal-action, if available, is evaluated before the transition is triggered. This action is user-defined and should be coded as a function that takes a \lstinline{qSM_Handler_t} object and returns a value of type \lstinline{qBool_t}. 
+\subsubsection{Signal actions and guards:} 
+Transition tables allow the usage of this feature. When an event-signal is received from the queue, the signal-action, if available, is evaluated before the transition is triggered. This action is user-defined and should be coded as a function that takes a \lstinline{qSM_Handler_t} object and returns a value of type \lstinline{qBool_t}. 
 \medskip
 
 \begin{lstlisting}[style=CStyle]
-qBool_t Signal_Action( qSM_Handler_t ){
+qBool_t Signal_Action( qSM_Handler_t h ){
     /* TODO : Event-signal action*/
     return qTrue; /*allow the state transition*/
 }
@@ -460,34 +541,78 @@ The return value is checked after to allow or reject the state transition. The a
 \end{tcolorbox}
 
 \begin{tcolorbox}
-\ArrowBoldDownRight \textit{Note}: When a transition entry is defined. the signal-action should be located as the fourth parameter of the entry. Please see the transition layout in table \ref{ttable_layout}.
+\ArrowBoldDownRight \textit{Note}: When a transition entry is defined. the signal-action should be located as the third parameter of the entry. Please see the transition layout in table \ref{ttable_layout}.
 A \lstinline{NULL} value will act as a NOT-defined, always allowing the state-transition. 
 \end{tcolorbox}
 
-\paragraph{Signal responsiveness in state-machine tasks :}
 
-When using state-machine tasks, there is no relationship between transition-table signals and task events by default, this means that tasks cannot be changed to \textit{qReady} immediately if a signal is received, as consequence, the FSM can lose responsiveness to incoming signals because they are only served when the task is triggered by another kind of events. 
+\subsubsection{FSM Timeout specification}
+A timeout specification is mechanism to simplify the notion of time passage inside states. The basic usage model of the timeout signals is as follows:
 
-To overcome this special situation, the following OS API should be invoked:
+An timeout specification allocates one or more timer objects. The user relates in a table each specific timeout with its respective state where it will operate. So, according to the table, when a state needs to arrange for a timeout, the engine can set or reset the given timer.  When the fsm engine detects that the appropriate moment has arrived (a timer expiration occurs), it inserts the timeout signal directly into the recipient's event queue. The recipient then processes the timeout signal just like any other signal.
+
+Given the above explanation, it is evident that for its operation, the state machine requires an installed signal queue.
+
+A timeout specification is referenced by an object of type \lstinline{qSM_TimeoutSpec_t} and must be installed inside the state machine using the API \lstinline{qStateMachine_InstallTimeoutSpec()}.
 \medskip
 
 \begin{lstlisting}[style=CStyle]
-qBool_t qOS_StateMachineTask_SigCon( qTask_t * const Task )
-\end{lstlisting} \index{\lstinline{qOS_StateMachineTask_SigCon}}
+qBool_t qStateMachine_InstallTimeoutSpec( qSM_t * const m,  
+                                          qSM_TimeoutSpec_t * const ts, 
+                                          qSM_TimeoutStateDefinition_t *tdef, 
+                                          const size_t n );
+\end{lstlisting} \index{\lstinline{qStateMachine_InstallTransitionTable}}
 
-This API performs a kernel connection between the FSM signal-queue and the FSM-task, allowing the OS to catch signals to produce a task event, resulting in a faster handling of incoming signals.
-\medskip
+\subsubsection*{Parameters}
+\begin{itemize}
+    \item \lstinline{m} : A pointer to the FSM object. 
+    \item \lstinline{ts} : A pointer to the timeout specification object.
+    \item \lstinline{tdef} : The lookup table matching the target state and the requested timeout..
+    \item \lstinline{n} : the number of elements inside \lstinline{tdef}.
+\end{itemize}
+
+\subsubsection*{Return Value}
+Returns \lstinline{qTrue} on success, otherwise returns \lstinline{qFalse}.
+
+\hrulefill
+
+A timeout specification is defined as an structure of type \lstinline{qSM_TimeoutStateDefinition_t} and should follow this layout:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{||c c c||} 
+ \hline
+ \textit{Current state} & \textit{Timeout value} & \textit{Options} \\ [0.5ex] 
+ \hline
+\end{tabular}
+\caption{Timeout specification layout}
+\label{ttable_layout}
+\end{table}
+
+You can pass multiple specifications for a given state-machine by just creating a list in the form of array (\lstinline{qSM_TimeoutStateDefinition_t[]}).
+
+The options for every timeout its a bitwise value that indicates which timeout should be used and the operations than should be performed internally by the state-machine engine. This options can be combined with a bitwise OR and are detailed as follows:
+
+\begin{itemize}
+    \item \lstinline{QSM_TSOPT_INDEX(index)} : To select the timeout to be used in the specification. Should be a value between \lstinline{0} and \lstinline{(Q_FSM_MAX_TIMEOUTS-1)}
+    \item \lstinline{QSM_TSOPT_SET_ENTRY} : To set the timeout when the specified state its entering.
+    \item \lstinline{QSM_TSOPT_RST_ENTRY} :  To reset the timeout when the specified state its entering.
+    \item \lstinline{QSM_TSOPT_SET_EXIT} : To set the timeout when the specified state its exiting.
+    \item \lstinline{QSM_TSOPT_RST_EXIT} : To reset the timeout when the specified state its exiting.
+    \item \lstinline{QSM_TSOPT_KEEP_IF_SET} : To apply the Set operation only if the timeout its in a reset state.
+    \item \lstinline{QSM_TSOPT_PERIODIC} : To put the timeout in periodic mode.
+\end{itemize}
 
 \begin{tcolorbox}
-\HandRight This API should only be invoked after the FSM-task is added to the scheme.
+\HandRight The user is responsible for writing timeout specifications correctly. Care must be taken that the specifications do not collide between hierarchical states to avoid overwriting operations.
 \end{tcolorbox}
 
 \begin{tcolorbox}
-\HandRight This API doesn't have any effect if the FSM is not attached to a task.
+\HandRight You can increase the number of available timeouts instances by changing the \lstinline{Q_FSM_MAX_TIMEOUTS} configuration macro inside \lstinline{qconfig.h}. 
 \end{tcolorbox}
 
-\paragraph{Demonstrative example using a transition table}
-The following example shows the implementation of the FSM presented in section \ref{fsm_example} using a transition table approach.
+\subsubsection{Demonstrative example using a transition table}
+The following example shows the implementation of the FSM presented in section \ref{fsm_example} using the transition table approach with signal-queue and a timeout specification.
 
 Before getting started, the required variables should be defined: 
 \medskip
@@ -501,66 +626,37 @@ Then, we define the callback for the states. Here, the \lstinline{BeforeAny} sub
 
 In the previous code snippet, we assumed that \lstinline{SIGNAL_BUTTON_PRESSED} can be delivered from either the interrupt context or another task.
 
-To finish the setup, a task is added to handle the FSM and then, the transition table can be installed.
+To finish the setup, a task is added to handle the FSM and then, the transition table can be installed with the other required objects.
 \medskip
 
 \lstinputlisting[style=CStyle]{sec3fsmledttablesetup.c}
 
-\paragraph{Composite states, the hierarchical approach : } A composite state is defined as state that has inner states (a nested state-machine running inside the state). A composite state is a decomposition mechanism that allows factoring of common behaviors and their reuse. This allow to model the state-machine using a hierarchical pattern (aka statecharts). 
+\subsubsection{Demonstrative example using the hierarchical approach} 
+In conventional state machine designs, all states are considered at the same level. The design does not capture the commonality that exists among states. In real life, many states handle most transitions in similar fashion and differ only in a few key components. Even when the actual handling differs, there is still some commonality. It is in these situations where the hierarchical designs makes the most sense.
 
-In conventional state machine designs, all states are considered at the same level. The design does not capture the commonality that exists among states. In real life, many states handle most transitions in similar fashion and differ only in a few key components. Even when the actual handling differs, there is still some commonality.
+A hierarchical state-machine is characterized by having compound states. A composite state is defined as state that has inner states and can be used as a decomposition mechanism that allows factoring of common behaviors and their reuse. And this is the biggest advantage of this design, because it captures the commonality by organizing the states as a hierarchy. The states at the higher level in hierarchy perform the common handling, while the lower level states inherit the commonality from higher level ones and perform the state specific functions.
 
-Hierarchical state machine design captures the commonality by organizing the states as a hierarchy. The states at the higher level in hierarchy perform the common handling, while the lower level states inherit the commonality from higher level ones and perform the state specific functions. 
-
-To setup a composite state, the following API should be used:
-\medskip
-
-\begin{lstlisting}[style=CStyle]
-qBool_t qStateMachine_Set_CompositeState( qSM_t * const parent, 
-                                    qSM_State_t state, qSM_t * const child )
-\end{lstlisting}
-
-\begin{itemize}
-    \item \lstinline{parent} : A pointer to the parent FSM object.
-    \item \lstinline{state} : A state from \lstinline{parent} to relate the \lstinline{child} FSM. This state will be set as composite.
-    \item \lstinline{child} : A pointer to the child FSM object who becomes part of the composite state.
-\end{itemize}
-
-\subsubsection*{Return Value}
-Returns \lstinline{qTrue} on success, otherwise returns \lstinline{qFalse}.
-
-\hrulefill
-\medskip
-
-\begin{tcolorbox}
-\HandRight If the child FSM doesn't have a signal-queue defined, the parent signal will be propagated to it.
-\end{tcolorbox}
-
-
-\paragraph{Demonstrative example using a composite state :} This example takes the "Cruise Control" study case from \cite{gomaa}, a real-time system that manages the speed of an automobile based on inputs from the driver. 
-
-\input{fig/fsmej}
+This example takes the "Cruise Control" study case from \cite{gomaa}, a real-time system that manages the speed of an automobile based on inputs from the driver. 
 
 The behavior of this system is state-dependent in that the executed actions correspond not only to the driver input, but also on the current state of the system and with the status of the engine and the brake. 
+
 The figure \ref{fig:fsmej} illustrate the modeling of this system with the "Automated Control" state acting as composite.
 \medskip
 
-\begin{tcolorbox}
-\HandRight Transitions to a specific state inside a composite state and vice versa, should be parametrized in the last two parameters of the transition entry. Please see the transition layout in table \ref{ttable_layout}.
-\end{tcolorbox}
+\input{fig/fsmej}
 
-
-
-Before getting started, the required user-defined signals, variables, and transition tables should be defined:
+Before getting started, the required user-defined signals, variables, and entries of the transition table should be defined:
+\medskip
 
 \lstinputlisting[style=CStyle]{sec3fsmcruisectrlttabledef.c}
 
 Then, signal-actions and state callbacks are later defined:
+\medskip
 
 \lstinputlisting[style=CStyle]{sec3fsmcruisectrlstates.c}
 
 Finally, the dedicated task for the FSM and related objects are configured.
-
+\medskip
 \lstinputlisting[style=CStyle]{sec3fsmcruisectrlsetup.c}
 
 \subsection{Co-Routines}
