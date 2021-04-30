@@ -23,6 +23,7 @@ qATCLI_Response_t AT_GPIO_Callback( qATCLI_Handler_t h ){
     		break;    		
     	default : break;
     }
+    
 	return RetValue;    
 }
 /*==================================================================*/
@@ -36,6 +37,7 @@ qATCLI_Response_t AT_INFO_Callback( qATCLI_Handler_t h ){
     		break;
     	default : break;
 	}
+	
 	return RetValue;    
 }
 /*==================================================================*/

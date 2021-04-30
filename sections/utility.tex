@@ -1,219 +1,5 @@
 \section{Utility APIs}
 
-\subsection{Byte sized buffers}
-
-\begin{lstlisting}[style=CStyle]
-void qBSBuffer_Setup( qBSBuffer_t * const obj, volatile qUINT8_t *buffer, 
-                      const size_t length )
-\end{lstlisting}
-
-Initialize the byte-sized buffer. \index{\lstinline{qBSBuffer_Setup}}
-
-\subsubsection*{Parameters:}
-\begin{itemize}
-    \item \lstinline{obj} : A pointer to the byte-sized buffer object
-    \item \lstinline{buffer} : Block of memory or array of data.
-    \item \lstinline{length} : The size of \lstinline{buffer}(Must be a power of two)
-\end{itemize}
-
-\noindent\hrulefill
-
-\begin{lstlisting}[style=CStyle]
-qBool_t qBSBuffer_Put( qBSBuffer_t * const obj, const qUINT8_t data )
-\end{lstlisting}
-
-Adds an element of data to the byte-sized buffer. \index{\lstinline{qBSBuffer_Put}}
-
-\subsubsection*{Parameters:}
-\begin{itemize}
-    \item \lstinline{obj} : A pointer to the byte-sized buffer object
-    \item \lstinline{data} : The data to be added.
-\end{itemize}
-
-\subsubsection*{Return value:}
-\lstinline{qTrue} on success, otherwise returns \lstinline{qFalse}.
-
-\noindent\hrulefill
-
-\begin{lstlisting}[style=CStyle]
-qBool_t qBSBuffer_Read( qBSBuffer_t * const obj, void *dest, 
-                        const size_t n )
-\end{lstlisting}
-
-Gets \lstinline{n} data from the byte-sized buffer and removes them. \index{\lstinline{qBSBuffer_Read}}
-
-\subsubsection*{Parameters:}
-\begin{itemize}
-    \item \lstinline{obj} : A pointer to the byte-sized buffer object
-    \item \lstinline{dest} : The location where the data will be written.
-\end{itemize}
-
-\subsubsection*{Return value:}
-\lstinline{qTrue} on success, otherwise returns \lstinline{qFalse}.
-
-\noindent\hrulefill
-
-\begin{lstlisting}[style=CStyle]
-qBool_t qBSBuffer_Get( qBSBuffer_t * const obj, qUINT8_t *dest )
-\end{lstlisting}
-
-Gets one data-byte from the front of the byte-sized buffer, and remove it. \index{\lstinline{qBSBuffer_Get}}
-
-\subsubsection*{Parameters:}
-\begin{itemize}
-    \item \lstinline{obj} : A pointer to the byte-sized buffer object
-    \item \lstinline{dest} : The location where the data will be written.
-\end{itemize}
-
-\subsubsection*{Return value:}
-\lstinline{qTrue} on success, otherwise returns \lstinline{qFalse}.
-
-
-\noindent\hrulefill
-
-\begin{lstlisting}[style=CStyle]
-qUINT8_t qBSBuffer_Peek( const qBSBuffer_t * const obj )
-\end{lstlisting}
-
-Looks for one byte from the head of the byte-sized buffer without removing it. \index{\lstinline{qBSBuffer_Peek}}
-
-\subsubsection*{Parameters:}
-\begin{itemize}
-    \item \lstinline{obj} : A pointer to the byte-sized buffer object
-\end{itemize}
-
-\subsubsection*{Return value:}
-Byte of data, or zero if nothing in the buffer.
-
-\noindent\hrulefill
-
-\begin{lstlisting}[style=CStyle]
-qBool_t qBSBuffer_Empty( const qBSBuffer_t * const obj )
-\end{lstlisting}
-
-Query the empty status of the byte-sized buffer. \index{\lstinline{qBSBuffer_Empty}}
-
-\subsubsection*{Parameters:}
-\begin{itemize}
-    \item \lstinline{obj} : A pointer to the byte-sized buffer object
-\end{itemize}
-
-\subsubsection*{Return value:}
-\lstinline{qTrue} if the byte-sized buffer is empty, \lstinline{qFalse} if it is not.
-
-
-\noindent\hrulefill
-
-\begin{lstlisting}[style=CStyle]
-qBool_t qBSBuffer_IsFull( const qBSBuffer_t * const obj )
-\end{lstlisting}
-
-Query the full status of the byte-sized buffer. \index{\lstinline{qBSBuffer_IsFull}}
-
-\subsubsection*{Parameters:}
-\begin{itemize}
-    \item \lstinline{obj} : A pointer to the byte-sized buffer object
-\end{itemize}
-
-\subsubsection*{Return value:}
-\lstinline{qTrue} if the byte-sized buffer is full, \lstinline{qFalse} if it is not.
-
-
-\noindent\hrulefill
-
-\begin{lstlisting}[style=CStyle]
-size_t qBSBuffer_Count( const qBSBuffer_t * const obj )
-\end{lstlisting}
-
-Query the number of elements in the byte-sized buffer. \index{\lstinline{qBSBuffer_Count}}
-
-\subsubsection*{Parameters:}
-\begin{itemize}
-    \item \lstinline{obj} : A pointer to the byte-sized buffer object.
-\end{itemize}
-
-\subsubsection*{Return value:}
-Number of elements in the byte-sized buffer.
-
-
-
-\subsection{Input groups for edge-checking}
-
-\begin{lstlisting}[style=CStyle]
-qBool_t qEdgeCheck_Setup( qEdgeCheck_t * const Instance, 
-                          const qCoreRegSize_t RegisterSize,
-                          const qClock_t DebounceTime )
-\end{lstlisting}
-
-Initialize an I/O edge-check instance. \index{\lstinline{qEdgeCheck_Setup}}
-
-\subsubsection*{Parameters:}
-\begin{itemize}
-    \item \lstinline{Instance} : A pointer to the I/O edge-check object.
-    \item \lstinline{RegisterSize} : The specific-core register size: \lstinline{QREG_8BIT}, \lstinline{QREG_16BIT} or \lstinline{QREG_32BIT}(default).
-    \item \lstinline{DebounceTime} : The specified time (in epochs) to bypass the bounce of the input nodes.
-\end{itemize}
-
-\subsubsection*{Return value:}
-\lstinline{qTrue} on success, otherwise returns \lstinline{qFalse}.
-
-\noindent\hrulefill
-
-\begin{lstlisting}[style=CStyle]
-qBool_t qEdgeCheck_Add_Node( qEdgeCheck_t * const Instance, 
-                             qEdgeCheck_IONode_t * const Node, 
-                             void *PortAddress, 
-                             const qBool_t PinNumber )
-\end{lstlisting}
-
-Inserts an I/O node to the edge-check instance. \index{\lstinline{qEdgeCheck_Add_Node}}
-
-\subsubsection*{Parameters:}
-\begin{itemize}
-    \item \lstinline{Instance} : A pointer to the I/O edge-check object.
-    \item \lstinline{Node} :  A pointer to the input-node object.
-    \item \lstinline{PortAddress} : The address of the core PORTx-register to read the levels of the specified \lstinline{PinNumber}.
-    \item \lstinline{PinNumber} : The specified pin to read from \lstinline{PortAddress}.
-\end{itemize}
-
-\subsubsection*{Return value:}
-\lstinline{qTrue} on success, otherwise returns \lstinline{qFalse}.
-
-
-\noindent\hrulefill
-
-\begin{lstlisting}[style=CStyle]
-qBool_t qEdgeCheck_Update( qEdgeCheck_t * const Instance )
-\end{lstlisting}
-
-Update the status of all nodes inside the I/O edge-check instance (non-blocking call). \index{\lstinline{qEdgeCheck_Update}}
-
-\subsubsection*{Parameters:}
-\begin{itemize}
-    \item \lstinline{Instance} : A pointer to the I/O edge-check object.
-\end{itemize}
-
-\subsubsection*{Return value:}
-\lstinline{qTrue} on success, otherwise returns \lstinline{qFalse}.
-
-
-\noindent\hrulefill
-
-\begin{lstlisting}[style=CStyle]
-qBool_t qEdgeCheck_Get_NodeStatus( const qEdgeCheck_IONode_t * const Node )
-\end{lstlisting}
-
-Query the status of the specified input-node. \index{\lstinline{qEdgeCheck_Get_NodeStatus}}
-
-\subsubsection*{Parameters:}
-\begin{itemize}
-    \item \lstinline{Instance} : A pointer to the I/O edge-check object.
-\end{itemize}
-
-\subsubsection*{Return value:}
-The status of the input node : \lstinline{qTrue}, \lstinline{qFalse}, \lstinline{qRising}, \lstinline{qFalling} or \lstinline{qUnknown}.
-
-
 \subsection{Generic lists} \label{qlist}
 The provided list implementation uses a generic \textit{doubly-linked} approach in which each node, apart from storing its data, has two link pointers. The first link points to the previous node in the list and the second link, points to the next node in the list. The first node of the list has its previous link pointing to \lstinline{NULL}, similarly, the last node of the list has its next node pointing to \lstinline{NULL}. \\
 The list data-structure, referenced through an object of type \lstinline{qList_t} \index{\lstinline{qList_t}} also has a \textit{head} and a \textit{tail} pointer, to allow fast operations on boundary nodes.
@@ -532,7 +318,230 @@ Note: The container list will be updated if any node is part of the boundaries.
 \lstinline{qTrue} if the swap operation is performed. Otherwise returns \lstinline{qFalse}.
 
 
+\subsection{Byte sized buffers}
+
+An interrupt-safe byte-sized ring buffer.
+\medskip
+
+\begin{lstlisting}[style=CStyle]
+void qBSBuffer_Setup( qBSBuffer_t * const obj, volatile qUINT8_t *buffer, 
+                      const size_t length )
+\end{lstlisting}
+
+Initialize the byte-sized buffer. \index{\lstinline{qBSBuffer_Setup}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the byte-sized buffer object
+    \item \lstinline{buffer} : Block of memory or array of data.
+    \item \lstinline{length} : The size of \lstinline{buffer}(Must be a power of two)
+\end{itemize}
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qBSBuffer_Put( qBSBuffer_t * const obj, const qUINT8_t data )
+\end{lstlisting}
+
+Adds an element of data to the byte-sized buffer. \index{\lstinline{qBSBuffer_Put}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the byte-sized buffer object
+    \item \lstinline{data} : The data to be added.
+\end{itemize}
+
+\subsubsection*{Return value:}
+\lstinline{qTrue} on success, otherwise returns \lstinline{qFalse}.
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qBSBuffer_Read( qBSBuffer_t * const obj, void *dest, 
+                        const size_t n )
+\end{lstlisting}
+
+Gets \lstinline{n} data from the byte-sized buffer and removes them. \index{\lstinline{qBSBuffer_Read}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the byte-sized buffer object
+    \item \lstinline{dest} : The location where the data will be written.
+\end{itemize}
+
+\subsubsection*{Return value:}
+\lstinline{qTrue} on success, otherwise returns \lstinline{qFalse}.
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qBSBuffer_Get( qBSBuffer_t * const obj, qUINT8_t *dest )
+\end{lstlisting}
+
+Gets one data-byte from the front of the byte-sized buffer, and remove it. \index{\lstinline{qBSBuffer_Get}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the byte-sized buffer object
+    \item \lstinline{dest} : The location where the data will be written.
+\end{itemize}
+
+\subsubsection*{Return value:}
+\lstinline{qTrue} on success, otherwise returns \lstinline{qFalse}.
+
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+qUINT8_t qBSBuffer_Peek( const qBSBuffer_t * const obj )
+\end{lstlisting}
+
+Looks for one byte from the head of the byte-sized buffer without removing it. \index{\lstinline{qBSBuffer_Peek}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the byte-sized buffer object
+\end{itemize}
+
+\subsubsection*{Return value:}
+Byte of data, or zero if nothing in the buffer.
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qBSBuffer_Empty( const qBSBuffer_t * const obj )
+\end{lstlisting}
+
+Query the empty status of the byte-sized buffer. \index{\lstinline{qBSBuffer_Empty}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the byte-sized buffer object
+\end{itemize}
+
+\subsubsection*{Return value:}
+\lstinline{qTrue} if the byte-sized buffer is empty, \lstinline{qFalse} if it is not.
+
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qBSBuffer_IsFull( const qBSBuffer_t * const obj )
+\end{lstlisting}
+
+Query the full status of the byte-sized buffer. \index{\lstinline{qBSBuffer_IsFull}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the byte-sized buffer object
+\end{itemize}
+
+\subsubsection*{Return value:}
+\lstinline{qTrue} if the byte-sized buffer is full, \lstinline{qFalse} if it is not.
+
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+size_t qBSBuffer_Count( const qBSBuffer_t * const obj )
+\end{lstlisting}
+
+Query the number of elements in the byte-sized buffer. \index{\lstinline{qBSBuffer_Count}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the byte-sized buffer object.
+\end{itemize}
+
+\subsubsection*{Return value:}
+Number of elements in the byte-sized buffer.
+
+
+
+\subsection{Input groups for edge-checking}
+
+An interface to manage and simplify the value(with edge-checking) of incoming digital signals groups.
+\medskip
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qEdgeCheck_Setup( qEdgeCheck_t * const Instance, 
+                          const qCoreRegSize_t RegisterSize,
+                          const qClock_t DebounceTime )
+\end{lstlisting}
+
+Initialize an I/O edge-check instance. \index{\lstinline{qEdgeCheck_Setup}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{Instance} : A pointer to the I/O edge-check object.
+    \item \lstinline{RegisterSize} : The specific-core register size: \lstinline{QREG_8BIT}, \lstinline{QREG_16BIT} or \lstinline{QREG_32BIT}(default).
+    \item \lstinline{DebounceTime} : The specified time (in epochs) to bypass the bounce of the input nodes.
+\end{itemize}
+
+\subsubsection*{Return value:}
+\lstinline{qTrue} on success, otherwise returns \lstinline{qFalse}.
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qEdgeCheck_Add_Node( qEdgeCheck_t * const Instance, 
+                             qEdgeCheck_IONode_t * const Node, 
+                             void *PortAddress, 
+                             const qBool_t PinNumber )
+\end{lstlisting}
+
+Inserts an I/O node to the edge-check instance. \index{\lstinline{qEdgeCheck_Add_Node}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{Instance} : A pointer to the I/O edge-check object.
+    \item \lstinline{Node} :  A pointer to the input-node object.
+    \item \lstinline{PortAddress} : The address of the core PORTx-register to read the levels of the specified \lstinline{PinNumber}.
+    \item \lstinline{PinNumber} : The specified pin to read from \lstinline{PortAddress}.
+\end{itemize}
+
+\subsubsection*{Return value:}
+\lstinline{qTrue} on success, otherwise returns \lstinline{qFalse}.
+
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qEdgeCheck_Update( qEdgeCheck_t * const Instance )
+\end{lstlisting}
+
+Update the status of all nodes inside the I/O edge-check instance (non-blocking call). \index{\lstinline{qEdgeCheck_Update}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{Instance} : A pointer to the I/O edge-check object.
+\end{itemize}
+
+\subsubsection*{Return value:}
+\lstinline{qTrue} on success, otherwise returns \lstinline{qFalse}.
+
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qEdgeCheck_Get_NodeStatus( const qEdgeCheck_IONode_t * const Node )
+\end{lstlisting}
+
+Query the status of the specified input-node. \index{\lstinline{qEdgeCheck_Get_NodeStatus}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{Instance} : A pointer to the I/O edge-check object.
+\end{itemize}
+
+\subsubsection*{Return value:}
+The status of the input node : \lstinline{qTrue}, \lstinline{qFalse}, \lstinline{qRising}, \lstinline{qFalling} or \lstinline{qUnknown}.
+
+
 \subsection{Response handler}
+
+An API to simplify the handling of requested responses from terminal interfaces.
+\medskip
 
 \begin{lstlisting}[style=CStyle]
 void qResponse_Setup( qResponse_t * const obj, char *xLocBuff, 
@@ -608,7 +617,7 @@ qBool_t qResponse_ISRHandler( qResponse_t * const obj,
                               const char rxchar )
 \end{lstlisting}
 
-ISR receiver for the response handler. \index{\lstinline{qResponse_ISRHandler}}
+ISR receiver for the response handler. \index{\lstinline{qResponse_ISRHandler}}. This call should be placed inside the ISR in charge of receiving the incoming data (one byte at the time).
 
 \subsubsection*{Parameters:}
 \begin{itemize}
