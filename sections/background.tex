@@ -657,13 +657,17 @@ Some  OS features can be customized using a set of macros located in the header 
 \hline
 {\lstinline!Q_MEMORY_MANAGER!} & \textit{Default:} {\lstinline!1(enabled)!}. Used to enable or disable the memory management module. \\
 \hline
-{\lstinline!Q_BYTE_ALIGNMENT!} & \textit{Default:} {\lstinline!8!}. Used by the memory management module to peform the byte-aligment. \\
+{\lstinline!Q_BYTE_ALIGNMENT!} & \textit{Default:} {\lstinline!8!}. Used by the memory management module to perform the byte-alignment. \\
 \hline
 {\lstinline!Q_DEFAULT_HEAP_SIZE!} & \textit{Default:} {\lstinline!2048!}. The total amount of heap size for the default memory pool. \\
 \hline
 {\lstinline!Q_NOTIFICATION_SPREADER!} & \textit{Default:} {\lstinline!0(disabled)!}. Used to enable or disable the spread notification functionality. \\
 \hline
 {\lstinline!Q_FSM!} & \textit{Default:} {\lstinline!1(enabled)!}.  Used to enable or disable the Finite State Machine (FSM) extension. \\
+\hline
+{\lstinline!Q_FSM_MAX_NEST_DEPTH!} & \textit{Default:} {\lstinline!5!}.  The max depth of nesting in Finite State Machines (FSM). \\
+\hline
+{\lstinline!Q_FSM_MAX_TIMEOUTS!} & \textit{Default:} {\lstinline!3!}.  Max number of timeouts inside a timeout specification for the Finite State machine (FSM) module.\\
 \hline
 {\lstinline!Q_QUEUES!} & \textit{Default:} {\lstinline!1(enabled)!}.  Used to enable or disable the queues APIs for communication to tasks. \\
 \hline
@@ -690,6 +694,8 @@ Some  OS features can be customized using a set of macros located in the header 
 {\lstinline!Q_EDGE_CHECK_IOGROUPS!} & \textit{Default:} {\lstinline!1(enabled)!}. Used to enable or disable the edge check functionality for I/O groups . \\
 \hline
 {\lstinline!Q_BYTE_SIZED_BUFFERS!} & \textit{Default:} {\lstinline!1(enabled)!}. Used to enable or disable the usage of Byte-sized buffers. \\
+\hline
+{\lstinline!Q_USE_STDINT_H!} & \textit{Default:} {\lstinline!1(enabled)!}. Use the \lstinline{stdint.h} header to define kernel data-types. \\
 \hline
 \end{tabularx}
 \end{adjustbox}

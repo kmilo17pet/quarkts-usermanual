@@ -1,0 +1,98 @@
+\subsection{STimers}
+There are several situations where the application doesn't need such hard real-time precision for timing actions and we just need that a section of code will execute when at least, some amount of time has elapsed. For these purposes, STimers (Software-Timers) is the right module to use. 
+
+The STimers implementation doesn't access resources from the interrupt context, does not consume any significant processing time unless a timer has actually expired, does not add any processing overhead to the \textit{sys-tick} interrupt, and does not walk any other data structures. The timer service just takes the value of the existing kernel clock source for reference ($\ t_{sys}$ ), allowing timer functionality to be added to an application with minimal impact.
+
+\input{fig/stimers.tex}
+
+As illustrated in figure \ref{fig:stimers}, the time expiration check is roll-over safe by restricting it, to the only calculation that make sense for timestamps, $\ t_{sys} - X_{T_x}$, that yields a duration namely the amount of time elapsed between the current instant($\ t_{sys}$ ) and the later instant, specifically, the tick taken at the arming instant with \lstinline{(qSTimer_Set())}, ($\ X_{t_i}$ ).
+Thanks to modular arithmetic, both of these are guaranteed to work fine across the clock-source rollover(a 32bit unsigned-counter), at least, as long the delays involved are shorter than 49.7 days. 
+\medskip
+
+\textbf{Features:}
+\begin{itemize}
+    \item Provides a non-blocking equivalent to delay function.
+    \item Each STimer encapsulates its own expiration (timeout) time.
+    \item Provides elapsed and remaining time APIs.
+    \item As mentioned before, STimers uses the same kernel clock source, this means the time-elapsed calculation use the \lstinline{qClock_GetTick()} API, therefore, the time resolution has the same value passed when the scheduler has been initialized with \lstinline{qOS_Setup()}.
+\end{itemize}
+
+\subsubsection{Using a STimer}
+A STimer is referenced by a handle, a variable of type \lstinline{qSTimer_t} \index{\lstinline{qSTimer_t}} and preferably, should be initialized by the \lstinline{QSTIMER_INITIALIZER} constant before any usage. 
+
+To use them, the code should follow a specific pattern that deals with the states of this object. All related APIs are designed to be non-blocking, this means there are ideal for use in cooperative environments as the one provided by the OS itself. To minimize the implementation, this object is intentionally created to behave like a binary object, this implies that it only handles two states, \textit{Armed} and \textit{Disarmed}. 
+\medskip
+
+An \textit{Armed} timer means that it is already running with a specified preset value and a \textit{Disarmed} timer is the opposite, which means that it doesn't have a preset value, so consequently, it is not running at all.
+
+The arming action can be performed with \lstinline{qSTimer_Set()} \index{\lstinline{qSTimer_Set}} or \lstinline{qSTimer_FreeRun()} \index{\lstinline{qSTimer_FreeRun}} and disarming with \lstinline{qSTimer_Disarm()}.\index{\lstinline{qSTimer_Disarm}} 
+\medskip
+
+Detailed APIs description is presented below. ( For \lstinline{qSTimer_Disarm()} ignore the \lstinline{Time} argument.)
+\medskip
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qSTimer_Set( qSTimer_t * const obj, const qTime_t Time )
+\end{lstlisting}
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qSTimer_FreeRun( qSTimer_t * const obj, const qTime_t Time )
+\end{lstlisting}
+
+\begin{lstlisting}[style=CStyle]
+void qSTimer_Disarm( qSTimer_t * const obj )
+\end{lstlisting}
+
+\subsubsection*{Parameters}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the STimer object. 
+    \item \lstinline{Time} : The expiration time(must be specified in seconds).
+\end{itemize}
+
+Here, \lstinline{qSTimer_FreeRun()} is a more advanced API, it checks the timer and performs the arming. If disarmed, it gets armed immediately with the specified time. If armed, the time argument is ignored and the API only checks for expiration. When the time expires, the STimer gets armed immediately taking the specified time.
+
+\subsubsection*{Return Value}
+For \lstinline{qSTimer_Set()} \lstinline{qTrue} on success, otherwise, returns \lstinline{qFalse}.
+
+For \lstinline{qSTimer_FreeRun()} returns \lstinline{qTrue} when the STimer expires, otherwise, returns \lstinline{qFalse}. For a disarmed STimer, also returns \lstinline{qFalse}. 
+
+None for \lstinline{qSTimer_Disarm()}.
+
+\noindent\hrulefill
+
+\medskip
+All possible checking actions are also provided for this object, including \lstinline{qSTimer_Elapsed()} \index{\lstinline{qSTimer_Elapsed}}, \lstinline{qSTimer_Remaining()} \index{\lstinline{qSTimer_Remaining}} and \lstinline{qSTimer_Expired()} \index{\lstinline{qSTimer_Expired}}, with the last one being the most commonly used for timing applications.
+Finally, to get the current status of the STimer (check if is Armed or Disarmed) the \lstinline{qSTimer_Status()} \index{\lstinline{qSTimer_Status}} API should be used.
+\medskip
+
+\begin{lstlisting}[style=CStyle]
+qClock_t qSTimer_Elapsed( const qSTimer_t * const obj )
+\end{lstlisting}
+
+\begin{lstlisting}[style=CStyle]
+qClock_t qSTimer_Remaining( const qSTimer_t * const obj )
+\end{lstlisting}
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qSTimer_Expired( const qSTimer_t * const obj )
+\end{lstlisting}
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qSTimer_Status( const qSTimer_t * const obj )
+\end{lstlisting}
+
+For this APIs, their only argument, is a pointer to the STimer object.
+
+\subsubsection*{Return Value}
+For \lstinline{qSTimer_Elapsed()}, \lstinline{qSTimer_Remaining()} returns the elapsed and remaining time specified in epochs respectively. \\
+For \lstinline{qSTimer_Expired()}, returns \lstinline{qTrue} when STimer expires, otherwise, returns \lstinline{qFalse}. For a disarmed STimer, also returns \lstinline{qFalse}. \\
+For \lstinline{qSTimer_Status()}, returns \lstinline{qTrue} when armed, and \lstinline{qFalse} for disarmed.
+
+\noindent\hrulefill
+
+\subsubsection*{Usage example:}
+The example below shows a simple usage of this object. It is noteworthy that arming is performed once using the \lstinline{FirstCall} flag. This prevents the timer from being re-armed every time the task runs. After the timer expires, it should be disarmed explicitly.
+\medskip
+
+
+\lstinputlisting[style=CStyle]{sec3stimers.c}

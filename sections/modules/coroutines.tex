@@ -1,0 +1,173 @@
+\subsection{Co-Routines}
+As showed in figure \ref{fig:coroutine}, a task coded as a Co-Routine, is just a task that allows multiple entry points for suspending and resuming execution at certain locations, this feature can bring benefits by improving the task cooperative scheme and providing a linear code execution for event-driven systems without complex state machines or full multi-threading.
+\medskip
+
+\input{fig/coroutine.tex}
+    
+The QuarkTS implementation uses the Duff's device approach, and is heavily inspired by the Knuth method\cite{knuth}, Simon Tatham's Co-Routines in C \cite{tatham} and Adam Dunkels Protothreads \cite{dunkels}. This means that a \textit{local-continuation} variable is used to preserve the current state of execution at a particular place of the Co-Routine scope but without any call history or local variables. This brings benefits to lower RAM usage, but at the cost of some restrictions on how a Co-routine can be used.
+\medskip
+
+\textbf{Limitations and Restrictions}:
+
+\begin{itemize}
+    \item The stack of a Co-Routine  is not maintained when a yield is performed. This means variables allocated on the stack will loose their values. To overcome this, a variable that must maintain its value across a blocking call must be declared as \lstinline{static}.
+    \item Calls to API functions that could cause the Co-Routine to block, can only be made from the Co-Routine  function itself - not from within a function called by the Co-Routine .
+    \item The implementation does not permit yielding or blocking calls to be made from within a \lstinline{switch} statement.
+\end{itemize}
+
+\subsubsection{Coding a Co-Routine}
+The application writer just needs to create the body of the Co-Routine . This means starting a Co-Routine segment with \lstinline{qCR_Begin} \index{\lstinline{qCR_Begin}} and end with \lstinline{qCR_End} statement \index{\lstinline{qCR_End}}. From now on, yields and blocking calls from the Co-Routine scope are allowed.
+\medskip
+
+\lstinputlisting[style=CStyle]{sec3coroutinecoding.c}  
+
+The \lstinline{qCR_Begin} statement should be placed at the start of the task function in which the Co-routine runs. All C statements above the \lstinline{qCR_Begin} will be executed as if they were in an endless-loop each time the task is scheduled.
+
+A \lstinline{qCR_Yield} \index{\lstinline{qCR_Yield}} statement return the CPU control back to the scheduler but saving the execution progress, thereby allowing other processing tasks to take place in the system. With the next task activation, the Co-Routine will resume the execution after the last \lstinline{qCR_Yield} statement.
+\medskip
+
+\begin{tcolorbox}
+\HandRight All the Co-routine statements has the \textit{qCR} appended at the beginning of their name.
+\end{tcolorbox}
+
+\begin{tcolorbox}
+\HandRight Co-Routine statements can only be invoked from the scope of the Co-Routine.
+\end{tcolorbox}
+
+
+\begin{tcolorbox}
+\HandRight Do not use an endless-loop inside a Co-routine ,this behavior it's already hardcoded within the segment definition.
+\end{tcolorbox}
+
+\subsubsection{Blocking calls}
+Blocking calls inside a Co-Routine should be made with the provided statements, all of them with a common feature: an implicit yield.
+
+A widely used procedure is to wait for a fixed period of time. For this, the \lstinline{qCR_Delay()} should be used \index{\lstinline{qCR_Delay}}. 
+\medskip
+
+
+\begin{lstlisting}[style=CStyle]
+qCR_Delay( qTime_t tDelay ) 
+\end{lstlisting}
+
+As expected, this statement makes an apparent blocking over the application flow, but to be precise, a yield is performed until the requested time expires, this allows other tasks to be executed until the blocking call finish. This \textit{"yielding until condition meet"} behavior its the common pattern among the other blocking statements.
+\medskip
+
+Another common blocking call is \lstinline{qCR_WaitUntil()} \index{\lstinline{qCR_WaitUntil}}:
+
+\begin{lstlisting}[style=CStyle]
+qCR_WaitUntil( Condition ) 
+\end{lstlisting}
+
+This statement takes a \lstinline{Condition} argument, a logical expression that will be performed when the Co-Routine resumes their execution. As mentioned before, this type of statement exposes the expected behavior, yielding until the condition is met.
+\medskip
+
+An additional wait statement is also provided that sets a timeout for the logical condition to be met, with a similar behavior of \lstinline{qCR_WaitUntil}. \index{\lstinline{qCR_TimedWaitUntil}}
+\medskip
+
+\begin{lstlisting}[style=CStyle]
+qCR_TimedWaitUntil( Condition, qTime_t Timeout )
+\end{lstlisting}
+
+Optionally, the \lstinline{Do-Until} \index{\lstinline{qCR_Do}} \index{\lstinline{qCR_Until}} structure gives to application writer the ability to perform a multi-line job before the yield, allowing more complex actions to being performed after the Co-Routine resumes: 
+\medskip
+
+\begin{lstlisting}[style=CStyle]
+qCR_Do{
+    /* Job : a set of instructions*/
+}qCR_Until( Condition );
+\end{lstlisting}
+
+\subsubsection*{Usage example:}
+\lstinputlisting[style=CStyle]{sec3coroutinedem1.c}
+
+\subsubsection{Positional jumps}
+This feature provides positional local jumps, control flow that deviates from the usual Co-Routine call. 
+
+The complementary statements \lstinline{qCR_PositionGet()} \index{\lstinline{qCR_PositionGet}} and \lstinline{qCR_PositionRestore()} \index{\lstinline{qCR_PositionRestore}} provide this functionality.
+The first one saves the Co-Routine state at some point of their execution into \lstinline{CRPos}, a variable of type \lstinline{qCR_Position_t} \index{\lstinline{qCR_Position_t}},  that can be used at some later point of program execution by \lstinline{qCR_PositionRestore()} to restore the Co-Routine  state to the one saved by \lstinline{qCR_PositionGet()} into \lstinline{CRPos}. This process can be imagined to be a "jump" back to the point of program execution where \lstinline{qCR_PositionGet()} saved the Co-Routine  environment.
+\medskip
+
+\begin{lstlisting}[style=CStyle]
+qCR_PositionGet( qCR_Position_t CRPos )
+\end{lstlisting}
+
+\begin{lstlisting}[style=CStyle]
+qCR_PositionRestore( qCR_Position_t CRPos )
+\end{lstlisting}
+
+And to reset the \lstinline{CRPos} variable to the beginning of the Co-Routine, use \index{\lstinline{qCR_PositionReset}}:
+
+\begin{lstlisting}[style=CStyle]
+qCR_PositionReset( qCR_Position_t CRPos )
+\end{lstlisting}
+
+\subsubsection{Semaphores}
+This module implements counting semaphores on top of Co-Routines. Semaphores are a synchronization primitive that provide two operations: \textit{wait} and \textit{signal}. The \textit{wait} operation checks the semaphore counter and blocks the Co-Routine if the counter is zero. The \textit{signal} operation increases the semaphore counter but does not block. If another Co-Routine has blocked waiting for the semaphore that is signaled, the blocked Co-Routines will become runnable again.
+
+Semaphores are referenced by handles, a variable of type \lstinline{qCR_Semaphore_t} \index{\lstinline{qCR_Semaphore_t}}and must be initialized with \lstinline{qCR_SemInit()} \index{\lstinline{qCR_SemInit}} before any usage.  Here, a value for the counter is required. Internally, semaphores use an \lstinline{unsigned int} to represent the counter, therefore the \lstinline{Value} argument should be within range of this data-type.
+\medskip
+
+\begin{lstlisting}[style=CStyle]
+qCR_SemInit( qCR_Semaphore_t *sem, qUINT16_t Value )
+\end{lstlisting}
+
+To perform the \textit{wait} operation, the \lstinline{qCR_SemWait()} \index{\lstinline{qCR_SemWait}} statement should be used. The wait operation causes the Co-routine to block while the counter is zero. When the counter reaches a value larger than zero, the Co-Routine will continue.
+\medskip
+
+
+\begin{lstlisting}[style=CStyle]
+qCR_SemWait( qCR_Semaphore_t *sem )
+\end{lstlisting}
+
+Finally, \lstinline{qCR_SemSignal()} \index{\lstinline{qCR_SemSignal}} carries out the \textit{signal} operation on the semaphore. This signaling increments the counter inside the semaphore, which eventually will cause waiting Co-routines to continue executing.
+\medskip
+
+\begin{lstlisting}[style=CStyle]
+qCR_SemSignal( qCR_Semaphore_t *sem )
+\end{lstlisting}
+
+
+\subsubsection*{Usage example:}
+The following example shows how to implement the bounded buffer problem using Co-Routines and semaphores. The example uses two tasks: one that produces items and other that consumes items.
+
+Note that there is no need for a mutex to guard the \lstinline{add_to_buffer()} and \lstinline{get_from_buffer()} functions because of the implicit locking semantics of Co-Routines, so it will never be preempted and will never block except in an explicit \lstinline{qCR_SemWait} statement.
+\medskip
+
+\lstinputlisting[style=CStyle]{sec3coroutinedem2.c}
+
+\subsubsection{External control}
+There are several circumstances where becomes necessary to control the flow of execution outside the segment that defines the Co-routine itself. This is usually used to defer the job of the Co-routine or resume it in response to specific occurrences that arises in other contexts, either tasks or interrupts.
+
+To code this specific situations, a handler to the Co-routine should be defined, a variable of type \lstinline{qCR_Handle_t}. In addition to this, the scope of the target Co-routine must be started with the \lstinline{qCR_BeginWithHandle} statement instead of \lstinline{qCR_Begin}.
+\medskip
+
+\lstinputlisting[style=CStyle]{sec3coroutinectrlext.c}
+
+As seen in the code snippet above, the Co-routine handle its globally declared to allow other contexts to access it.  The example shows that another task can control the Co-routine using the \lstinline{qCR_ExternControl} API. The actions performed by this API can be only be effective after the handle instantiation, an operation that takes place once on the first call of the Co-routine.
+\medskip
+
+\begin{lstlisting}[style=CStyle]
+void qCR_ExternControl( qCR_Handle_t h, const qCR_ExternAction_t action,  
+                        const qCR_ExtPosition_t action )                      
+\end{lstlisting}\index{\lstinline{qCR_ExternControl}}
+
+\subsubsection*{Parameters}
+\begin{itemize}
+    \item \lstinline{h} : The Co-routine handle.
+    \item \lstinline{action} : The specific action to perform, should be one of the following:
+    \begin{itemize}
+        \item \lstinline{qCR_RESTART} : Restart the Co-routine execution at the place of the \lstinline{qCR_BeginWithHandle} statement.  
+        \item \lstinline{qCR_SUSPEND} :  Suspend the entire Co-routine segment. The task will still running instructions outside the segment.
+        \item \lstinline{qCR_RESUME} : Resume the entire Co-routine segment at the point where it had been left before the suspension.
+        \item \lstinline{qCR_POSITIONSET} : Force the coroutine execution at the position specified in \lstinline{pos}. If a non-valid position is supplied, the Co-routine segment will be suspended.      
+    \end{itemize}
+    \item \lstinline{pos} : The requested position if action = \lstinline{qCR_POSITIONSET}. For other actions this argument its ignored.  
+\end{itemize}
+
+\hrulefill
+\medskip
+
+\begin{tcolorbox}
+\HandRight A \lstinline{NULL} initialization its mandatory on \lstinline{qCR_Handle_t} variables. Undefined behavior may occur if this step is ignored.
+\end{tcolorbox}
