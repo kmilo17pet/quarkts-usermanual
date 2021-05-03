@@ -126,7 +126,7 @@ qBool_t qATCLI_CmdSubscribe( qATCLI_t * const cli,
 \subsubsection*{Parameters}
 \begin{itemize}
     \item \lstinline{cli} : A pointer to the AT Command Line Interface instance. 
-    \item \lstinline{Command} :  A pointer to the AT command object.
+    \item \lstinline{Command} :  A pointer to the AT command object.\index{\lstinline{qATCLI_Command_t}}
     \item \lstinline{TextCommand} : The string (name) of the command we want to subscribe to. Since this service only handles AT commands, this string has to begin by the \lstinline{"at"} characters and should be in lower case.
     \item \lstinline{Callback} : The handler of the callback function associated to the command. Prototype: 
     \lstinline{qATCLI_Response_t xCallback(qATCLI_Handler_t, qATCLI_PreCmd_t )}

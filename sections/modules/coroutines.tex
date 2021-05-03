@@ -139,7 +139,7 @@ Note that there is no need for a mutex to guard the \lstinline{add_to_buffer()} 
 \subsubsection{External control}
 There are several circumstances where becomes necessary to control the flow of execution outside the segment that defines the Co-routine itself. This is usually used to defer the job of the Co-routine or resume it in response to specific occurrences that arises in other contexts, either tasks or interrupts.
 
-To code this specific situations, a handler to the Co-routine should be defined, a variable of type \lstinline{qCR_Handle_t}. In addition to this, the scope of the target Co-routine must be started with the \lstinline{qCR_BeginWithHandle} statement instead of \lstinline{qCR_Begin}.
+To code this specific situations, a handler to the Co-routine should be defined, a variable of type \lstinline{qCR_Handle_t}\index{\lstinline{qCR_Handle_t}}. In addition to this, the scope of the target Co-routine must be started with the \lstinline{qCR_BeginWithHandle} statement instead of \lstinline{qCR_Begin}.
 \medskip
 
 \lstinputlisting[style=CStyle]{sec3coroutinectrlext.c}

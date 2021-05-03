@@ -291,7 +291,7 @@ The next example shows an ISR to task communication. Two interrupts send notific
 \subsubsection{Setting up a queue : \texorpdfstring{\lstinline{qQueue_Setup}}{qQueue_Setup} } \index{\lstinline{qQueue_Setup}} \label{queuecreate}
 A queue must be explicitly initialized before it can be used. 
 \medskip
-These objects are referenced by handles, which are variables of type \lstinline{qQueue_t}. The \lstinline{qQueue_Setup()} API function configures the queue and initialize the instance. 
+These objects are referenced by handles, which are variables of type \lstinline{qQueue_t}\index{\lstinline{qQueue_t}}. The \lstinline{qQueue_Setup()} API function configures the queue and initialize the instance. 
 
 The required RAM for the queue data should be provided by the application writer and could be statically allocated at compile time or in run-time using the memory management module.
 \medskip

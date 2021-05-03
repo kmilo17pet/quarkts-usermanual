@@ -14,7 +14,7 @@ In addition to this, the provided implementation also features a powerful coding
 
 \subsubsection{The provided approach}
 
-In QuarkTS, a state-machine must be instantiated with an object of type \lstinline{qSM_t}. States are represented as instances of the \lstinline{qSM_State_t} object. Here, the state machines are constructed by composition.
+In QuarkTS, a state-machine must be instantiated with an object of type \lstinline{qSM_t}\index{\lstinline{qSM_t}}. States are represented as instances of the \lstinline{qSM_State_t}\index{\lstinline{qSM_State_t}} object. Here, the state machines are constructed by composition.
 
 \input{fig/fsmdesign}
 
@@ -49,7 +49,7 @@ qBool_t qStateMachine_Setup(qSM_t * const m, qSM_StateCallback_t topCallback,
 \subsubsection{Subscribing states and defining callbacks: }
 State  machines  are constructed by composition, therefore, the topology of a state machine is determined upon construction.
 In this module implementation. there are not distinction between composite states(states containing substates) and leaf states. All states are potentially composite. 
-The API \lstinline{qStateMachine_StateSubscribe} should be used to initialize the state and define its position in the topology.
+The API \lstinline{qStateMachine_StateSubscribe}\index{\lstinline{qStateMachine_StateSubscribe}} should be used to initialize the state and define its position in the topology.
 \medskip
 
 \begin{lstlisting}[style=CStyle]
@@ -107,7 +107,7 @@ The usage of this object it's required to make the FSM moves between states and 
 
 
 Within the callback function of every state, only one level of dispatching (based on the signal) is necessary. Typically this is archived using a single-level switch statement.
-Callback functions communicate with the state machine engine through the \lstinline{qSM_Handler_t} and the return value of type \lstinline{qSM_Status_t}.
+Callback functions communicate with the state machine engine through the \lstinline{qSM_Handler_t}\index{\lstinline{qSM_Handler_t}} and the return value of type \lstinline{qSM_Status_t}.
 
 The semantic is simple, if a signal is processed, the callback functions returns the status value \lstinline{qSM_STATUS_SIGNAL_HANDLED}. otherwise it throws the signal for further processing by higher-level states. Also, this returning mechanism can be used to handle exceptions by using the surrounding callback.
 
@@ -282,7 +282,7 @@ qOS_Add_StateMachineTask( &LED_Task, &LED_FSM, qHigh_Priority,
 
 
 \subsubsection{Sending signals}
-To communicate within and between state-machines or even other contexts, use signals. A signal is a simple value who can be used to abstract an incoming event. In the receiving state-machine, a queue or a exclusion variable receives the signal and holds it until the state-machine can evaluate it.
+To communicate within and between state-machines or even other contexts, use signals. A signal\index{\lstinline{qSM_Signal_t}} is a simple value who can be used to abstract an incoming event. In the receiving state-machine, a queue or a exclusion variable receives the signal and holds it until the state-machine can evaluate it.
 
 When coding state-machines, the application writer can benefit from this simple event-abstraction mechanism. On the one hand, there would be a more uniform programming when writing states callbacks and on the other hand, the communication of the state machine from other contexts becomes easier.
 
@@ -380,7 +380,7 @@ This is an elegant method to translate the FSM to actual implementation as the h
 \label{ttable_layout}
 \end{table}
 
-Here, the application writer get a quick picture of the FSM and the embedded software maintenance is also much more under control. A transition should be explicitly installed in the target FSM with the corresponding entries, an \textit{n}-sized array of \lstinline{qSM_Transition_t} elements. 
+Here, the application writer get a quick picture of the FSM and the embedded software maintenance is also much more under control. A transition should be explicitly installed in the target FSM with the corresponding entries, an \textit{n}-sized array of \lstinline{qSM_Transition_t}\index{\lstinline{qSM_Transition_t}} elements. 
 
 The API \lstinline{qStateMachine_InstallTransitionTable()}, should be used to perform the transition table installation to the target FSM.
 \medskip
@@ -445,7 +445,7 @@ An timeout specification allocates one or more timer objects. The user relates i
 
 Given the above explanation, it is evident that for its operation, the state machine requires an installed signal queue.
 
-A timeout specification is referenced by an object of type \lstinline{qSM_TimeoutSpec_t} and must be installed inside the state machine using the API \lstinline{qStateMachine_InstallTimeoutSpec()}.
+A timeout specification is referenced by an object of type \lstinline{qSM_TimeoutSpec_t}\index{\lstinline{qSM_TimeoutSpec_t}} and must be installed inside the state machine using the API \lstinline{qStateMachine_InstallTimeoutSpec()}.
 \medskip
 
 \begin{lstlisting}[style=CStyle]
@@ -453,7 +453,7 @@ qBool_t qStateMachine_InstallTimeoutSpec( qSM_t * const m,
                                           qSM_TimeoutSpec_t * const ts, 
                                           qSM_TimeoutStateDefinition_t *tdef, 
                                           const size_t n );
-\end{lstlisting} \index{\lstinline{qStateMachine_InstallTransitionTable}}
+\end{lstlisting} \index{\lstinline{qStateMachine_InstallTimeoutSpec}}
 
 \subsubsection*{Parameters}
 \begin{itemize}
@@ -468,7 +468,7 @@ Returns \lstinline{qTrue} on success, otherwise returns \lstinline{qFalse}.
 
 \hrulefill
 
-A timeout specification is defined as an structure of type \lstinline{qSM_TimeoutStateDefinition_t} and should follow this layout:
+A timeout specification is defined as an structure of type \lstinline{qSM_TimeoutStateDefinition_t}\index{\lstinline{qSM_TimeoutStateDefinition_t}} and should follow this layout:
 
 \begin{table}[H]
 \centering
