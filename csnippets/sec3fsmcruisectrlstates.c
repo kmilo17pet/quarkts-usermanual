@@ -18,16 +18,14 @@ qSM_Status_t state_top_callback( qSM_Handler_t h ) {
     qSM_Status_t RetVal = qSM_STATUS_EXIT_SUCCESS;
     switch( h->Signal ) {
         case QSM_SIGNAL_ENTRY:
-            puts("->top");
             break;
         case QSM_SIGNAL_EXIT:
-            puts("x-top");
             break;           
     } 
     return RetVal;
 }
 /*=======================================================================*/
-/*                  CALLBACKS FOR THE STATE ABOVE TOP                    */
+/*                  CALLBACKS FOR THE STATES ABOVE TOP                    */
 /*=======================================================================*/
 qSM_Status_t state_idle_callback( qSM_Handler_t h ){
     /*TODO : state activities*/

@@ -14,7 +14,7 @@ In addition to this, the provided implementation also features a powerful coding
 
 \subsubsection{The provided approach}
 
-In QuarkTS, a state-machine must be instantiated with an object of type \lstinline{qSM_t}\index{\lstinline{qSM_t}}. States are represented as instances of the \lstinline{qSM_State_t}\index{\lstinline{qSM_State_t}} object. Here, the state machines are constructed by composition.
+In QuarkTS, a state-machine must be instantiated with an object of type \lstinline{qSM_t}\index{\lstinline{qSM_t}}. States are represented as instances of the \lstinline{qSM_State_t}\index{\lstinline{qSM_State_t}} object. 
 
 \input{fig/fsmdesign}
 
@@ -48,7 +48,7 @@ qBool_t qStateMachine_Setup(qSM_t * const m, qSM_StateCallback_t topCallback,
 
 \subsubsection{Subscribing states and defining callbacks: }
 State  machines  are constructed by composition, therefore, the topology of a state machine is determined upon construction.
-In this module implementation. there are not distinction between composite states(states containing substates) and leaf states. All states are potentially composite. 
+In this module implementation, there are not distinction between composite states(states containing substates) and leaf states. All states are potentially composite. 
 The API \lstinline{qStateMachine_StateSubscribe}\index{\lstinline{qStateMachine_StateSubscribe}} should be used to initialize the state and define its position in the topology.
 \medskip
 
@@ -165,13 +165,13 @@ void SurroundingCallback_Example( qSM_Handler_t m ){
             /* TODO: before any code */
             break;
         case qSM_STATUS_EXIT_FAILURE:
-            /* TODO: success code */
+            /* TODO: failure code */
             break;
         case qSM_STATUS_EXIT_SUCCESS:
-            /* TODO: failure code */
+            /* TODO: success code */
             break;
         case qSM_STATUS_SIGNAL_HANDLED:
-            /* TODO: failure code */
+            /* TODO: signal handled code */
             break;            
         case 5: /*user defined return value*/ 
             /* TODO: used defined*/
@@ -511,7 +511,7 @@ Before getting started, the required variables should be defined:
 
 \lstinputlisting[style=CStyle]{sec3fsmledttabledef.c}
 
-Then, we define the callback for the states. Here, the \lstinline{BeforeAny} sub-state is defined to send the timeout signal. 
+Then, we define the callback for the states.
 \medskip
 
 \lstinputlisting[style=CStyle]{sec3fsmledttablestates.c}
