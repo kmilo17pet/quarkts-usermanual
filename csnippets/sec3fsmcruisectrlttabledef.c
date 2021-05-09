@@ -23,15 +23,15 @@ qSM_Signal_t topsm_sig_stack[10];
 /*=======================================================================*/
 qSM_Transition_t table[] =
 {
-{ &state_idle, SIGNAL_ENGINE_ON, SigAct_ClearDesiredSpeed, &state_initial },
-{ &state_initial, SIGNAL_ACCEL, SigAct_BrakeOff, &state_accelerating },
-{ &state_accelerating, SIGNAL_CRUISE, NULL, &state_cruising },    
-{ &state_cruising, SIGNAL_OFF, NULL, &state_cruisingoff },  
-{ &state_cruising, SIGNAL_ACCEL, NULL, &state_accelerating }, 
-{ &state_resuming, SIGNAL_ACCEL, NULL, &state_accelerating }, 
-{ &state_cruisingoff, SIGNAL_ACCEL, SigAct_BrakeOff, &state_accelerating }, 
-{ &state_cruisingoff, SIGNAL_RESUME, SigAct_BrakeOff, &state_resuming },  
-{ &state_cruisingoff, SIGNAL_ENGINE_OFF, NULL, &state_idle },      
-{ &state_automatedcontrol, SIGNAL_BRAKE_PRESSED, NULL, &state_cruisingoff },   
+{ &state_idle, SIGNAL_ENGINE_ON, SigAct_ClearDesiredSpeed, &state_initial,0 },
+{ &state_initial, SIGNAL_ACCEL, SigAct_BrakeOff, &state_accelerating,0 },
+{ &state_accelerating, SIGNAL_CRUISE, NULL, &state_cruising,0 },    
+{ &state_cruising, SIGNAL_OFF, NULL, &state_cruisingoff,0 },  
+{ &state_cruising, SIGNAL_ACCEL, NULL, &state_accelerating,0 }, 
+{ &state_resuming, SIGNAL_ACCEL, NULL, &state_accelerating,0 }, 
+{ &state_cruisingoff, SIGNAL_ACCEL, SigAct_BrakeOff, &state_accelerating,0 }, 
+{ &state_cruisingoff, SIGNAL_RESUME, SigAct_BrakeOff, &state_resuming,0 },  
+{ &state_cruisingoff, SIGNAL_ENGINE_OFF, NULL, &state_idle,0 },      
+{ &state_automatedcontrol, SIGNAL_BRAKE_PRESSED, NULL, &state_cruisingoff,0 },   
 };
 /*---------------------------------------------------------------------*/
