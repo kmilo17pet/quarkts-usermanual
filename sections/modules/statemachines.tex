@@ -29,7 +29,7 @@ Like any other OS object, a Finite State Machine (FSM) must be explicitly initia
 
 \begin{lstlisting}[style=CStyle]
 qBool_t qStateMachine_Setup(qSM_t * const m, qSM_StateCallback_t topCallback, 
-                            qSM_State_t * const childstart, 
+                            qSM_State_t * const initState, 
                             qSM_SurroundingCallback_t surrounding, void *Data )
 \end{lstlisting}
 
@@ -37,7 +37,7 @@ qBool_t qStateMachine_Setup(qSM_t * const m, qSM_StateCallback_t topCallback,
 \begin{itemize}
     \item \lstinline{m} : A pointer to the FSM object.
     \item \lstinline{topCallback} :  The callback for the "Top" state. This argument is a pointer to a callback function, returning \lstinline{qSM_Status_t} and with a \lstinline{qSM_Handler_t} variable as input argument.
-    \item \lstinline{childstart} : The first state to be executed (initial-state). 
+    \item \lstinline{initState} : The first state to be executed (initial-state). 
     \item \lstinline{Surrounding} : The surrounding callback function. To ignore pass \lstinline{NULL}.
     \item \lstinline{Data} : Represents the FSM arguments. To ignore pass \lstinline{NULL}. All arguments must be passed by reference and cast to \lstinline{(void *)}. Only one argument is allowed, so, for multiple arguments, create a structure that contains all of the arguments and pass a pointer to that structure. 
 \end{itemize}  
@@ -57,7 +57,7 @@ qBool_t qStateMachine_StateSubscribe( qSM_t * const m,
                                       qSM_State_t * const state, 
                                       qSM_State_t * const parent, 
                                       qSM_StateCallback_t StateFcn, 
-                                      qSM_State_t * const ChildStart, 
+                                      qSM_State_t * const initState, 
                                       void *Data )
 \end{lstlisting}
 
@@ -69,7 +69,7 @@ qBool_t qStateMachine_StateSubscribe( qSM_t * const m,
     \item \lstinline{StateFcn} : The handler function associated to the state. 
 
                                  Prototype: \lstinline{ qSM_Status_t xCallback( qSM_Handler_t h ) }
-    \item \lstinline{ChildStart} : The first child-state to be executed if the subscribed state its a parent in an hierarchical pattern. To ignore pass \lstinline{NULL} as argument.
+    \item \lstinline{initState} : The first child-state to be executed if the subscribed state its a parent in an hierarchical pattern. To ignore pass \lstinline{NULL} as argument.
     \item \lstinline{Data} : State data. Storage pointer. To ignore pass \lstinline{NULL} as argument.
 \end{itemize}  
 
@@ -103,8 +103,8 @@ The usage of this object it's required to make the FSM moves between states and 
     \item \lstinline{TransitionHistory} : Use this option if the transition is to a composite state. This attribute defines how the story should be handled. If this field is not established, \lstinline{qSM_TRANSITION_NO_HISTORY} is assumed. The possible values for this attribute are:
     \begin{itemize}
         \item \lstinline{qSM_TRANSITION_NO_HISTORY} : History is not preserved. Composite states will start according to their default transition.
-        \item \lstinline{qSM_TRANSITION_SHALLOW_HISTORY} : History will be kept to allow the return to only the top-most substate of the most recent State configuration, which is entered using the default entry rule.
-        \item \lstinline{qSM_TRANSITION_DEEP_HISTORY} : History will be kept to allow full State configuration of the most recent visit to the containing Region; the effect is the same as if the Transition terminating on the deepHistory Pseudostate had, instead, terminated on the innermost State of the preserved State configuration, including execution of all entry Behaviors encountered along the way
+        \item \lstinline{qSM_TRANSITION_SHALLOW_HISTORY} : History will be kept to allow the return to only the top-most sub-state of the most recent state configuration, which is entered using the default entry rule.
+        \item \lstinline{qSM_TRANSITION_DEEP_HISTORY} : History will be kept to allow full state configuration of the most recent visit to the containing region.
     \end{itemize}
     \item \lstinline{Status} (read-only): The exit(or return) status of the last state. Should be used in the \textit{Surrounding} callback to perform the corresponding actions for every value. On states callback will take the value \lstinline{qSM_STATUS_NULL};
     \item \lstinline{machine} (read-only):  A generic pointer to the container state machine.
@@ -570,8 +570,9 @@ State transitions defined in high-level composite states often deal with events 
 
 \input{fig/hsmhistory}
 
-\textit{Shallow history} state is a reference to the most recently visited state on the same hierarchy level within the composite state.
-\textit{Deep history} state is a reference to the most recently visited simple state within the composite state.
+\textit{Shallow history} A transition to the shallow history state in a composite state invokes the last state that was active, at the same depth as the history state itself, prior to the most recent exit of the composite state. 
+
+\textit{Deep history} A transition to the deep history state within a composite state invokes the state that was active, immediately before the most recent exit of the composite state. The last active state can be nested at any depth. 
 
 Here, the way to specify this type of transitions in QuarkTS is very straightforward, you only need to assign the history-mode in the last entry of the transition as shown below:
 \medskip
