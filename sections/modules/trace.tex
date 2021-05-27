@@ -1,0 +1,101 @@
+\subsection{Trace and debugging}
+QuarkTS include some basic macros to print out debugging messages. Messages can be simple text or the value of variables in specific base-formats. 
+To use the trace macros, a single-char output function must be defined using the \lstinline{qTrace_Set_OutputFcn()} macro.\index{\lstinline{qTrace_Set_OutputFcn}}
+\medskip
+
+\begin{lstlisting}[style=CStyle]
+qTrace_Set_OutputFcn( qPutChar_t fcn )
+\end{lstlisting}
+
+Where \lstinline{fcn} is a pointer to the single-char output function following the prototype:
+\medskip
+
+\begin{lstlisting}[style=CStyle]
+void SingleChar_OutputFcn( void *sp, const char c ){
+    /*
+    TODO : print out the c variable using the
+    selected peripheral.
+    */
+}
+\end{lstlisting}
+
+The body of this user-defined function should have a hardware-dependent code to print out the \lstinline{c} variable through a specific peripheral.
+
+\subsubsection{Viewing variables}
+For viewing or tracing a variable (up to 32-bit data) through debug, one of the following macros are available:
+\index{\lstinline{qTrace_Var}} \index{\lstinline{qTrace_Variable}} \index{\lstinline{qDebug_Var}} \index{\lstinline{qDebug_Variable}}
+\medskip
+
+\begin{lstlisting}[style=CStyle]
+qTrace_Var( Var, DISP_TYPE_MODE )
+qTrace_Variable( Var, DISP_TYPE_MODE )
+\end{lstlisting}
+\begin{lstlisting}[style=CStyle]
+qDebug_Var( Var, DISP_TYPE_MODE )
+qDebug_Variable( Var, DISP_TYPE_MODE )
+\end{lstlisting}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{Var} : The target variable. 
+    \item \lstinline{DISP_TYPE_MODE } :  Visualization mode. It must be one of the following parameters(case sensitive): \lstinline{Bool}, \lstinline{Float}, \lstinline{Binary}, \lstinline{Octal}, \lstinline{Decimal}, \lstinline{Hexadecimal}, \lstinline{UnsignedBinary}, \lstinline{UnsignedOctal}, \lstinline{UnsignedDecimal}, \lstinline{UnsignedHexadecimal}. 
+\end{itemize}
+
+The only difference between \lstinline{qTrace_} and  \lstinline{Debug}, is that \lstinline{qTrace_} macros, print out additional information provided by the \lstinline{__FILE__}, \lstinline{__LINE__} and \lstinline{__func__} built-in preprocessing macros, mostly available in common C compilers. 
+
+\subsubsection{Viewing a memory block}
+For tracing memory from a specified target address, one of the following macros are available: \index{\lstinline{qTrace_Mem}} \index{\lstinline{qTrace_Memory}}
+
+\begin{lstlisting}[style=CStyle]
+qTrace_Mem( Pointer, BlockSize )
+qTrace_Memory( Pointer, BlockSize )
+\end{lstlisting}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{Pointer} : The target memory address.
+    \item \lstinline{Size} : Number of bytes to be visualized.
+\end{itemize}
+
+Hexadecimal notation it's used to format the output of these macros.
+
+\subsubsection{Usage}
+
+In the example below, an UART output function is coded to act as the printer. Here, the target MCU is an ARM-Cortex M0 with the UART1 as the selected peripheral for this purpose.
+\medskip
+
+\begin{lstlisting}[style=CStyle]
+void putUART1( void *sp, const char c ){
+    /* hardware specific code */
+    UART1_D = c;
+    while ( !(UART1_S1 & UART_S1_TC_MASK) ) {} /*wait until TX is done*/ 
+}
+\end{lstlisting}  
+
+As seen above, the function follows the required prototype. Later, in the main thread, a call to the \lstinline{qSetDebugFcn()} is used to set up the output-function.
+
+\begin{lstlisting}[style=CStyle]
+int main( void ){
+   qTrace_Set_OutputFcn( putUART1 );
+   ... 
+   ...
+}
+\end{lstlisting}  
+
+After that, trace macros will be available for use.
+
+\begin{lstlisting}[style=CStyle]
+void IO_TASK_Callback( qEvent_t e ){
+   static qUINT32_t Counter = 0;
+   float Sample;
+   ...
+   ... 
+   qTrace_Message( "IO TASK running..." );
+   Counter++;
+   qTrace_Variable( Counter, UnsignedDecimal );
+   Sample = SensorGetSample();
+   qTrace_Variable( Sample, Float );
+   ...
+   ...
+}
+\end{lstlisting}
