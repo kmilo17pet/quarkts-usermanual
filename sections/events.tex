@@ -370,7 +370,7 @@ qBool_t qTask_Attach_Queue( qTask_t * const Task, qQueue_t * const Queue,
         \item \lstinline{qQueueMode_Count} :  The task will be triggered if the count of elements in the queue reach the specified value. 
         \item \lstinline{qQueueMode_Empty} :  The task will be triggered if the queue is empty.
     \end{itemize}
-    \item \lstinline{arg} : This argument defines if the queue will be attached (\lstinline{qATTACH}) or detached (\lstinline{qDETACH}) from the task. If the \lstinline{qQueueMode_Count} mode is specified, this value will be used to check the element count of the queue. A zero value will act as \lstinline{qDETACH} action. 
+    \item \lstinline{arg} : This argument defines if the queue will be attached (\lstinline{qLink}) or detached (\lstinline{qUnLink}) from the task. If the \lstinline{qQueueMode_Count} mode is specified, this value will be used to check the element count of the queue. A zero value will act as \lstinline{qUnLink} action. 
 \end{itemize}  
 
 \begin{tcolorbox}
