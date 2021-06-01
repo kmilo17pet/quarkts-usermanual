@@ -1,0 +1,78 @@
+\subsection{Input groups for edge-checking}
+
+An interface to manage and simplify the value(with edge-checking) of incoming digital signals groups.
+\medskip
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qEdgeCheck_Setup( qEdgeCheck_t * const Instance, 
+                          const qCoreRegSize_t RegisterSize,
+                          const qClock_t DebounceTime )
+\end{lstlisting}
+
+Initialize an I/O edge-check instance. \index{\lstinline{qEdgeCheck_Setup}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{Instance} : A pointer to the I/O edge-check object.
+    \item \lstinline{RegisterSize} : The specific-core register size: \lstinline{QREG_8BIT}, \lstinline{QREG_16BIT} or \lstinline{QREG_32BIT}(default).
+    \item \lstinline{DebounceTime} : The specified time (in epochs) to bypass the bounce of the input nodes.
+\end{itemize}
+
+\subsubsection*{Return value:}
+\lstinline{qTrue} on success, otherwise returns \lstinline{qFalse}.
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qEdgeCheck_Add_Node( qEdgeCheck_t * const Instance, 
+                             qEdgeCheck_IONode_t * const Node, 
+                             void *PortAddress, 
+                             const qBool_t PinNumber )
+\end{lstlisting}
+
+Inserts an I/O node to the edge-check instance. \index{\lstinline{qEdgeCheck_Add_Node}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{Instance} : A pointer to the I/O edge-check object.
+    \item \lstinline{Node} :  A pointer to the input-node object.
+    \item \lstinline{PortAddress} : The address of the core PORTx-register to read the levels of the specified \lstinline{PinNumber}.
+    \item \lstinline{PinNumber} : The specified pin to read from \lstinline{PortAddress}.
+\end{itemize}
+
+\subsubsection*{Return value:}
+\lstinline{qTrue} on success, otherwise returns \lstinline{qFalse}.
+
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qEdgeCheck_Update( qEdgeCheck_t * const Instance )
+\end{lstlisting}
+
+Update the status of all nodes inside the I/O edge-check instance (non-blocking call). \index{\lstinline{qEdgeCheck_Update}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{Instance} : A pointer to the I/O edge-check object.
+\end{itemize}
+
+\subsubsection*{Return value:}
+\lstinline{qTrue} on success, otherwise returns \lstinline{qFalse}.
+
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qEdgeCheck_Get_NodeStatus( const qEdgeCheck_IONode_t * const Node )
+\end{lstlisting}
+
+Query the status of the specified input-node. \index{\lstinline{qEdgeCheck_Get_NodeStatus}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{Instance} : A pointer to the I/O edge-check object.
+\end{itemize}
+
+\subsubsection*{Return value:}
+The status of the input node : \lstinline{qTrue}, \lstinline{qFalse}, \lstinline{qRising}, \lstinline{qFalling} or \lstinline{qUnknown}.

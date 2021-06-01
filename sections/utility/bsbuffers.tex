@@ -1,0 +1,137 @@
+\subsection{Byte sized buffers}
+
+An interrupt-safe byte-sized ring buffer.
+\medskip
+
+\begin{lstlisting}[style=CStyle]
+void qBSBuffer_Setup( qBSBuffer_t * const obj, volatile qUINT8_t *buffer, 
+                      const size_t length )
+\end{lstlisting}
+
+Initialize the byte-sized buffer. \index{\lstinline{qBSBuffer_Setup}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the byte-sized buffer object
+    \item \lstinline{buffer} : Block of memory or array of data.
+    \item \lstinline{length} : The size of \lstinline{buffer}(Must be a power of two)
+\end{itemize}
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qBSBuffer_Put( qBSBuffer_t * const obj, const qUINT8_t data )
+\end{lstlisting}
+
+Adds an element of data to the byte-sized buffer. \index{\lstinline{qBSBuffer_Put}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the byte-sized buffer object
+    \item \lstinline{data} : The data to be added.
+\end{itemize}
+
+\subsubsection*{Return value:}
+\lstinline{qTrue} on success, otherwise returns \lstinline{qFalse}.
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qBSBuffer_Read( qBSBuffer_t * const obj, void *dest, 
+                        const size_t n )
+\end{lstlisting}
+
+Gets \lstinline{n} data from the byte-sized buffer and removes them. \index{\lstinline{qBSBuffer_Read}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the byte-sized buffer object
+    \item \lstinline{dest} : The location where the data will be written.
+\end{itemize}
+
+\subsubsection*{Return value:}
+\lstinline{qTrue} on success, otherwise returns \lstinline{qFalse}.
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qBSBuffer_Get( qBSBuffer_t * const obj, qUINT8_t *dest )
+\end{lstlisting}
+
+Gets one data-byte from the front of the byte-sized buffer, and remove it. \index{\lstinline{qBSBuffer_Get}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the byte-sized buffer object
+    \item \lstinline{dest} : The location where the data will be written.
+\end{itemize}
+
+\subsubsection*{Return value:}
+\lstinline{qTrue} on success, otherwise returns \lstinline{qFalse}.
+
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+qUINT8_t qBSBuffer_Peek( const qBSBuffer_t * const obj )
+\end{lstlisting}
+
+Looks for one byte from the head of the byte-sized buffer without removing it. \index{\lstinline{qBSBuffer_Peek}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the byte-sized buffer object
+\end{itemize}
+
+\subsubsection*{Return value:}
+Byte of data, or zero if nothing in the buffer.
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qBSBuffer_Empty( const qBSBuffer_t * const obj )
+\end{lstlisting}
+
+Query the empty status of the byte-sized buffer. \index{\lstinline{qBSBuffer_Empty}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the byte-sized buffer object
+\end{itemize}
+
+\subsubsection*{Return value:}
+\lstinline{qTrue} if the byte-sized buffer is empty, \lstinline{qFalse} if it is not.
+
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qBSBuffer_IsFull( const qBSBuffer_t * const obj )
+\end{lstlisting}
+
+Query the full status of the byte-sized buffer. \index{\lstinline{qBSBuffer_IsFull}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the byte-sized buffer object
+\end{itemize}
+
+\subsubsection*{Return value:}
+\lstinline{qTrue} if the byte-sized buffer is full, \lstinline{qFalse} if it is not.
+
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+size_t qBSBuffer_Count( const qBSBuffer_t * const obj )
+\end{lstlisting}
+
+Query the number of elements in the byte-sized buffer. \index{\lstinline{qBSBuffer_Count}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the byte-sized buffer object.
+\end{itemize}
+
+\subsubsection*{Return value:}
+Number of elements in the byte-sized buffer.

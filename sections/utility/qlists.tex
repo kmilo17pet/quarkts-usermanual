@@ -1,0 +1,316 @@
+\subsection{Generic lists} \label{qlist}
+The provided list implementation uses a generic \textit{doubly-linked} approach in which each node, apart from storing its data, has two link pointers. The first link points to the previous node in the list and the second link, points to the next node in the list. The first node of the list has its previous link pointing to \lstinline{NULL}, similarly, the last node of the list has its next node pointing to \lstinline{NULL}. \\
+The list data-structure, referenced through an object of type \lstinline{qList_t} \index{\lstinline{qList_t}} also has a \textit{head} and a \textit{tail} pointer, to allow fast operations on boundary nodes.
+
+\input{fig/qlists.tex}
+
+Nodes should be an user-defined data structure of any number of members, however, they must be specially defined to be compatible with the provided APIs. All the user-defined nodes must have the \lstinline{qNode_MinimalFields}\index{\lstinline{qNode_MinimalFields}} definition on top of the structure. An example is shown below:
+\medskip
+
+\begin{lstlisting}[style=CStyle]
+typedef struct{
+    qNode_MinimalFields; /*< required for lists*/
+    int a;
+    int b;
+    float y;
+}userdata_t;
+\end{lstlisting}
+
+With this special type definition on all custom data, the application writer can take advantage of this powerful data structure. The following APIs are provided for lists management:
+
+\noindent\hrulefill
+
+
+\begin{lstlisting}[style=CStyle]
+void qList_Initialize( qList_t * const list )
+\end{lstlisting}
+
+Must be called before a list is used.  This initializes all the members of the 
+list object. \index{\lstinline{qList_Initialize}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{list} : Pointer to the list being initialised. 
+\end{itemize}
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qList_Insert( qList_t *const list, void * const node, 
+                      const qList_Position_t position ){
+\end{lstlisting}
+
+Insert an item into the list. \index{\lstinline{qList_Insert}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{list} : Pointer to the list. 
+    \item \lstinline{node} : A pointer to the node to be inserted.
+    \item \lstinline{position} : The position where the node will be inserted. Could be \lstinline{qList_AtFront}, \lstinline{qList_AtBack} or any other index number where the node will be inserted after.
+    
+    \textit{Note}: If the index exceeds the size of the list, the node will be inserted at the back.
+    
+    \textit{Note}: If the list is empty, the node will be inserted as the first item.
+\end{itemize}
+
+\subsubsection*{Return value:}
+\lstinline{qTrue} if the item was successfully added to the list, otherwise returns \lstinline{qFalse}. 
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+void* qList_Remove( qList_t * const list, void * const node, 
+                    const qList_Position_t position )
+\end{lstlisting}
+
+Remove an item from the list. \index{\lstinline{qList_Remove}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{list} : Pointer to the list. 
+    \item \lstinline{node} : A pointer to the node to be deleted (to ignore pass \lstinline{NULL} ).
+    \item \lstinline{position} : The position of the node that will be deleted. Could be \lstinline{qList_AtFront}, \lstinline{qList_AtBack} or any other index number.
+    
+    \textit{Note}: If the \lstinline{node} argument is supplied, the removal will be only effective if the data is member of the list. If ignored or the data is not a member of the list, this function will use the \lstinline{position} instead as index for removal.
+    
+    \textit{Note}: If the index exceeds the size of the list, the last node  will be removed.
+\end{itemize}
+
+\subsubsection*{Return value:}
+A pointer to the removed node. \lstinline{NULL} if removal can be performed.
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qList_IsMember( const qList_t *const list, const void *const node )
+\end{lstlisting}
+
+Check if the node is member of the list. \index{\lstinline{qList_IsMember}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{list} : Pointer to the list. 
+    \item \lstinline{node} : A pointer to the node .
+\end{itemize}
+
+\subsubsection*{Return value:}
+\lstinline{qTrue} if the node belongs to the list, \lstinline{qFalse} if it is not.
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+void* qList_GetFront( const qList_t *const list ){
+\end{lstlisting}
+
+Get a pointer to the front item of the list. \index{\lstinline{qList_GetFront}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{list} : Pointer to the list. 
+\end{itemize}
+
+\subsubsection*{Return value:}
+A pointer to the front node. \lstinline{NULL} if the list is empty.
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+void* qList_GetBack( const qList_t *const list )
+\end{lstlisting}
+
+Get a pointer to the back item of the list. \index{\lstinline{qList_GetBack}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{list} : Pointer to the list. 
+\end{itemize}
+
+\subsubsection*{Return value:}
+A pointer to the front node. \lstinline{NULL} if the list is empty.
+
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qList_IsEmpty( const qList_t * const list )
+\end{lstlisting}
+
+Check if the list is empty. \index{\lstinline{qList_IsEmpty}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{list} : Pointer to the list. 
+\end{itemize}
+
+\subsubsection*{Return value:}
+\lstinline{qTrue} if the list is empty, \lstinline{qFalse} if it is not.
+
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+size_t qList_Length( const qList_t * const list )
+\end{lstlisting}
+
+Get the number of items inside the list. \index{\lstinline{qList_Length}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{list} : Pointer to the list. 
+\end{itemize}
+
+\subsubsection*{Return value:}
+The number of items of the list. 
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qList_Move( qList_t *const destination, qList_t *const source, 
+                    const qList_Position_t position )
+\end{lstlisting} \index{\lstinline{qList_Move}}
+
+Moves(or merge) the entire list pointed by \lstinline{source} to the list pointed by \lstinline{destination} at location specified by \lstinline{position}. 
+After the move operation, this function leaves empty the list pointed by \lstinline{source}.
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{destination} : Pointer to the list where the \lstinline{source} nodes are to be moved. 
+    \item \lstinline{source} : Pointer to the source list to be moved.
+    \item \lstinline{position} : The position where \lstinline{source} list will be inserted. Could be \lstinline{qList_AtFront}, \lstinline{qList_AtBack} or any other index number where the list will be inserted after.
+\end{itemize}
+
+\subsubsection*{Return value:}
+\lstinline{qTrue} if the move operation is performed successfully, otherwise  returns \lstinline{qFalse}.  
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qList_ForEach( qList_t *const list, qList_NodeFcn_t Fcn, 
+                       void *arg, qList_Direction_t dir, void *NodeOffset )
+\end{lstlisting} \index{\lstinline{qList_ForEach}}
+
+Operate on each element of the list.
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{list} : Pointer to the list.
+    \item \lstinline{Fcn} : The function to perform over the node. 
+                            
+                            Should have this prototype:
+                            
+                            \lstinline{ qBool_t Function( qList_ForEachHandle_t h ) }
+                            
+                            where the \lstinline{h} its a handle of the list iterator with the following members:
+                            
+                            
+                            \begin{itemize}
+                                \item \lstinline{node} : the k-element of the list that is currently being processed in the loop.
+                                \item \lstinline{arg} : same argument of the calling function.
+                                \item  \lstinline{stage} : indicates the loop progress and should be checked by the application writer to perform the specific operations over the list. This variable can take the following values:
+                                \begin{itemize}
+                                    \item \lstinline{QLIST_WALKINIT} : When the loop is about to start. In this case, A \lstinline{NULL} value will be passed inside the \lstinline{node} member.
+                                    \item \lstinline{QLIST_WALKTHROUGH} : When the loop is traversing the list.
+                                    \item \lstinline{QLIST_WALKEND} :  When the loop has finished. In this case, A \lstinline{NULL} value will be passed in the \lstinline{node} member. 
+                                \end{itemize}
+                            \end{itemize}
+                            
+                            By default, \lstinline{Function} should return \lstinline{qFalse}. If a \lstinline{qTrue} value is returned, the walk through loop will be terminated.
+    \item \lstinline{arg} : Argument passed to \lstinline{Fcn} through the iterator handle.
+    \item \lstinline{dir} : Use one of the following options:
+                            \begin{itemize}
+                                \item \lstinline{QLIST_FORWARD} : to walk through the list forwards.
+                                \item \lstinline{QLIST_BACKWARD} to walk through the list backwards.
+                            \end{itemize}
+    \item \lstinline{NodeOffset} : If available, the list walk through will start from this node.  
+                   To ignore, pass \lstinline{NULL}.
+\end{itemize}
+
+\subsubsection*{Return value:}
+\lstinline{qTrue} if the walk through was early terminated, otherwise returns \lstinline{qFalse}.
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qList_Sort( qList_t * const list, 
+                    qBool_t (*CompareFcn)( qList_CompareHandle_t h ) ) 
+\end{lstlisting} \index{\lstinline{qList_Sort}}
+
+Sort the double linked list using the \lstinline{CompareFcn} function to 
+determine the order.
+The sorting algorithm used by this function compares pairs of adjacent nodes by calling the specified \lstinline{CompareFcn} function. The sort is performed only modifying node's links without data swapping, improving performance if nodes have a large storage.
+
+\textit{Note:} The function modifies the content of the list by reordering its 
+elements as defined by \lstinline{CompareFcn}.
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{list} : Pointer to the list. 
+    \item \lstinline{CompareFcn} : Pointer to a function that compares two nodes.
+                    This function is called repeatedly by \lstinline{qList_Sort} to compare two nodes. It shall follow the following prototype:
+                    \lstinline{qBool_t (*CompareFcn)( qList_CompareHandle_t h )}
+                    
+                    Taking \lstinline{h} as the conpare-handle argument with two members inside, \lstinline{n1} and \lstinline{n2}, pointing to the nodes being compared (both converted to (\lstinline{const void*}). The function defines the order of the elements by returning a Boolean data, where a \lstinline{qTrue} value indicates that element pointed by \lstinline{n1} goes after the element pointed to by \lstinline{n2}
+\end{itemize}
+
+\subsubsection*{Return value:}
+\lstinline{qTrue} if at least one reordering is performed over the list. 
+
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qList_IteratorSet( qList_Iterator_t *iterator, qList_t *const list, 
+                           void *NodeOffset, qList_Direction_t dir )
+\end{lstlisting} \index{\lstinline{qList_IteratorSet}}
+
+Setup an instance of the given iterator to traverse the list.
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{iterator} : Pointer to the iterator instance. 
+    \item \lstinline{list} : Pointer to the list.
+    \item \lstinline{NodeOffset} : The start offset-node. To ignore, pass \lstinline{NULL}.
+    \item \lstinline{dir} : Use one of the following options:
+        \begin{itemize}
+            \item \lstinline{QLIST_FORWARD} : to go in forward direction.
+            \item \lstinline{QLIST_BACKWARD} : to go in backward direction.
+        \end{itemize}
+\end{itemize}
+
+\subsubsection*{Return value:}
+\lstinline{qTrue} on success. Otherwise returns \lstinline{qFalse}. 
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+void* qList_IteratorGetNext( qList_Iterator_t *iterator )
+\end{lstlisting} \index{\lstinline{qList_IteratorGetNext}}
+
+Get the current node available in the iterator. After invoked, iterator will be updated to the next node.
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{iterator} : Pointer to the iterator instance. 
+\end{itemize}
+
+\subsubsection*{Return value:}
+Return the next node or \lstinline{NULL} when no more nodes remain in the list. 
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qList_Swap( void *node1, void *node2 )
+\end{lstlisting} \index{\lstinline{qList_Swap}}
+
+Swap two nodes that belongs to the same list by changing its own links.
+
+Note: The container list will be updated if any node is part of the boundaries.
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{node1} : Pointer to the first node.
+    \item \lstinline{node2} : Pointer to the second node.
+\end{itemize}
+
+\subsubsection*{Return value:}
+\lstinline{qTrue} if the swap operation is performed. Otherwise returns \lstinline{qFalse}.

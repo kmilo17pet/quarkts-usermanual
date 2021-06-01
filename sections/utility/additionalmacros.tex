@@ -1,0 +1,47 @@
+\subsection{Additional macros}
+
+\lstinline{qFLM_BitsSet(Register, Bits)} : Sets (writes a 1 to) the bits indicated by the \lstinline{Bits} mask in the numeric variable \lstinline{Register}.
+
+\lstinline{qFLM_BitsClear(Register, Bits)} : Clears (writes a 0 to) the bits indicated by the \lstinline{Bits} mask in the numeric variable \lstinline{Register}.
+
+\lstinline{qFLM_BitSet(Register, Bit)} : Sets (writes a 1 to) the \lstinline{n-Bit} in the numeric variable \lstinline{Register}.
+
+\lstinline{qFLM_BitClear(Register, Bit)} : Clears (writes a 0 to) the \lstinline{n-Bit} in the numeric variable \lstinline{Register}.
+
+\lstinline{qFLM_BitRead(Register,Bit)} : Reads the \lstinline{n-Bit} of the numeric variable \lstinline{Register}.
+
+\lstinline{qFLM_BitToggle(Register,Bit)} : Invert the state of the \lstinline{n-Bit} in the numeric variable \lstinline{Register}.
+
+\lstinline{qFLM_BitWrite(Register, Bit, Value)} : Writes the \lstinline{Value} to the \lstinline{n-Bit} in the numeric variable \lstinline{Register}.
+
+\lstinline{qFLM_BitMakeByte(b7,b6,b5,b4,b3,b2,b1,b0)} : Merge the bits from the most significant bit \lstinline{b7} to the least significant bit \lstinline{b0} into a single byte.
+
+\lstinline{qFLM_ByteHighNibble(Register)} : Extracts the  high-order (leftmost) nibble of a byte.
+
+\lstinline{qFLM_ByteLowNibble(Register)} : Extracts the low-order (rightmost) nibble of a byte.
+
+\lstinline{qFLM_ByteMergeNibbles(H,L)} :  Merge the high(\lstinline{H}) and low(\lstinline{L}) nibbles into a single byte.
+
+\lstinline{qFLM_WordHighByte(Register)} : Extracts the high-order (leftmost) byte of a word.
+
+\lstinline{qFLM_WordLowByte(Register)} : Extracts the low-order (rightmost) byte of a word.
+
+\lstinline{qFLM_WordMergeBytes(H,L)} : Merge the high(\lstinline{H}) and low(\lstinline{L}) bytes into a single word.
+
+\lstinline{qFLM_DWordHighWord(Register)} : Extracts the high-order (leftmost) word of a Dword.
+
+\lstinline{qFLM_DWordLowWord(Register)} : Extracts the low-order (rightmost) word of a Dword.
+
+\lstinline{qFLM_DWordMergeWords(H,L) } : Merge the high(\lstinline{H}) and low(\lstinline{L}) words into a single DWord.
+
+\lstinline{qFLM_Clip(X, Max, Min)} :  Gives \lstinline{X} for \lstinline{Min<=X<=Max}, \lstinline{Min} for \lstinline{X<Min} and \lstinline{Max} for \lstinline{X>Max}.
+
+\lstinline{qFLM_ClipUpper(X, Max)} : Gives \lstinline{X} for \lstinline{X<=Max} and \lstinline{Max} for \lstinline{X>Max}.
+
+\lstinline{qFLM_ClipLower(X, Min)} : Gives \lstinline{X} for \lstinline{X>=Min} and \lstinline{Min} for \lstinline{X<Min}.
+
+\lstinline{qFLM_IsBetween(X, Low, High)} : Returns \lstinline{true} if the value in \lstinline{X} is between \lstinline{Low} and \lstinline{High}, otherwise returns \lstinline{false}.
+
+\lstinline{qFLM_Min(a,b)} : Returns the smaller of \lstinline{a} and \lstinline{b}.
+
+\lstinline{qFLM_Max(a,b)} :  Returns the greater of \lstinline{a} and \lstinline{b}.

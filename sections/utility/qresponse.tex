@@ -1,0 +1,89 @@
+\subsection{Response handler}
+
+An API to simplify the handling of requested responses from terminal interfaces.
+\medskip
+
+\begin{lstlisting}[style=CStyle]
+void qResponse_Setup( qResponse_t * const obj, char *xLocBuff, 
+                      size_t nMax )
+\end{lstlisting}
+
+Initialize the instance of the response handler object. \index{\lstinline{qResponse_Setup}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the response handler object
+    \item \lstinline{xLocBuff} : A pointer to the memory block where the desired response will remain.
+    \item \lstinline{nMax} : The size of memory block pointed by \lstinline{xLocBuff}
+\end{itemize}
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+void qResponse_Reset( qResponse_t * const obj )
+\end{lstlisting}
+
+Reset the response handler. \index{\lstinline{qResponse_Reset}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the response handler object
+\end{itemize}
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qResponse_Received( qResponse_t * const obj, 
+                            const char *Pattern, size_t n )
+\end{lstlisting}
+
+Non-blocking response check. \index{\lstinline{qResponse_Received}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the response handler object.
+    \item \lstinline{Pattern} : The data to be checked in the receiver ISR
+    \item \lstinline{n} : The length of the data pointer by \lstinline{Pattern} . If \lstinline{Pattern} its string, set \lstinline{n} to zero(0) to auto-compute the length.
+\end{itemize}
+
+\subsubsection*{Return value:}
+\lstinline{qTrue} if there is a response acknowledge, otherwise returns \lstinline{qFalse}.
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qResponse_ReceivedWithTimeout( qResponse_t * const obj, 
+                                       const char *Pattern, 
+                                       size_t n, qTime_t t )
+\end{lstlisting}
+
+Non-blocking response check with timeout. \index{\lstinline{qResponse_ReceivedWithTimeout}}
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the response handler object.
+    \item \lstinline{Pattern} : The data to be checked in the receiver ISR
+    \item \lstinline{n} : The length of the data pointer by \lstinline{Pattern} . If \lstinline{Pattern} its string, set \lstinline{n} to zero(0) to auto-compute the length.
+    \item \lstinline{obj} : The timeout value in seconds.
+\end{itemize}
+
+\subsubsection*{Return value:}
+\lstinline{qTrue} if there is a response acknowledge and \lstinline{qTimeoutReached} if timeout expires,  otherwise returns \lstinline{qFalse}.
+
+\noindent\hrulefill
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qResponse_ISRHandler( qResponse_t * const obj, 
+                              const char rxchar )
+\end{lstlisting}
+
+ISR receiver for the response handler. \index{\lstinline{qResponse_ISRHandler}}. This call should be placed inside the ISR in charge of receiving the incoming data (one byte at the time).
+
+\subsubsection*{Parameters:}
+\begin{itemize}
+    \item \lstinline{obj} : A pointer to the response handler object.
+    \item \lstinline{rxchar} : The byte-data from the receiver.
+\end{itemize}
+
+\subsubsection*{Return value:}
+\lstinline{qTrue} when the response handler object match the request from \lstinline{qResponse_Received()}.
