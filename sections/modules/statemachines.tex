@@ -373,41 +373,41 @@ qBool_t qStateMachine_InstallSignalQueue( qSM_t * const m, qQueue_t *queue );
 \end{tcolorbox}
 
 \subsubsection{Using a transition table}
-In this approach, the FSM is coded in a table relating states and signal-events. 
+In this approach, the FSM is coded in tables with the outgoing transitions of every state, where each entry relates signals, actions and the target state.
 This is an elegant method to translate the FSM to actual implementation as the handling for every state and event combination is encapsulated in the table. 
 
 \begin{table}[H]
 \centering
-\begin{tabular}{||c c c c c||} 
+\begin{tabular}{||c c c c||} 
  \hline
- \textit{Current state} & \textit{Signal} & \textit{Signal action/guard} & \textit{Next state}& \textit{History mode}  \\ [0.5ex] 
+  \textit{Signal} & \textit{Signal action/guard} & \textit{Target state}& \textit{History mode}  \\ [0.5ex] 
  
  \hline\hline
- \ttfamily{StateA} & \ttfamily{Signal1} & \ttfamily{NULL} & \ttfamily{StateB} & 0 \\ 
- \ttfamily{StateB} & \ttfamily{Signal3} & \ttfamily{DoOnSignal3} & \ttfamily{StateD} & 0 \\
- ... & ... & ... & ... & ... \\
- \ttfamily{StateD} & \ttfamily{Signal6} & \ttfamily{NULL} & \ttfamily{StateA} & 0 \\ [1ex] 
+ \ttfamily{Signal1} & \ttfamily{NULL} & \ttfamily{StateB} & 0 \\ 
+ \ttfamily{Signal3} & \ttfamily{DoOnSignal3} & \ttfamily{StateD} & 0 \\
+ ... & ... & ... & ... \\
+ \ttfamily{Signal6} & \ttfamily{NULL} & \ttfamily{StateA} & 0 \\ [1ex] 
  \hline
 \end{tabular}
-\caption{Transition table layout for the state-machine module}
+\caption{Transition table layout for a state}
 \label{ttable_layout}
 \end{table}
 
-Here, the application writer get a quick picture of the FSM and the embedded software maintenance is also much more under control. A transition should be explicitly installed in the target FSM with the corresponding entries, an \textit{n}-sized array of \lstinline{qSM_Transition_t}\index{\lstinline{qSM_Transition_t}} elements. 
+Here, the application writer get a quick picture of the FSM and the embedded software maintenance is also much more under control. A transition should be explicitly installed in the target state with the corresponding entries, an \textit{n}-sized array of \lstinline{qSM_Transition_t}\index{\lstinline{qSM_Transition_t}} elements. 
 
-The API \lstinline{qStateMachine_InstallTransitionTable()}, should be used to perform the transition table installation to the target FSM.
+The API \lstinline{qStateMachine_InstallTransitionTable()}, should be used to perform the transition table installation to a specific state.
 \medskip
 
 \begin{lstlisting}[style=CStyle]
-qBool_t qStateMachine_InstallTransitionTable( qSM_t * const m, 
-                                              qSM_Transition_t * const table,
-                                              const size_t n )
-\end{lstlisting} \index{\lstinline{qStateMachine_InstallTransitionTable}}
+qBool_t qStateMachine_Set_StateTransitions( qSM_State_t * const state,
+                                            qSM_Transition_t * const table,
+                                            const size_t n )
+\end{lstlisting} \index{\lstinline{qStateMachine_Set_StateTransitions}}
 
 \subsubsection*{Parameters}
 \begin{itemize}
-    \item \lstinline{m} : A pointer to the FSM object. 
-    \item \lstinline{table} : The array of transitions (\lstinline{qSM_Transition_t[]}) that describes the state-machine behavior.. 
+    \item \lstinline{m} : A pointer to the state object. 
+    \item \lstinline{table} : The array of entries (\lstinline{qSM_Transition_t[]}) that describes the outgoing transitions. 
     \item \lstinline{n} : The number of transitions available within the \lstinline{table}.
 \end{itemize}
 
@@ -454,7 +454,7 @@ A \lstinline{NULL} value will act as a NOT-defined, always allowing the state-tr
 \subsubsection{FSM Timeout specification}
 A timeout specification is mechanism to simplify the notion of time passage inside states. The basic usage model of the timeout signals is as follows:
 
-An timeout specification allocates one or more timer objects. The user relates in a table each specific timeout with its respective state where it will operate. So, according to the table, when a state needs to arrange for a timeout, the engine can set or reset the given timer.  When the FSM engine detects that the appropriate moment has arrived (a timer expiration occurs), it inserts the timeout signal directly into the recipient's event queue. The recipient then processes the timeout signal just like any other signal.
+An timeout specification allocates one or more timer objects. The user relates in a table each specific timeout operations within the state where are they going to operate. So, according to the table, when a state needs to arrange for a timeout, the engine can set or reset the given timer.  When the FSM engine detects that the appropriate moment has arrived (a timer expiration occurs), it inserts the timeout signal directly into the recipient's event queue. The recipient then processes the timeout signal just like any other signal.
 
 Given the above explanation, it is evident that for its operation, the state machine requires an installed signal queue.
 
@@ -463,17 +463,13 @@ A timeout specification is referenced by an object of type \lstinline{qSM_Timeou
 
 \begin{lstlisting}[style=CStyle]
 qBool_t qStateMachine_InstallTimeoutSpec( qSM_t * const m,  
-                                          qSM_TimeoutSpec_t * const ts, 
-                                          qSM_TimeoutStateDefinition_t *tdef, 
-                                          const size_t n );
+                                          qSM_TimeoutSpec_t * const ts );
 \end{lstlisting} \index{\lstinline{qStateMachine_InstallTimeoutSpec}}
 
 \subsubsection*{Parameters}
 \begin{itemize}
     \item \lstinline{m} : A pointer to the FSM object. 
     \item \lstinline{ts} : A pointer to the timeout specification object.
-    \item \lstinline{tdef} : The lookup table matching the target state and the requested timeout..
-    \item \lstinline{n} : the number of elements inside \lstinline{tdef}.
 \end{itemize}
 
 \subsubsection*{Return Value}
@@ -481,20 +477,36 @@ Returns \lstinline{qTrue} on success, otherwise returns \lstinline{qFalse}.
 
 \hrulefill
 
-A timeout specification is defined as an structure of type \lstinline{qSM_TimeoutStateDefinition_t}\index{\lstinline{qSM_TimeoutStateDefinition_t}} and should follow this layout:
+Then, timeout operations can be defined in a table for each state using the following  API:
+
+\begin{lstlisting}[style=CStyle]
+qBool_t qStateMachine_Set_StateTimeouts( qSM_State_t * const state, 
+                                         qSM_TimeoutStateDefinition_t *tdef, 
+                                         const size_t n  );
+\end{lstlisting} \index{\lstinline{qStateMachine_Set_StateTimeouts}}
+
+\subsubsection*{Parameters}
+\begin{itemize}
+    \item \lstinline{state} : A pointer to the state object. 
+    \item \lstinline{tdef} : The lookup table matching the requested timeout values with their respective options.
+    \item \lstinline{n} : the number of elements inside \lstinline{tdef}.
+\end{itemize}
+
+\subsubsection*{Return Value}
+Returns \lstinline{qTrue} on success, otherwise returns \lstinline{qFalse}.
+
+A timeout specification element  is defined as an structure of type \lstinline{qSM_TimeoutStateDefinition_t}\index{\lstinline{qSM_TimeoutStateDefinition_t}} and should follow this layout:
 
 \begin{table}[H]
 \centering
-\begin{tabular}{||c c c||} 
+\begin{tabular}{||c c||} 
  \hline
- \textit{Current state} & \textit{Timeout value} & \textit{Options} \\ [0.5ex] 
+ \textit{Timeout value} & \textit{Options} \\ [0.5ex] 
  \hline
 \end{tabular}
 \caption{Timeout specification layout}
 \label{timeoutspec_table_layout}
 \end{table}
-
-You can pass multiple specifications for a given state-machine by just creating a list in the form of array (\lstinline{qSM_TimeoutStateDefinition_t[]}).
 
 The options for every timeout its a bitwise value that indicates which timeout should be used and the operations than should be performed internally by the state-machine engine. This options can be combined with a bitwise OR and are detailed as follows:
 
@@ -516,7 +528,7 @@ The options for every timeout its a bitwise value that indicates which timeout s
 \HandRight You can increase the number of available timeouts instances by changing the \lstinline{Q_FSM_MAX_TIMEOUTS} configuration macro inside \lstinline{qconfig.h}. 
 \end{tcolorbox}
 
-\subsubsection{Demonstrative example using a transition table}
+\subsubsection{Demonstrative example using transition tables}
 The following example shows the implementation of the FSM presented in section \ref{fsm_example} using the transition table approach with signal-queue and a timeout specification.
 
 Before getting started, the required variables should be defined: 

@@ -19,19 +19,43 @@ qQueue_t top_sigqueue;
 qSM_Signal_t topsm_sig_stack[10];
 
 /*=======================================================================*/
-/*                             TRANSITION TABLE                          */
+/*                             TRANSITION TABLES                         */
 /*=======================================================================*/
-qSM_Transition_t table[] =
+qSM_Transition_t idle_transitions[] =
 {
-{ &state_idle, SIGNAL_ENGINE_ON, SigAct_ClearDesiredSpeed, &state_initial,0 },
-{ &state_initial, SIGNAL_ACCEL, SigAct_BrakeOff, &state_accelerating,0 },
-{ &state_accelerating, SIGNAL_CRUISE, NULL, &state_cruising,0 },    
-{ &state_cruising, SIGNAL_OFF, NULL, &state_cruisingoff,0 },  
-{ &state_cruising, SIGNAL_ACCEL, NULL, &state_accelerating,0 }, 
-{ &state_resuming, SIGNAL_ACCEL, NULL, &state_accelerating,0 }, 
-{ &state_cruisingoff, SIGNAL_ACCEL, SigAct_BrakeOff, &state_accelerating,0 }, 
-{ &state_cruisingoff, SIGNAL_RESUME, SigAct_BrakeOff, &state_resuming,0 },  
-{ &state_cruisingoff, SIGNAL_ENGINE_OFF, NULL, &state_idle,0 },      
-{ &state_automatedcontrol, SIGNAL_BRAKE_PRESSED, NULL, &state_cruisingoff,0 },   
+{ SIGNAL_ENGINE_ON, SigAct_ClearDesiredSpeed, &state_initial      ,0 },
+};
+
+qSM_Transition_t initial_transitions[] =
+{
+{ SIGNAL_ACCEL,     SigAct_BrakeOff,          &state_accelerating ,0 },  
+};
+
+qSM_Transition_t accel_transitions[] =
+{
+{ SIGNAL_CRUISE,     NULL,                    &state_cruising     ,0 },    
+};
+
+qSM_Transition_t cruising_transitions[] =
+{
+{ SIGNAL_OFF,       NULL,                     &state_cruisingoff  ,0 },    
+{ SIGNAL_ACCEL,     NULL,                     &state_accelerating ,0 },    
+};
+
+qSM_Transition_t resuming_transitions[] =
+{
+{ SIGNAL_ACCEL,     NULL,                     &state_accelerating ,0 },       
+};
+
+qSM_Transition_t cruisingoff_transitions[] =
+{   
+{ SIGNAL_ACCEL,      SigAct_BrakeOff,         &state_accelerating ,0 },       
+{ SIGNAL_RESUME,     SigAct_BrakeOff,         &state_resuming     ,0 },              
+{ SIGNAL_ENGINE_OFF, NULL,                    &state_idle         ,0 },           
+};
+
+qSM_Transition_t automated_transitions[] =
+{       
+{ SIGNAL_BRAKE_PRESSED,   NULL,               &state_cruisingoff  ,0 },   
 };
 /*---------------------------------------------------------------------*/
