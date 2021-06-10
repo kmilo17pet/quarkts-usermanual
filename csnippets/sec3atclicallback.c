@@ -1,10 +1,10 @@
 qATCLI_Response_t CMD_Callback( qATCLI_Handler_t h ){
-	qATCLI_Response_t Response = QATCLI_NORESPONSE;
+	qATCLI_Response_t Response = qATCLI_NORESPONSE;
 	int arg1 = 0;
 	float arg2 = 0;
 	/*check the command-type*/
 	switch( h->Type ){
-		case QATCLI_CMDTYPE_PARA:
+		case qATCLI_CMDTYPE_PARA:
 		    if( h->NumArgs > 0 ){
 			    arg1 = h->GetArgInt( 1 ); /*get the first argument as integer*/
 			    if( h->NumArgs > 1){
@@ -12,21 +12,21 @@ qATCLI_Response_t CMD_Callback( qATCLI_Handler_t h ){
 			    }
 		    }
 		  sprintf( h->Output, "arg1 = %d arg2 = %f", arg1, arg2);
-			Response = QATCLI_NORESPONSE;
+			Response = qATCLI_NORESPONSE;
 			break;
-		case QATCLI_CMDTYPE_TEST:
+		case qATCLI_CMDTYPE_TEST:
 		  h->puts( "inmediate message" );
-			Response = QATCLI_OK;
+			Response = qATCLI_OK;
 			break;
-		case QATCLI_CMDTYPE_READ:
+		case qATCLI_CMDTYPE_READ:
 			strcpy( h->Output , "Test message after the callback");
-			Response = QATCLI_OK;
+			Response = qATCLI_OK;
 			break;
-		case QATCLI_CMDTYPE_ACT:
-			Response = QATCLI_OK;
+		case qATCLI_CMDTYPE_ACT:
+			Response = qATCLI_OK;
 			break;			
 		default:
-			Response = QATCLI_ERROR;
+			Response = qATCLI_ERROR;
 			break;
 	}
 	return Response;
