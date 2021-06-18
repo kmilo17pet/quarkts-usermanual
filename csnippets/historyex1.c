@@ -10,20 +10,20 @@ qSM_Signal_t topsm_sig_stack[10];
 qSM_t super;
 qSM_State_t state1, state2, state3, state4, state5, state6;
 
-qSM_Transition_t state3_transitions[] = {
-{ SIGNAL_A, NULL,   &state4,  qSM_TRANSITION_SHALLOW_HISTORY  },  
-{ SIGNAL_E, NULL,   &state4,  qSM_TRANSITION_NO_HISTORY  },  
-{ SIGNAL_F, NULL,   &state4,  qSM_TRANSITION_DEEP_HISTORY  },      
-};
-
-qSM_Transition_t state4_transitions[] = {
-{ SIGNAL_B, NULL,   &state3,  0 }, 
-};
-
 qSM_Transition_t state1_transitions[] = {
-{ SIGNAL_C, NULL,   &state2,  0 },  
+{ SIGNAL_A, NULL,   &state2,  qSM_TRANSITION_SHALLOW_HISTORY  },  
+{ SIGNAL_B, NULL,   &state2,  qSM_TRANSITION_DEEP_HISTORY  },    
+{ SIGNAL_C, NULL,   &state2,  qSM_TRANSITION_NO_HISTORY  },  
 };
 
-qSM_Transition_t state2a_transitions[] = {
-{ SIGNAL_D, NULL,   &state2b, 0 },  
+qSM_Transition_t state2_transitions[] = {
+{ SIGNAL_D, NULL,   &state1, 0 },  
+};
+
+qSM_Transition_t state3_transitions[] = {
+{ SIGNAL_E, NULL,   &state4,  0 }, 
+};
+
+qSM_Transition_t state5_transitions[] = {
+{ SIGNAL_F, NULL,   &state6,  0 },  
 };
