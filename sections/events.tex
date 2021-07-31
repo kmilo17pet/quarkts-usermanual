@@ -160,7 +160,7 @@ The function \lstinline{qTask_EventFlags_Modify} is intended to modify the task 
 \medskip
 
 \begin{lstlisting}[style=CStyle]
-void qTask_EventFlags_Modify( qTask_t * const Task, qTaskFlag_t flags, 
+qBool_t qTask_EventFlags_Modify( qTask_t * const Task, qTaskFlag_t flags, 
                               qBool_t action )
 \end{lstlisting} \index{\lstinline{qTask_EventFlags_Modify}}
 
@@ -386,7 +386,7 @@ This example shows the usage of QuarkTS queues. The application is the classic p
 \subsubsection{Other queue APIs}
 
 \begin{lstlisting}[style=CStyle]
-void qQueue_Reset( qQueue_t * const obj )
+qBool_t qQueue_Reset( qQueue_t * const obj )
 \end{lstlisting}
 
 Resets a queue to its original empty state. \index{\lstinline{qQueue_Reset}}

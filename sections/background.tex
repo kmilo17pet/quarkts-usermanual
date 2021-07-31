@@ -97,7 +97,7 @@ For this, the kernel allows you to select the reference clock source among these
 \medskip 
  
 \begin{lstlisting}[style=CStyle]
-void qOS_Setup( const qGetTickFcn_t TickProvider, 
+qBool_t qOS_Setup( const qGetTickFcn_t TickProvider, 
                 const qTimingBase_t BaseTimming, 
                 qTaskFcn_t IdleCallback )
 \end{lstlisting}
@@ -277,7 +277,7 @@ Defining the release callback,  will help to take actions over the exception tha
 \medskip
 
 \begin{lstlisting}[style=CStyle]
-void qOS_Set_SchedulerReleaseCallback( qTaskFcn_t Callback )
+qBool_t qOS_Set_SchedulerReleaseCallback( qTaskFcn_t Callback )
 \end{lstlisting}
 
 \begin{tcolorbox}
@@ -390,7 +390,7 @@ For this, the \lstinline{qCritical_SetInterruptsED()} \index{\lstinline{qCritica
 \medskip
 
 \begin{lstlisting}[style=CStyle]
-void qCritical_SetInterruptsED( void (*Restorer)(qUINT32_t), 
+qBool_t qCritical_SetInterruptsED( void (*Restorer)(qUINT32_t), 
                                 qUINT32_t (*Disabler)(void) );
 \end{lstlisting}
 
@@ -408,7 +408,7 @@ Most of the scheduling parameters regarding task execution can be changed at run
 
 
 \begin{lstlisting}[style=CStyle]
-void qTask_Set_Time( qTask_t * const Task, const qTime_t Value )
+qBool_t qTask_Set_Time( qTask_t * const Task, const qTime_t Value )
 \end{lstlisting}
 
 Set/Change the task execution interval. \index{\lstinline{qTask_Set_Time}}
@@ -422,7 +422,7 @@ Set/Change the task execution interval. \index{\lstinline{qTask_Set_Time}}
 \noindent\hrulefill
 
 \begin{lstlisting}[style=CStyle]
-void qTask_Set_Iterations( qTask_t * const Task, qIteration_t Value )
+qBool_t qTask_Set_Iterations( qTask_t * const Task, qIteration_t Value )
 \end{lstlisting}
 
 Set/Change the number of task iterations. \index{\lstinline{qTask_Set_Iterations}}
@@ -437,7 +437,7 @@ Set/Change the number of task iterations. \index{\lstinline{qTask_Set_Iterations
 
 
 \begin{lstlisting}[style=CStyle]
-void qTask_Set_Priority( qTask_t * const Task, qPriority_t Value )
+qBool_t qTask_Set_Priority( qTask_t * const Task, qPriority_t Value )
 \end{lstlisting}
 
 Set/Change the task priority value. \index{\lstinline{qTask_Set_Priority}}
@@ -452,7 +452,7 @@ Set/Change the task priority value. \index{\lstinline{qTask_Set_Priority}}
 
 
 \begin{lstlisting}[style=CStyle]
-void qTask_Set_Callback( qTask_t * const Task, qTaskFcn_t CallbackFcn )
+qBool_t qTask_Set_Callback( qTask_t * const Task, qTaskFcn_t CallbackFcn )
 \end{lstlisting}
 
 Set/Change the task callback function. \index{\lstinline{qTask_Set_Callback}}. Can be used to detach an state machine.
@@ -467,11 +467,11 @@ Set/Change the task callback function. \index{\lstinline{qTask_Set_Callback}}. C
 
 
 \begin{lstlisting}[style=CStyle]
-void qTask_Set_State( qTask_t * const Task, const qState_t State ) 
-void qTask_Resume( qTask_t * const Task ) 
-void qTask_Suspend( qTask_t * const Task )
-void qTask_ASleep( qTask_t * const Task )
-void qTask_Awake( qTask_t * const Task )
+qBool_t qTask_Set_State( qTask_t * const Task, const qState_t State ) 
+qBool_t qTask_Resume( qTask_t * const Task ) 
+qBool_t qTask_Suspend( qTask_t * const Task )
+qBool_t qTask_ASleep( qTask_t * const Task )
+qBool_t qTask_Awake( qTask_t * const Task )
 \end{lstlisting}\index{\lstinline{qTask_Resume}} \index{\lstinline{qTask_Suspend}} \index{\lstinline{qTask_ASleep}} \index{\lstinline{qTask_Awake}}
 
 Set the task operability state. \index{\lstinline{qTask_Set_State}} \index{\lstinline{qTask_Resume}} \index{\lstinline{qTask_Suspend}}
@@ -492,7 +492,7 @@ Set the task operability state. \index{\lstinline{qTask_Set_State}} \index{\lsti
 
 
 \begin{lstlisting}[style=CStyle]
-void qTask_Set_Data( qTask_t * const Task, void* UserData )
+qBool_t qTask_Set_Data( qTask_t * const Task, void* UserData )
 \end{lstlisting}
 
 Set the task data. \index{\lstinline{qTask_Set_Data}}
@@ -507,7 +507,7 @@ Set the task data. \index{\lstinline{qTask_Set_Data}}
 
 
 \begin{lstlisting}[style=CStyle]
-void qTask_ClearTimeElapsed( qTask_t * const Task )
+qBool_t qTask_ClearTimeElapsed( qTask_t * const Task )
 \end{lstlisting}
 
 Clear the elapsed time of the task. Restart the internal task tick. \index{\lstinline{qTask_ClearTimeElapsed}}

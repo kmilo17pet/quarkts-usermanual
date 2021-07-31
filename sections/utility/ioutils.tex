@@ -33,7 +33,7 @@ Convert the specified input time(seconds) to time(epochs). \index{\lstinline{qCl
 \noindent\hrulefill
 
 \begin{lstlisting}[style=CStyle]
-void qIOUtil_SwapBytes( void *data, size_t n )
+qBool_t qIOUtil_SwapBytes( void *data, size_t n )
 \end{lstlisting}
 
 Invert the endianess for \lstinline{n} bytes of the specified memory location. \index{\lstinline{qIOUtil_SwapBytes}}
@@ -58,9 +58,9 @@ Check the system endianess. \index{\lstinline{qIOUtil_CheckEndianness}}
 \noindent\hrulefill
 
 \begin{lstlisting}[style=CStyle]
-void qIOUtil_OutputRaw( qPutChar_t fcn, void* storagep, void *data, 
+qBool_t qIOUtil_OutputRaw( qPutChar_t fcn, void* storagep, void *data, 
                         size_t n, qBool_t AIP )
-void qIOUtil_InputRaw( qGetChar_t fcn, void* storagep, void *data, 
+qBool_t qIOUtil_InputRaw( qGetChar_t fcn, void* storagep, void *data, 
                        size_t n, qBool_t AIP )
 \end{lstlisting}
 
@@ -78,7 +78,7 @@ Wrapper methods to write(\lstinline{qIOUtil_OutputRaw}) \index{\lstinline{qIOUti
 \noindent\hrulefill
 
 \begin{lstlisting}[style=CStyle]
-void qIOUtil_OutputString( qPutChar_t fcn, void* storagep, const char *s, 
+qBool_t qIOUtil_OutputString( qPutChar_t fcn, void* storagep, const char *s, 
                            qBool_t AIP )
 \end{lstlisting}
 
@@ -95,7 +95,7 @@ Wrapper method to write a string through \lstinline{fcn}. \index{\lstinline{qIOU
 \noindent\hrulefill
 
 \begin{lstlisting}[style=CStyle]
-void qIOUtil_U32toX( qUINT32_t value, char *str, int8_t n )
+char* qIOUtil_U32toX( qUINT32_t value, char *str, int8_t n )
 \end{lstlisting}
 
 Converts an unsigned integer value to a null-terminated string using the 16 base and stores the result in the array given by \lstinline{str} parameter. \lstinline{str} should be an array long enough to contain any possible value. \index{\lstinline{qIOUtil_U32toX}}
@@ -107,6 +107,8 @@ Converts an unsigned integer value to a null-terminated string using the 16 base
     \item \lstinline{n} : The number of chars used to represent the value in \lstinline{str}. 
 \end{itemize}
 
+\subsubsection*{Return value:}
+A pointer to the resulting null-terminated string, same as parameter \lstinline{str}.
 
 \noindent\hrulefill
 

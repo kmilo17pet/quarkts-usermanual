@@ -49,7 +49,7 @@ To perform operations in another memory pool, besides the \textit{default} pool,
 \medskip
 
 \begin{lstlisting}[style=CStyle]
-void qMemMang_Pool_Select( qMemMang_Pool_t * const mPool )
+qBool_t qMemMang_Pool_Select( qMemMang_Pool_t * const mPool )
 \end{lstlisting}
 
 To keep track of the memory usage, the \lstinline{qMemMang_Get_FreeSize()} \index{\lstinline{qMemMang_Get_FreeSize}} API function returns the number of free bytes in the memory pool at the time the function is called.

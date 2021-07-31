@@ -4,7 +4,7 @@ An interrupt-safe byte-sized ring buffer.
 \medskip
 
 \begin{lstlisting}[style=CStyle]
-void qBSBuffer_Setup( qBSBuffer_t * const obj, volatile qUINT8_t *buffer, 
+qBool_t qBSBuffer_Setup( qBSBuffer_t * const obj, volatile qUINT8_t *buffer, 
                       const size_t length )
 \end{lstlisting}
 

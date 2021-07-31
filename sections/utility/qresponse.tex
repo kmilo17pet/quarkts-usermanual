@@ -4,7 +4,7 @@ An API to simplify the handling of requested responses from terminal interfaces.
 \medskip
 
 \begin{lstlisting}[style=CStyle]
-void qResponse_Setup( qResponse_t * const obj, char *xLocBuff, 
+qBool_t qResponse_Setup( qResponse_t * const obj, char *xLocBuff, 
                       size_t nMax )
 \end{lstlisting}
 
@@ -16,6 +16,9 @@ Initialize the instance of the response handler object. \index{\lstinline{qRespo
     \item \lstinline{xLocBuff} : A pointer to the memory block where the desired response will remain.
     \item \lstinline{nMax} : The size of memory block pointed by \lstinline{xLocBuff}
 \end{itemize}
+
+\subsubsection*{Return value:}
+\lstinline{qTrue} on success, otherwise returns \lstinline{qFalse}.
 
 \noindent\hrulefill
 

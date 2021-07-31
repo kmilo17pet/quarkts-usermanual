@@ -22,7 +22,7 @@ With this special type definition on all custom data, the application writer can
 
 
 \begin{lstlisting}[style=CStyle]
-void qList_Initialize( qList_t * const list )
+qBool_t qList_Initialize( qList_t * const list )
 \end{lstlisting}
 
 Must be called before a list is used.  This initializes all the members of the 
@@ -32,6 +32,10 @@ list object. \index{\lstinline{qList_Initialize}}
 \begin{itemize}
     \item \lstinline{list} : Pointer to the list being initialised. 
 \end{itemize}
+
+\subsubsection*{Return value:}
+\lstinline{qTrue} on success, otherwise returns \lstinline{qFalse}. 
+
 
 \noindent\hrulefill
 
