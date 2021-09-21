@@ -507,14 +507,23 @@ Set the task data. \index{\lstinline{qTask_Set_Data}}
 
 
 \begin{lstlisting}[style=CStyle]
-qBool_t qTask_ClearTimeElapsed( qTask_t * const Task )
+qBool_t qTask_Clear( qTask_t * const Task, const qTask_ClrParam_t param )
 \end{lstlisting}
 
-Clear the elapsed time of the task. Restart the internal task tick. \index{\lstinline{qTask_ClearTimeElapsed}}
+Clear the specified parameter for the task. \index{\lstinline{qTask_Clear}}
 
 \subsubsection*{Parameters:}
 \begin{itemize}
     \item \lstinline{Task} : A pointer to the task node.
+    \item \lstinline{param} : Use one of the following values:
+    \begin{itemize}
+        \item \lstinline{qTask_ClearIterations} : Clear the number of iterations.
+        \item \lstinline{qTask_ClearTimeElapsed} : Clear the time elapsed.
+        \item \lstinline{qTask_ClearCycles} : Clear the number of task activation's. 
+        \item \lstinline{qTask_ClearSimpleNotifications} : Clear the notification value.
+        \item \lstinline{qTask_ClearQueuedNotifications} : Clear all the queued notifications.
+        \item \lstinline{qTask_ClearNotifications} : Clear all notifications (simple and queued).
+    \end{itemize} 
 \end{itemize}
 
 \noindent\hrulefill
