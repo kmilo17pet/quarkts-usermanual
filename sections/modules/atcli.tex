@@ -275,7 +275,7 @@ The recommended implementation is to leave this job be handled by a task instead
 \begin{lstlisting}[style=CStyle]
 qBool_t qOS_Add_ATCLITask( qTask_t * const Task, 
                            qATCLI_t *cli, 
-                           qPriority_t Priority )
+                           qPriority_t Priority, void *arg )
 \end{lstlisting}
 
 \subsubsection*{Parameters}
@@ -283,6 +283,7 @@ qBool_t qOS_Add_ATCLITask( qTask_t * const Task,
     \item \lstinline{Task} : A pointer to the task node. 
     \item \lstinline{Parser} :  A pointer to the AT Command Line Interface instance.
     \item \lstinline{Priority} : Task priority Value. [0(min) - \lstinline{Q_PRIORITY_LEVELS}(max)]
+    \item \lstinline{arg} : Storage pointer. To ignore pass \lstinline{NULL}.
 \end{itemize}
 
 After invoked, both CLI and task are linked together in such a way that when an \textit{input-ready} condition is given, a notification event is sent to the task launching the CLI components. As the task is event-triggered, there is no additional overhead and the writer of the application can assign a priority value to balance the application against other tasks in the scheduling scheme.
