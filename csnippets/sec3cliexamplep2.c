@@ -7,8 +7,7 @@ int main( void ) {
     HAL_Setup();
     qOS_Setup( HAL_GetTick, TIMER_TICK, NULL );   
     qATCLI_Setup( &CLI_Object, BSP_UART_PUTC, CLI_Input, sizeof(CLI_Input), 
-                  CLI_Output, sizeof(CLI_Output),
-			          "Example", NULL, NULL, NULL, NULL);
+                  CLI_Output, sizeof(CLI_Output) );
     
     qATCLI_CmdSubscribe( &CLI_Object, &AT_GPIO, "at+gpio", AT_GPIO_Callback, 
                          QATCLI_CMDTYPE_ACT | QATCLI_CMDTYPE_READ | 

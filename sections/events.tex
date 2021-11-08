@@ -297,39 +297,34 @@ The required RAM for the queue data should be provided by the application writer
 \medskip
  
 \begin{lstlisting}[style=CStyle]
-qBool_t qQueue_Setup( qQueue_t * const obj, void* DataArea, 
-                      size_t ItemSize, size_t ItemsCount )
+qBool_t qQueue_Setup( qQueue_t * const q, void* dataArea, 
+                      size_t itemSize, size_t itemsCount )
 \end{lstlisting}
 
 \subsubsection*{Parameters}
 \begin{itemize}
-    \item \lstinline{obj} : A pointer to the queue object
-    \item \lstinline{DataArea} : Must point to a data block or array of data that is at least large enough to hold the maximum number of items that can be in the queue at any one time
-    \item \lstinline{ItemSize} : Size of one element in the data block
-    \item \lstinline{ItemsCount} : The maximum number of items the queue can hold at any one time.
+    \item \lstinline{q} : A pointer to the queue object
+    \item \lstinline{dataArea} : Must point to a data block or array of data that is at least large enough to hold the maximum number of items that can be in the queue at any one time
+    \item \lstinline{itemSize} : Size of one element in the data block
+    \item \lstinline{itemsCount} : The maximum number of items the queue can hold at any one time.
 \end{itemize}      
     
 \subsubsection{Performing queue operations}
-\index{\lstinline{qQueue_SendToBack}}
+\index{\lstinline{qQueue_Send}}
 \begin{lstlisting}[style=CStyle]
-qBool_t qQueue_SendToBack( qQueue_t * const obj, void *ItemToQueue )
+qBool_t qQueue_Send( qQueue_t * const q, void *itemToQueue,
+                     const qQueue_InsertMode_t pos );
 \end{lstlisting}
-
-\index{\lstinline{qQueue_SendToFront}}
-\begin{lstlisting}[style=CStyle]
-qBool_t qQueue_SendToFront( qQueue_t * const obj, void *ItemToQueue )
-\end{lstlisting}
-
-As might be expected, \lstinline{qQueue_SendToBack()} is used to send data to the back (tail) of a queue, and \lstinline{qQueue_SendToFront()} is used to send data to the front (head) of a queue. \lstinline{qQueue_Send()} \index{\lstinline{qQueue_Send}} is equivalent to, and exactly the same as, \lstinline{qQueue_SendToBack()}.
 
 \subsubsection*{Parameters}
 \begin{itemize}
-    \item \lstinline{obj} : A pointer to the queue object
-    \item \lstinline{ItemToQueue} : A pointer to the item that is to be placed on the queue. The size of the items the queue will hold was defined when the queue was created, so this many bytes will be copied from \lstinline{ItemToQueue} into the queue storage area. 
+    \item \lstinline{q} : A pointer to the queue object
+    \item \lstinline{itemToQueue} : A pointer to the item that is to be placed on the queue. The size of the items the queue will hold was defined when the queue was created, so this many bytes will be copied from \lstinline{ItemToQueue} into the queue storage area. 
+    \item \lstinline{pos} : Can take the value \lstinline{QUEUE_SEND_TO_BACK} to place the item at the back of the queue, or \lstinline{QUEUE_SEND_TO_FRONT} to place the item at the front of the queue (for high priority messages).
 \end{itemize}  
 
 \subsubsection*{Return value}
-\lstinline{qTrue} if data was retrieved from the queue, otherwise returns \lstinline{qFalse}.
+\lstinline{qTrue} on the item was successfully added to the queue, \lstinline{qFalse} if not.
 
 \noindent\hrulefill  
 
@@ -337,13 +332,13 @@ The API \lstinline{qQueue_Receive()} \index{\lstinline{qQueue_Receive}} is used 
 \medskip
 
 \begin{lstlisting}[style=CStyle]
-qBool_t qQueue_Receive( qQueue_t * const obj, void *dest )
+qBool_t qQueue_Receive( qQueue_t * const q, void *dst )
 \end{lstlisting}
 
 \subsubsection*{Parameters}
 \begin{itemize}
-    \item \lstinline{obj} : A pointer to the queue object
-    \item \lstinline{dest} : Pointer to the buffer into which the received item will be copied.
+    \item \lstinline{q} : A pointer to the queue object
+    \item \lstinline{dst} : Pointer to the buffer into which the received item will be copied.
 \end{itemize}  
 
 \subsubsection*{Return value}
@@ -354,16 +349,16 @@ Additional features are provided by the kernel when the queues are attached to t
 \medskip
     
 \begin{lstlisting}[style=CStyle]
-qBool_t qTask_Attach_Queue( qTask_t * const Task, qQueue_t * const Queue,
-                            const qQueue_LinkMode_t Mode, 
+qBool_t qTask_Attach_Queue( qTask_t * const Task, qQueue_t * const q,
+                            const qQueue_LinkMode_t mode, 
                             const qUINT16_t arg )
 \end{lstlisting}
     
 \subsubsection*{Parameters}
 \begin{itemize}
     \item \lstinline{Task} : A pointer to the task node
-    \item \lstinline{Queue} : A pointer to the queue object
-    \item \lstinline{Mode} : Attach mode. This implies the event that will trigger the task according to one of the following modes:
+    \item \lstinline{q} : A pointer to the queue object
+    \item \lstinline{mode} : Attach mode. This implies the event that will trigger the task according to one of the following modes:
     \begin{itemize}
         \item \lstinline{qQueueMode_Receiver} : The task will be triggered if there are elements in the queue. 
         \item \lstinline{qQueueMode_Full} :  The task will be triggered if the queue is full. 

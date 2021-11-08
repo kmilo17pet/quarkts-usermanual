@@ -85,10 +85,8 @@ The instance should be initialized using the \lstinline{qATCLI_Setup()} API \ind
 
 \begin{lstlisting}[style=CStyle]
 qBool_t qATCLI_Setup( qATCLI_t * const cli, const qPutChar_t OutputFcn, 
-                      char *Input, const size_t SizeInput, char *Output, 
-                      const size_t SizeOutput, const char *Identifier, 
-                      const char *OK_Response, const char *ERROR_Response, 
-                      const char *NOTFOUND_Response, const char *term_EOL )
+                      char *Input, const size_t SizeInput, 
+                      char *Output, const size_t SizeOutput )
 \end{lstlisting}
 
 \subsubsection*{Parameters}
@@ -99,11 +97,6 @@ qBool_t qATCLI_Setup( qATCLI_t * const cli, const qPutChar_t OutputFcn,
     \item \lstinline{SizeInput} : The size of the memory allocated in \lstinline{Input}. 
     \item \lstinline{Output} : A memory location to store the parser output. If not used, pass \lstinline{NULL}.
     \item \lstinline{SizeOutput} : The size of the memory allocated in \lstinline{Output}. 
-    \item \lstinline{Identifier} : The device identifier string. This string will be printed-out after a call to the \lstinline{AT_DEFAULT_ID_COMMAND}.
-    \item \lstinline{OK_Response} : The output message when a command callback returns \lstinline{qATCLI_OK}. To use the default, pass \lstinline{NULL}.
-    \item \lstinline{ERROR_Response} : The output message when a command callback returns \lstinline{qATCLI_ERROR} or any \lstinline{qATCLI_ERRORCODE(#)}. To use the default, pass \lstinline{NULL}.
-    \item \lstinline{NOTFOUND_Response } : The output message when input doesn't match with any of  the available commands. To use the default, pass \lstinline{NULL}.
-    \item \lstinline{term_EOL} : The \textit{End-Of-Line} string printed out after any of the parser messages. To use the default, pass \lstinline{NULL}. 
 \end{itemize}
 
 \subsubsection{Subscribing commands to the parser}
