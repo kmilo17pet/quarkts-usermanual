@@ -19,9 +19,8 @@ In QuarkTS, a state-machine must be instantiated with an object of type \lstinli
 \input{fig/fsmdesign}
 
 One important attribute of the \lstinline{qSM_State_t} object is the callback function, which is used to describe the behavior specific to the state. Also there is a pointer to the parent state to define nesting of the state and its place in the hierarchical topology.
-As shown in figure \ref{fig:fsmdesign}, a state machine consist of a least one state the "top level" state.
-So concrete state machine are built by adding an arbitrary number states and defining callback functions. The only
-purpose of the top state is to provide the root of the hierarchy, so that the highest level can return to top as their parent state. 
+As shown in figure \ref{fig:fsmdesign}, a state machine consist of a least one state, the "top level" state.
+So concrete state machine are built by adding an arbitrary number states and defining callback functions. The only purpose of the top state is to provide the root of the hierarchy, so that the highest level can return to top as their parent state. 
 
 \subsubsection{Setting up a state machine : \texorpdfstring{\lstinline{qStateMachine_Setup}}{qStateMachine_Setup} }
 Like any other OS object, a Finite State Machine (FSM) must be explicitly initialized before it can be used. The \lstinline{qStateMachine_Setup()} API \index{\lstinline{qStateMachine_Setup}}  initializes the instance, sets the callback for the top state, sets the initial state and the surrounding callback function.
@@ -84,13 +83,13 @@ qSM_Status_t ExampleState_Callback( qSM_Handler_t h ){
 \end{lstlisting} 
 
 
-\subsubsection{The state callback handler : Performing transitions and retrieving data : }
+\subsubsection{The state callback/handler : Performing transitions and retrieving data : }
 
 Because callback functions are methods derived from the state-machine object, they have direct access to some attributes via the \lstinline{qSM_Handler_t} argument. 
 The usage of this object it's required to make the FSM moves between states and additionally get extra data. The provided attributes are:
 
 \begin{itemize}
-    \item \lstinline{NextState} : Desired next state. The application writer should change this field to another state to produce a state transition in the next FSM's cycle. Changing this field will only take effect when the states is executed under user custom-defined signals or in the absence of signals \lstinline{QSM_SIGNAL_NONE}.
+    \item \lstinline{NextState} : Desired next state. The application writer should change this field to another state to produce a state transition in the next FSM's cycle. Changing this field will only take effect when the state is executed under user custom-defined signals or in the absence of signals \lstinline{QSM_SIGNAL_NONE}.
     \item \lstinline{StartState} :  Desired nested initial state (substate). The application writer should change this field to set the initial transition if the current state its a parent(or composite state). Changing this field attribute only take effect when the state is executed under the \lstinline{QSM_SIGNAL_START} signal.
     \item \lstinline{Signal} (read-only): Received signal. Can have any of the following values: 
     \begin{itemize}
