@@ -1,5 +1,5 @@
 \subsection{STimers}
-There are several situations where the application doesn't need such hard real-time precision for timing actions and we just need that a section of code will execute when at least, some amount of time has elapsed. For these purposes, STimers (Software-Timers) is the right module to use. 
+There are several situations where the application doesn't need such hard real-time precision for timing actions and we just need that a section of code will execute when at least, some amount of time has elapsed. For these purposes, STimers (Software-Timers) is the right extension to use. 
 
 The STimers implementation doesn't access resources from the interrupt context, does not consume any significant processing time unless a timer has actually expired, does not add any processing overhead to the \textit{sys-tick} interrupt, and does not walk any other data structures. The timer service just takes the value of the existing kernel clock source for reference ($\ t_{sys}$ ), allowing timer functionality to be added to an application with minimal impact.
 

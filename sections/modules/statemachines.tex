@@ -1,6 +1,6 @@
 \subsection{Finite State Machines (SM)}
 The state machine is one of the fundamental programming patterns that are most commonly used. This approach breaks down the design into a series of finite steps called "states" that perform some narrowly defined actions. Every state can change to another as a consequence of incoming stimuli also called events or signals. This elemental mechanism allows designers to solve complex engineering problems in a very straightforward way.
-Knowing the importance of this approach in the development of embedded applications, the OS adopts this design pattern as a kernel module.
+Knowing the importance of this approach in the development of embedded applications, the OS adopts this design pattern as a kernel extension.
 
 In an effort to maximize efficiency and minimize complexity, the module implements the basic features of the Harel statecharts to represent hierarchical state machines. This features form a proper subset that approaches in a very minimalist way, some of the specifications of the UML statecharts, including:
 
@@ -394,7 +394,7 @@ This is an elegant method to translate the FSM to actual implementation as the h
 
 Here, the application writer get a quick picture of the FSM and the embedded software maintenance is also much more under control. A transition should be explicitly installed in the target state with the corresponding entries, an \textit{n}-sized array of \lstinline{qSM_Transition_t}\index{\lstinline{qSM_Transition_t}} elements. 
 
-The API \lstinline{qStateMachine_InstallTransitionTable()}, should be used to perform the transition table installation to a specific state.
+The API \lstinline{qStateMachine_Set_StateTransitions()}, should be used to perform the transition table installation to a specific state.
 \medskip
 
 \begin{lstlisting}[style=CStyle]
