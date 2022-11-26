@@ -303,13 +303,14 @@ To send a signal to a state machine, use the following API:
 
 \begin{lstlisting}[style=CStyle]
  qBool_t qStateMachine_SendSignal( qSM_t * const m, qSM_Signal_t xSignal, 
-                                   const qBool_t isUrgent )
+                                   void *sigData, const qBool_t isUrgent )
 \end{lstlisting} \index{\lstinline{qStateMachine_SendSignal}}
 
 \subsubsection*{Parameters}
 \begin{itemize}
     \item \lstinline{m} : A pointer to the FSM object. 
     \item \lstinline{xSignal} : The user-defined signal.
+    \item \lstinline{sigData} : The data associated to the signal.
     \item \lstinline{isUrgent} : If \lstinline{qTrue}, the signal will be sent to the front of the queue. (only if the there is a signal-queue available)
 \end{itemize}
 
@@ -377,15 +378,15 @@ This is an elegant method to translate the FSM to actual implementation as the h
 
 \begin{table}[H]
 \centering
-\begin{tabular}{||c c c c||} 
+\begin{tabular}{||c c c c c||} 
  \hline
-  \textit{Signal} & \textit{Signal action/guard} & \textit{Target state}& \textit{History mode}  \\ [0.5ex] 
+  \textit{Signal Id} & \textit{Signal action/guard} & \textit{Target state}& \textit{History mode}& \textit{Signal data}  \\ [0.5ex] 
  
  \hline\hline
- \ttfamily{Signal1} & \ttfamily{NULL} & \ttfamily{StateB} & 0 \\ 
- \ttfamily{Signal3} & \ttfamily{DoOnSignal3} & \ttfamily{StateD} & 0 \\
- ... & ... & ... & ... \\
- \ttfamily{Signal6} & \ttfamily{NULL} & \ttfamily{StateA} & 0 \\ [1ex] 
+ \ttfamily{Signal1} & \ttfamily{NULL} & \ttfamily{StateB} & 0 & \ttfamily{NULL}\\ 
+ \ttfamily{Signal3} & \ttfamily{DoOnSignal3} & \ttfamily{StateD} & 0 & \ttfamily{sig3_data}  \\
+ ... & ... & ... & ... & ... \\
+ \ttfamily{Signal6} & \ttfamily{NULL} & \ttfamily{StateA} & 0 & \ttfamily{NULL} \\ [1ex] 
  \hline
 \end{tabular}
 \caption{Transition table layout for a state}
@@ -424,7 +425,7 @@ Returns \lstinline{qTrue} on success, otherwise returns \lstinline{qFalse}.
 
 
 \begin{tcolorbox}
-\ArrowBoldDownRight \textit{Note}: When a transition entry is defined. the event-signal should be located as the second parameter of the entry. Please see the transition layout in table \ref{ttable_layout}.
+\ArrowBoldDownRight \textit{Note}: When a transition entry is defined. the event-signal should be located as the first parameter of the entry. Please see the transition layout in table \ref{ttable_layout}.
 \end{tcolorbox}
 
 \subsubsection{Signal actions and guards:} 
@@ -518,6 +519,10 @@ The options for every timeout its a bitwise value that indicates which timeout s
     \item \lstinline{QSM_TSOPT_KEEP_IF_SET} : To apply the Set operation only if the timeout its in a reset state.
     \item \lstinline{QSM_TSOPT_PERIODIC} : To put the timeout in periodic mode.
 \end{itemize}
+
+\begin{tcolorbox}
+\HandRight Data associated to timeout signals should be set to \lstinline{NULL}. Any other value will be ignored and will be passed as \lstinline{NULL} to the FSM handler.
+\end{tcolorbox}
 
 \begin{tcolorbox}
 \HandRight The user is responsible for writing timeout specifications correctly. Care must be taken that the specifications do not collide between hierarchical states to avoid overwriting operations.
