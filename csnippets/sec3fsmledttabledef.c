@@ -1,13 +1,13 @@
 /*define the FSM application event-signals*/
 #define SIGNAL_BUTTON_PRESSED   ( (qSM_SigId_t)1 )
-#define SIGNAL_TIMEOUT          (QSM_SIGNAL_TIMEOUT(0))
-#define SIGNAL_BLINK            (QSM_SIGNAL_TIMEOUT(1))
+#define SIGNAL_TIMEOUT          ( QSM_SIGNAL_TIMEOUT(0) )
+#define SIGNAL_BLINK            ( QSM_SIGNAL_TIMEOUT(1) )
 
 qTask_t LED_Task; /*The task node*/
 qSM_t LED_FSM; /*The state-machine handler*/
 qSM_State_t State_LEDOff, State_LEDOn, State_LEDBlink;
 qQueue_t LEDsigqueue; /*the signal-queue*/ 
-qSM_Signal_t led_sig_stack[5];  /*the signal-queue storage area*/
+qSM_Signal_t led_sig_stack[ 5 ];  /*the signal-queue storage area*/
 qSM_TimeoutSpec_t tm_spectimeout;
 
 /*create the transition tables for every state*/

@@ -8,7 +8,7 @@ qTask_t taskA;
 qMemMang_Pool_t another_heap;
 void taskA_Callback( qEvent_t e );
 
-void taskA_Callback( qEvent_t e ){
+void taskA_Callback( qEvent_t e ) {
     int *xdata = NULL;
     int *ydata = NULL;
     int *xyoper = NULL;
@@ -22,15 +22,15 @@ void taskA_Callback( qEvent_t e ){
     ydata = (int*)qMalloc( n*sizeof(int) ); 
     
     /*use the memory if could be allocated*/
-    if( xdata && ydata && xyoper ){ 
-        for(i=0; i<n; i++){
-            xdata[i] = GetXData();
-            ydata[i] = GetYData();
-            xyoper[i] = xdata[i] * ydata[i];
+    if ( xdata && ydata && xyoper ) { 
+        for( i = 0 ; i < n ; i++ ) { 
+            xdata[ i ] = GetXData();
+            ydata[ i ] = GetYData();
+            xyoper[ i ] = xdata[ i ]*ydata[ i ];
         }
         UseTheMemmory(xyoper);
     }
-    else{
+    else {
         qTrace_Message("ERROR:ALLOCATION_FAIL");
     }
 
@@ -40,13 +40,13 @@ void taskA_Callback( qEvent_t e ){
     qFree( xyoper );
 }
 
-int main(void){
-    char area_another_heap[512]={0};
+int main(void) {
+    char area_another_heap[ 512 ] = { 0 };
     qTrace_Set_OutputFcn( OutPutChar );
     /*Create a memory heap*/
     qMemMang_Pool_Setup( &another_heap, area_another_heap, 512); 
-    qOS_Setup( HAL_GetTick, 0.001, IdleTaskCallback );
-    qOS_Add_Task( &taskA, taskA_Callback, qLowest_Priority, 0.1, 
+    qOS_Setup( HAL_GetTick, 0.001f, IdleTaskCallback );
+    qOS_Add_Task( &taskA, taskA_Callback, qLowest_Priority, 0.1f, 
                   qPeriodic, qEnabled, NULL);
     qOS_Run();
     return 0;

@@ -1,4 +1,4 @@
-void CLI_OutputChar_Wrapper( void *sp, const char c ){ /*CLI output function*/
+void CLI_OutputChar_Wrapper( void *sp, const char c ) { /*CLI output function*/
     (void)sp; /*unused*/
     HAL_UART_WriteChar( UART1, c );
 }
@@ -6,7 +6,7 @@ void CLI_OutputChar_Wrapper( void *sp, const char c ){ /*CLI output function*/
 int main( void ) {    
     HAL_Setup();
     qOS_Setup( HAL_GetTick, TIMER_TICK, NULL );   
-    qATCLI_Setup( &CLI_Object, BSP_UART_PUTC, CLI_Input, sizeof(CLI_Input), 
+    qATCLI_Setup( &CLI_Object, BSP_UART_PUTC, CLI_Input, sizeof(CLI_Input),  
                   CLI_Output, sizeof(CLI_Output) );
     
     qATCLI_CmdSubscribe( &CLI_Object, &AT_GPIO, "at+gpio", AT_GPIO_Callback, 

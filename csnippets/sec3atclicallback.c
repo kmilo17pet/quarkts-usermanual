@@ -1,9 +1,9 @@
-qATCLI_Response_t CMD_Callback( qATCLI_Handler_t h ){
+qATCLI_Response_t CMD_Callback( qATCLI_Handler_t h ) {
 	qATCLI_Response_t Response = qATCLI_NORESPONSE;
 	int arg1 = 0;
 	float arg2 = 0;
 	/*check the command-type*/
-	switch( h->Type ){
+	switch ( h->Type ) {
 		case qATCLI_CMDTYPE_PARA:
 		    if( h->NumArgs > 0 ){
 			    arg1 = h->GetArgInt( 1 ); /*get the first argument as integer*/

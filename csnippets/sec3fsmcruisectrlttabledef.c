@@ -1,11 +1,11 @@
-#define  SIGNAL_ENGINE_ON           ((qSM_SigId_t)(1))   
-#define  SIGNAL_ACCEL               ((qSM_SigId_t)(2))
-#define  SIGNAL_RESUME              ((qSM_SigId_t)(3))
-#define  SIGNAL_OFF                 ((qSM_SigId_t)(4))
-#define  SIGNAL_BRAKE_PRESSED       ((qSM_SigId_t)(5))
-#define  SIGNAL_CRUISE              ((qSM_SigId_t)(6))     
-#define  SIGNAL_REACHED_CRUISING    ((qSM_SigId_t)(7))
-#define  SIGNAL_ENGINE_OFF          ((qSM_SigId_t)(8))
+#define  SIGNAL_ENGINE_ON           ( (qSM_SigId_t)(1) )   
+#define  SIGNAL_ACCEL               ( (qSM_SigId_t)(2) )
+#define  SIGNAL_RESUME              ( (qSM_SigId_t)(3) )
+#define  SIGNAL_OFF                 ( (qSM_SigId_t)(4) )
+#define  SIGNAL_BRAKE_PRESSED       ( (qSM_SigId_t)(5) )
+#define  SIGNAL_CRUISE              ( (qSM_SigId_t)(6) )     
+#define  SIGNAL_REACHED_CRUISING    ( (qSM_SigId_t)(7) )  
+#define  SIGNAL_ENGINE_OFF          ( (qSM_SigId_t)(8) )
 
 qTask_t CruiseControlTask;
 qSM_t Top_SM;
@@ -16,7 +16,7 @@ qSM_State_t state_idle, state_initial, state_cruisingoff, state_automatedcontrol
 qSM_State_t state_accelerating, state_cruising, state_resuming;
 
 qQueue_t top_sigqueue;
-qSM_Signal_t topsm_sig_stack[10];
+qSM_Signal_t topsm_sig_stack[ 10 ];
 
 /*=======================================================================*/
 /*                             TRANSITION TABLES                         */

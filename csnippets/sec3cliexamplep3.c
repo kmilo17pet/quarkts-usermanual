@@ -1,4 +1,4 @@
-void interrupt HAL_UART_RxInterrupt( void ){
+void interrupt HAL_UART_RxInterrupt( void ) {
     char received;
     
     received = HAL_HUART_GetChar( UART1 );

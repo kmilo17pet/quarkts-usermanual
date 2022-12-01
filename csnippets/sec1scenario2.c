@@ -1,13 +1,13 @@
 #include "QuarkTS.h"
 #include "DeviceHeader.h"
 
-#define TIMER_TICK   0.001   /* 1ms */ 
+#define TIMER_TICK   ( 0.001f )   /* 1ms */ 
 
-void Interrupt_Timer0( void ){
+void Interrupt_Timer0( void ) {
     qClock_SysTick();
 }
 
-void main( void ){
+void main( void ) {
     MCU_Init();
     BSP_Setup_Timer0(); 
     qOS_Setup( NULL, TIMER_TICK, IdleTask_Callback ); 

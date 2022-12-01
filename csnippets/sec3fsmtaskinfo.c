@@ -1,13 +1,13 @@
-qSM_Status_t Example_State( qSM_Handler_t h ){
+qSM_Status_t Example_State( qSM_Handler_t h ) {
     qEvent_t e = h->Data; 
     /* Get the event info of the task that owns this state-machine*/
-    switch( h->Signal ){
+    switch ( h->Signal ) {
         case QSM_SIGNAL_ENTRY:
             break;
         case QSM_SIGNAL_EXIT:
             break;
         default:
-            switch( e->Trigger ){
+            switch ( e->Trigger ) {
                 case byTimeElapsed:
                     /* TODO: Code for this case */
                 break;

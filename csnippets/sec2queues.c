@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include "QuarkTS.h"
-#define TIMER_TICK   0.001   /* 1ms */ 
+#define TIMER_TICK   ( 0.001f )   /* 1ms */ 
 
 /*-----------------------------------------------------------------------*/
 void interrupt Timer0_ISR( void ) {
@@ -20,12 +20,12 @@ void TSK_Producer_Callback( qEvent_t e ) {
     static qUINT16_t unData = 0;
     unData++;	
     /*Queue is empty, enable the producer if it was disabled*/
-    if( byQueueEmpty == e->Trigger){
+    if ( byQueueEmpty == e->Trigger ) {
         qTask_Resume( qTask_Self() );
     }
 
     /*send data to the queue*/
-    if( qFalse == qQueue_SendToBack( &UserQueue, &unData ) ){ 
+    if ( qFalse == qQueue_SendToBack( &UserQueue, &unData ) ) { 
         /*
         * if the data insertion fails, the queue is full 
         * and the task disables itself
@@ -38,19 +38,19 @@ void TSK_Producer_Callback( qEvent_t e ) {
 void TSK_Consumer_Callback( qEvent_t e ) {
     qUINT16_t unData;
     qQueue_t *ptrQueue; /*a pointer to the queue that triggers the event*/
-    if( byQueueCount == e->Trigger ){
+    if ( byQueueCount == e->Trigger ) {
 	    ptrQueue = (qQueue_t *)e->EventData;
 	    qQueue_Receive( ptrQueue, &unData );
 	    return;
     }
 }
 /*-----------------------------------------------------------------------*/
-void IdleTask_Callback( qEvent_t e ){
+void IdleTask_Callback( qEvent_t e ) {
     /*nothing to do...*/
 }	
 /*-----------------------------------------------------------------------*/
 int main( void ) {    
-    qUINT8_t BufferMem[ 16*sizeof(qUINT16_t) ] = {0};  
+    qUINT8_t BufferMem[ 16*sizeof(qUINT16_t) ] = { 0u };  
     HardwareSetup();  //hardware specific code
     /* next line is used to setup hardware with specific code to fire
      * interrupts at 1ms - timer tick*/
@@ -64,7 +64,7 @@ int main( void ) {
                  
     /*  Append the producer task with 100mS rate. */
     qOS_Add_Task( &TSK_PRODUCER, TSK_Producer_Callback, 
-                  qMedium_Priority, 0.1, qPeriodic, qEnabled, 
+                  qMedium_Priority, 0.1f, qPeriodic, qEnabled, 
                   "producer" );
     /* Append the consumer as an event task. The consumer will
      * wait until an event trigger their execution

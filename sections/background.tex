@@ -98,8 +98,8 @@ For this, the kernel allows you to select the reference clock source among these
  
 \begin{lstlisting}[style=CStyle]
 qBool_t qOS_Setup( const qGetTickFcn_t TickProvider, 
-                const qTimingBase_t BaseTimming, 
-                qTaskFcn_t IdleCallback )
+                   const qTimingBase_t BaseTimming, 
+                   qTaskFcn_t IdleCallback )
 \end{lstlisting}
 
 \subsubsection*{Parameters}
@@ -150,7 +150,7 @@ Every task node, must be defined using the \lstinline{qTask_t} \index{\lstinline
 
 \begin{lstlisting}[style=CStyle]
 qTask_t UserTask;
-void UserTask_Callback( qEvent_t eventdata ){
+void UserTask_Callback( qEvent_t eventdata ) {
     /* TODO : Task code */
 }
 \end{lstlisting}
@@ -391,7 +391,7 @@ For this, the \lstinline{qCritical_SetInterruptsED()} \index{\lstinline{qCritica
 
 \begin{lstlisting}[style=CStyle]
 qBool_t qCritical_SetInterruptsED( void (*Restorer)(qUINT32_t), 
-                                qUINT32_t (*Disabler)(void) );
+                                   qUINT32_t (*Disabler)(void) );
 \end{lstlisting}
 
 \subsubsection*{Parameters:}
@@ -631,7 +631,7 @@ A task will be added to the scheme to collect the sensor data and apply the resp
 \medskip
 
 \begin{lstlisting}[style=CStyle]
-qOS_Add_Task( &IO_TASK, IO_TASK_Callback, qMedium_Priority, 0.1, qPeriodic, 
+qOS_Add_Task( &IO_TASK, IO_TASK_Callback, qMedium_Priority, 0.1f, qPeriodic, 
               qEnabled, "iotask");
 \end{lstlisting}
 

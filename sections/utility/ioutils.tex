@@ -252,37 +252,3 @@ with any value different to zero (0). \index{\lstinline{qIOUtil_BtoA}}
 \subsubsection*{Return value:}
 A pointer to the resulting null-terminated string, same as parameter \lstinline{str}.
 
-
-
-\noindent\hrulefill
-
-\begin{lstlisting}[style=CStyle]
-qBool_t qIOUtil_IsNan( qFloat32_t f )
-\end{lstlisting}
-
-Determines if the given floating point number \lstinline{f} is a not-a-number(\lstinline{NaN}) value. \index{\lstinline{qIOUtil_IsNan}}
-
-\subsubsection*{Parameters:}
-\begin{itemize}
-    \item \lstinline{f} : Floating point value(32bits).
-\end{itemize}
-
-\subsubsection*{Return value:}
-\lstinline{qTrue} if input is \lstinline{NaN}, otherwise \lstinline{qFalse}.
-
-
-\noindent\hrulefill
-
-\begin{lstlisting}[style=CStyle]
-qBool_t qIOUtil_IsInf( qFloat32_t f )
-\end{lstlisting}
-
-Determines if the given floating point number \lstinline{f} is positive or negative infinity. \index{\lstinline{qIOUtil_IsInf}}
-
-\subsubsection*{Parameters:}
-\begin{itemize}
-    \item \lstinline{f} : Floating point value(32bits).
-\end{itemize}
-
-\subsubsection*{Return value:}
-\lstinline{qTrue} is argument has an infinite value, otherwise \lstinline{qFalse}.

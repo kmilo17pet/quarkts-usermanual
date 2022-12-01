@@ -161,7 +161,7 @@ The function \lstinline{qTask_EventFlags_Modify} is intended to modify the task 
 
 \begin{lstlisting}[style=CStyle]
 qBool_t qTask_EventFlags_Modify( qTask_t * const Task, qTaskFlag_t flags, 
-                              qBool_t action )
+                                 qBool_t action )
 \end{lstlisting} \index{\lstinline{qTask_EventFlags_Modify}}
 
 \subsubsection*{Parameters}
@@ -238,13 +238,13 @@ This data structure is defined as:
 \medskip
 
 \begin{lstlisting}[style=CStyle]
-typedef struct{
+typedef struct {
     qTrigger_t Trigger;
     void *TaskData;
     void *EventData;
     qBool_t FirstCall, FirstIteration, LastIteration;
     qClock_t StartDelay;
-}qEvent_t;
+} qEvent_t;
 \end{lstlisting}
 
 Each field of the structure is described as follows

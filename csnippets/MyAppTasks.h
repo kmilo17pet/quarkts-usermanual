@@ -4,7 +4,7 @@
     #include "Globals.h"
     #include "QuarkTS.h"
     
-    extern qTask_t CommunicationTask, HardwareCheckTask, 
+    extern qTask_t CommunicationTask, HardwareCheckTask,
                   CheckUserEventsTask, SignalAnalisysTask;
     
     void CommunicationTask_Callback( qEvent_t );

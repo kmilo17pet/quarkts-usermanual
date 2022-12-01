@@ -1,4 +1,4 @@
-void PIDControl_Callback( qEvent_t e ){
+void PIDControl_Callback( qEvent_t e ) {
     float Error, derivative;
     /* 
     Obtain the reference to the specific PID controller 
@@ -14,7 +14,7 @@ void PIDControl_Callback( qEvent_t e ){
     /*update the previous error*/
     Controller->pe = Error;
     /*compute the pid control law*/
-    Controller->ut = Controller->Kc*Error  +  
+    Controller->ut = Controller->Kc*Error +  
                      Controller->Ki*Controller->ie + 
                      Controller->Kd*derivative;
 }

@@ -1,8 +1,8 @@
-void Example_Task( qEvent_t e ){
+void Example_Task( qEvent_t e ) {
     static qSTimer_t timeout = QSTIMER_INITIALIZER;
-    if( e->FirstCall ){
+    if( e->FirstCall ) {
         /*Arming the stimer for  3.5 seg*/
-        qSTimer_Set( &timeout, 3.5 );
+        qSTimer_Set( &timeout, 3.5f );
     }
     
     /*non-blocking delay, true when timeout expires*/

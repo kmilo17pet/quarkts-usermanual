@@ -1,8 +1,8 @@
-qATCLI_Response_t AT_GPIO_Callback( qATCLI_Handler_t h ){
+qATCLI_Response_t AT_GPIO_Callback( qATCLI_Handler_t h ) {
 	qATCLI_Response_t RetValue = qATCLI_ERROR;
     int pin, value;
 
-	switch( h->Type ){
+	switch ( h->Type ) {
     	case qATCLI_CMDTYPE_ACT: /*< AT+gpio */
     		RetValue = qATCLI_OK;
     		break;
@@ -27,10 +27,10 @@ qATCLI_Response_t AT_GPIO_Callback( qATCLI_Handler_t h ){
 	return RetValue;    
 }
 /*==================================================================*/
-qATCLI_Response_t AT_INFO_Callback( qATCLI_Handler_t h ){
+qATCLI_Response_t AT_INFO_Callback( qATCLI_Handler_t h ) {
 	qATCLI_Response_t RetValue = qATCLI_ERROR;
 
-	switch( param->Type ){
+	switch ( param->Type ) {
     	case qATCLI_CMDTYPE_ACT: /*< AT+info */
     	  strcpy( h->Output, "Compilation: " __DATE__ " " __TIME__ );
     		RetValue = qATCLI_NORESPONSE;

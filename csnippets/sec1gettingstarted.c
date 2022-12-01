@@ -1,7 +1,7 @@
 #include "QuarkTS.h"
-#define TIMER_TICK   0.001   /* 1ms */ 
+#define TIMER_TICK   ( 0.001f )   /* 1ms */ 
 
-void main( void ){
+void main( void ) {
     /*start of hardware specific code*/
     HardwareSetup();  
     Configure_Periodic_Timer_Interrupt_1ms(); 

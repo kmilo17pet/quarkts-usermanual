@@ -2,16 +2,16 @@
 #include "Globals.h"
 #include "MyAppTasks.h"
 
-void interrupt OnTimerInterrupt( void ){ //hardware specific code
+void interrupt OnTimerInterrupt( void ) { //hardware specific code
     qClock_SysTick();
 }
 
-void main( void ){
+void main( void ) {
     /*start of hardware specific code*/
     HardwareSetup();
     Configure_Periodic_Timer_Interrupt_10ms(); 
     /*end of hardware specific code*/
-    qOS_Setup( NULL, 0.01, IdleTask_Callback ); 
+    qOS_Setup( NULL, 0.01f, IdleTask_Callback ); 
     qOS_Add_Task( HardwareCheckTask, HardwareCheckTask_Callback,
                   qLowest_Priority, 0.25, qPeriodic, qEnabled, NULL );
     qOS_Add_Task( SignalAnalisysTask, SignalAnalisysTask_Callback, 
