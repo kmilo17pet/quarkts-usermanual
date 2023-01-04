@@ -172,7 +172,7 @@ The return value (an enum of type \lstinline{qATCLI_Response_t}) \index{\lstinli
 \begin{itemize}
     \item \lstinline{qATCLI_OK} : as expected, print out the \lstinline{OK} string.
     \item \lstinline{qATCLI_ERROR} : as expected, print out the \lstinline{ERROR} string.
-    \item \lstinline{qATCLI_ERRORCODE(no)} : Used to indicate an error code. This code is defined by the application writer and should be a value between 1 and 32766. For example, a return value of \lstinline{QATCLI_ERRORCODE(15)}, will print out the string \lstinline{ERROR:15}.
+    \item \lstinline{qATCLI_ERROR_CODE(no)} : Used to indicate an error code. This code is defined by the application writer and should be a value between 1 and 32766. For example, a return value of \lstinline{QATCLI_ERROR_CODE(15)}, will print out the string \lstinline{ERROR:15}.
     \item \lstinline{qATCLI_NORESPONSE} : No response will be printed out.
 \end{itemize}
 
